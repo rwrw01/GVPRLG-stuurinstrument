@@ -185,13 +185,22 @@
         Dit is een demonstratie met voorbeelddata. De scores zijn fictief ter illustratie van het meetinstrument.
       </div>
 
-      <h2 style="margin:1rem 0;">Geintegreerd overzicht ${jaar} — alle platformen</h2>
+      <h2 style="margin:1rem 0;">Totaaloverzicht ${jaar}</h2>
 
       <div class="dashboard-grid">
-        <div class="card" style="grid-column: 1 / -1; max-width: 600px; margin: 0 auto;">
-          <h3>Alle platformen in één radardiagram</h3>
-          <div class="chart-container" style="max-width:500px;">
-            <canvas id="radar-integrated"></canvas>
+        <div class="card" style="max-width: 500px;">
+          <h3>Organisatie — totaalgemiddelde</h3>
+          <div class="chart-container" style="max-width:450px;">
+            <canvas id="radar-org-top"></canvas>
+          </div>
+          <p style="text-align:center;margin-top:0.5rem;font-size:1.3rem;font-weight:700;">
+            Totaal: ${ogTotal.toFixed(1)} / 5
+          </p>
+        </div>
+        <div class="card" style="max-width: 500px;">
+          <h3>NDS-gereedheid — totaalgemiddelde</h3>
+          <div class="chart-container" style="max-width:450px;">
+            <canvas id="nds-org-top"></canvas>
           </div>
         </div>
       </div>
@@ -268,17 +277,14 @@
 
     // ─── CHARTS ─────────────────────────────────────────
 
-    // 1. GEINTEGREERD: alle platformen in één radardiagram
-    const integratedDatasets = CONFIG.platformen.map((p, i) => {
-      const pd = buildPlatformData(demoData[jaar][p.id]);
-      return {
-        label: p.naam,
-        scores: gemPerAs(pd),
-        borderColor: PLATFORM_COLORS[i].border,
-        fillColor: PLATFORM_COLORS[i].fill,
-      };
-    });
-    createRadarChart('radar-integrated', integratedDatasets);
+    // 1. Totaalgemiddelde organisatie (bovenaan)
+    createRadarChart('radar-org-top', [{
+      label: `Organisatie ${jaar}`, scores: og,
+      borderColor: '#000041', fillColor: 'rgba(0, 0, 65, 0.15)',
+    }]);
+
+    // NDS totaal (bovenaan)
+    createNdsRadarChart('nds-org-top', [{ label: `NDS ${jaar}`, scores: orgNds(jaar) }]);
 
     // 2. Per platform individueel
     for (const p of CONFIG.platformen) {
