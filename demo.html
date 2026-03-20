@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demo — Volwassenheidsmeting GV PinkRoccade LG</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Volwassenheidsmeting PinkRoccade Local Government</h1>
+    <p class="subtitle">Gebruikersvereniging PinkRoccade LG — Demo met voorbeelddata</p>
+  </header>
+  <main id="demo"></main>
+  <script type="module">
+    import { CONFIG } from './js/config.js';
+    import { createRadarChart, createNdsRadarChart, createDetailBars } from './js/charts.js';
+
+    // ─── SYNTHETISCHE DATA ──────────────────────────────
+    const demoData = {
+      2025: {
+        belastingen:    { techniek: [2, 2, 1, 3], mens: [3, 2, 2, 2], proces: [2, 2, 2, 1] },
+        burgerzaken:    { techniek: [3, 2, 2, 3], mens: [3, 3, 3, 3], proces: [3, 3, 3, 2] },
+        'sociaal-domein': { techniek: [2, 1, 1, 2], mens: [2, 2, 2, 2], proces: [2, 2, 2, 1] },
+        informatievoorziening: { techniek: [3, 2, 2, 3], mens: [3, 2, 3, 3], proces: [3, 2, 3, 2] },
+      },
+      2026: {
+        belastingen:    { techniek: [3, 3, 2, 4], mens: [4, 3, 3, 3], proces: [3, 3, 3, 2] },
+        burgerzaken:    { techniek: [4, 3, 3, 4], mens: [4, 4, 4, 3], proces: [4, 3, 4, 3] },
+        'sociaal-domein': { techniek: [3, 2, 2, 3], mens: [3, 3, 3, 3], proces: [3, 3, 3, 2] },
+        informatievoorziening: { techniek: [4, 3, 3, 4], mens: [4, 3, 4, 3], proces: [4, 3, 4, 3] },
+      },
+    };
+
+    function buildPlatformData(scores) {
+      const pd = {};
+      CONFIG.assen.forEach((as, ai) => {
+        pd[as.id] = {};
+        as.vragen.forEach((v, vi) => {
+          pd[as.id][v.id] = { score: scores[as.id][vi], toelichting: '' };
+        });
+      });
+      return pd;
+    }
+
+    function avg(arr) { return arr.reduce((s, v) => s + v, 0) / arr.length; }
+
+    function gemPerAs(pd) {
+      const r = {};
+      for (const as of CONFIG.assen) {
+        const scores = as.vragen.map((v) => pd[as.id][v.id]?.score).filter((s) => s != null);
+        r[as.id] = scores.length > 0 ? avg(scores) : null;
+      }
+      return r;
+    }
+
+    function totaalGem(pd) {
+      const vals = Object.values(gemPerAs(pd)).filter((v) => v != null);
+      return vals.length > 0 ? avg(vals) : null;
+    }
+
+    function ndsScores(pd) {
+      const r = {};
+      for (const as of CONFIG.assen) {
+        for (const v of as.vragen) {
+          if (v.nds && pd[as.id][v.id]?.score != null) r[v.nds] = pd[as.id][v.id].score;
+        }
+      }
+      return r;
+    }
+
+    function orgGem(jaar) {
+      const r = {};
+      for (const as of CONFIG.assen) {
+        const scores = [];
+        for (const pId of Object.keys(demoData[jaar])) {
+          const pd = buildPlatformData(demoData[jaar][pId]);
+          const g = gemPerAs(pd);
+          if (g[as.id] != null) scores.push(g[as.id]);
+        }
+        r[as.id] = scores.length > 0 ? avg(scores) : null;
+      }
+      return r;
+    }
+
+    function orgNds(jaar) {
+      const themaScores = {};
+      CONFIG.ndsThemas.forEach((t) => themaScores[t.id] = []);
+      for (const pId of Object.keys(demoData[jaar])) {
+        const pd = buildPlatformData(demoData[jaar][pId]);
+        const ns = ndsScores(pd);
+        for (const [t, s] of Object.entries(ns)) {
+          themaScores[t]?.push(s);
+        }
+      }
+      const r = {};
+      for (const [t, s] of Object.entries(themaScores)) {
+        r[t] = s.length > 0 ? avg(s) : null;
+      }
+      return r;
+    }
+
+    function scoreClass(s) {
+      if (s < 2) return 'score-1';
+      if (s < 3) return 'score-3';
+      return 'score-4';
+    }
+
+    // ─── RENDER ─────────────────────────────────────────
+    const demo = document.getElementById('demo');
+    const jaar = 2026;
+    const charts = [];
+
+    const og = orgGem(jaar);
+    const ogTotal = avg(Object.values(og).filter((v) => v != null));
+
+    // Overview table
+    let tableRows = '';
+    for (const p of CONFIG.platformen) {
+      const pd = buildPlatformData(demoData[jaar][p.id]);
+      const g = gemPerAs(pd);
+      const t = totaalGem(pd);
+      tableRows += `<tr>
+        <td><strong>${p.naam}</strong></td>
+        ${CONFIG.assen.map((a) => `<td class="${scoreClass(g[a.id])}">${g[a.id]?.toFixed(1) ?? '-'}</td>`).join('')}
+        <td><strong>${t?.toFixed(1) ?? '-'}</strong></td>
+      </tr>`;
+    }
+    tableRows += `<tr style="border-top:2px solid var(--color-text);">
+      <td><strong>Organisatie</strong></td>
+      ${CONFIG.assen.map((a) => `<td><strong>${og[a.id]?.toFixed(1) ?? '-'}</strong></td>`).join('')}
+      <td><strong>${ogTotal.toFixed(1)}</strong></td>
+    </tr>`;
+
+    // NDS table
+    let ndsRows = '';
+    for (const p of CONFIG.platformen) {
+      const pd = buildPlatformData(demoData[jaar][p.id]);
+      const ns = ndsScores(pd);
+      const ndsGem = Object.values(ns);
+      const ndsAvg = ndsGem.length > 0 ? avg(ndsGem) : null;
+      ndsRows += `<tr>
+        <td><strong>${p.naam}</strong></td>
+        ${CONFIG.ndsThemas.map((t) => `<td>${ns[t.id] != null ? ns[t.id] : '-'}</td>`).join('')}
+        <td><strong>${ndsAvg?.toFixed(1) ?? '-'}</strong></td>
+      </tr>`;
+    }
+
+    // Delta table (2025 vs 2026)
+    let deltaRows = '';
+    for (const p of CONFIG.platformen) {
+      const pd25 = buildPlatformData(demoData[2025][p.id]);
+      const pd26 = buildPlatformData(demoData[2026][p.id]);
+      const t25 = totaalGem(pd25);
+      const t26 = totaalGem(pd26);
+      const delta = t26 - t25;
+      const deltaColor = delta > 0 ? 'var(--color-success)' : delta < 0 ? 'var(--color-danger)' : 'var(--color-muted)';
+      deltaRows += `<tr>
+        <td><strong>${p.naam}</strong></td>
+        <td>${t25.toFixed(1)}</td>
+        <td>${t26.toFixed(1)}</td>
+        <td style="font-weight:600;color:${deltaColor}">${delta > 0 ? '+' : ''}${delta.toFixed(1)}</td>
+      </tr>`;
+    }
+
+    demo.innerHTML = `
+      <div class="alert alert-info" role="alert">
+        Dit is een demonstratie met voorbeelddata. De scores zijn fictief ter illustratie van het meetinstrument.
+      </div>
+
+      <h2 style="margin:1rem 0;">Dashboard ${jaar}</h2>
+
+      <div class="card">
+        <h3>Totaaloverzicht</h3>
+        <table aria-label="Scores per platform">
+          <thead><tr><th>Platform</th>${CONFIG.assen.map((a) => `<th>${a.naam}</th>`).join('')}<th>Gemiddeld</th></tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>
+
+      <div class="dashboard-grid">
+        ${CONFIG.platformen.map((p) => `
+          <div class="card">
+            <h3>${p.naam}</h3>
+            <div class="chart-container"><canvas id="radar-${p.id}"></canvas></div>
+          </div>
+        `).join('')}
+        <div class="card">
+          <h3>Organisatie totaal</h3>
+          <div class="chart-container"><canvas id="radar-org"></canvas></div>
+        </div>
+      </div>
+
+      <h2 style="margin:1.5rem 0 1rem;">NDS-gereedheid</h2>
+      <div class="card">
+        <h3>Nederlandse Digitaliseringsstrategie — scores per platform</h3>
+        <table aria-label="NDS scores">
+          <thead><tr><th>Platform</th>${CONFIG.ndsThemas.map((t) => `<th>${t.id}</th>`).join('')}<th>NDS gem.</th></tr></thead>
+          <tbody>${ndsRows}</tbody>
+        </table>
+      </div>
+      <div class="dashboard-grid">
+        <div class="card">
+          <h3>NDS Radardiagram — Organisatie</h3>
+          <div class="chart-container"><canvas id="nds-org"></canvas></div>
+        </div>
+      </div>
+
+      <h2 style="margin:1.5rem 0 1rem;">Jaarlijkse vergelijking (2025 vs 2026)</h2>
+      <div class="card">
+        <h3>Delta-tabel</h3>
+        <table aria-label="Vergelijking per jaar">
+          <thead><tr><th>Platform</th><th>2025</th><th>2026</th><th>Delta</th></tr></thead>
+          <tbody>${deltaRows}</tbody>
+        </table>
+      </div>
+      <div class="dashboard-grid">
+        ${CONFIG.platformen.map((p) => `
+          <div class="card">
+            <h3>${p.naam} — Vergelijking</h3>
+            <div class="chart-container"><canvas id="vgl-${p.id}"></canvas></div>
+          </div>
+        `).join('')}
+        <div class="card">
+          <h3>Organisatie — Vergelijking</h3>
+          <div class="chart-container"><canvas id="vgl-org"></canvas></div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid" style="margin-top:1.5rem;">
+        ${CONFIG.platformen.map((p) => `
+          <div class="card">
+            <h3>${p.naam} — Detail per vraag</h3>
+            <div id="detail-${p.id}"></div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+
+    // ─── CHARTS ─────────────────────────────────────────
+    const COLORS = [
+      { border: '#E2007A', fill: 'rgba(226, 0, 122, 0.15)' },
+      { border: '#3786D2', fill: 'rgba(55, 134, 210, 0.15)' },
+    ];
+
+    // Platform radar charts (2026)
+    for (const p of CONFIG.platformen) {
+      const pd = buildPlatformData(demoData[jaar][p.id]);
+      createRadarChart(`radar-${p.id}`, [{ label: p.naam, scores: gemPerAs(pd) }]);
+    }
+
+    // Org radar (2026)
+    createRadarChart('radar-org', [{
+      label: `Organisatie ${jaar}`, scores: og,
+      borderColor: '#000041', fillColor: 'rgba(0, 0, 65, 0.15)',
+    }]);
+
+    // NDS radar
+    createNdsRadarChart('nds-org', [{ label: `NDS ${jaar}`, scores: orgNds(jaar) }]);
+
+    // Year comparison per platform
+    for (const p of CONFIG.platformen) {
+      const pd25 = buildPlatformData(demoData[2025][p.id]);
+      const pd26 = buildPlatformData(demoData[2026][p.id]);
+      createRadarChart(`vgl-${p.id}`, [
+        { label: '2025', scores: gemPerAs(pd25), ...COLORS[1] },
+        { label: '2026', scores: gemPerAs(pd26), ...COLORS[0] },
+      ]);
+    }
+
+    // Org comparison
+    createRadarChart('vgl-org', [
+      { label: '2025', scores: orgGem(2025), ...COLORS[1] },
+      { label: '2026', scores: orgGem(2026), ...COLORS[0] },
+    ]);
+
+    // Detail bars
+    for (const p of CONFIG.platformen) {
+      const pd = buildPlatformData(demoData[jaar][p.id]);
+      createDetailBars(`detail-${p.id}`, pd);
+    }
+  </script>
+</body>
+</html>

@@ -11,6 +11,6 @@ export default defineConfig({
   webServer: {
     command: 'npx serve -l 3456 .',
     port: 3456,
-    reuseExistingServer: false,
+    reuseExistingServer: true,
   },
 });

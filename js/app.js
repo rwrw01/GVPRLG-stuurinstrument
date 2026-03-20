@@ -190,10 +190,11 @@ function renderInvullen(jaar, platformId) {
         <h2 style="color:${as.kleur}">${as.naam}</h2>
         ${as.vragen.map((v, vi) => {
           const current = existing?.[as.id]?.[v.id];
-          const ndsTag = v.nds ? `<span class="nds-tag">NDS: ${v.nds}</span>` : '';
+          const ndsTag = v.nds ? `<span class="nds-tag">NDS</span>` : '';
           return `
-            <div class="question-block">
-              <p class="question-text"><span class="question-nr">${vi + 1}.</span>${v.tekst}${ndsTag}</p>
+            <div class="question-row">
+              <span class="question-nr">${vi + 1}.</span>
+              <span class="question-text-compact">${v.tekst}${ndsTag}</span>
               <div class="score-group" role="radiogroup" aria-label="${v.tekst}">
                 ${CONFIG.schaal.map((s) => `
                   <label class="score-option">
@@ -201,14 +202,8 @@ function renderInvullen(jaar, platformId) {
                       ${current?.score === s.waarde ? 'checked' : ''}
                       aria-label="${s.waarde} - ${s.label}: ${s.beschrijving}">
                     <span class="score-btn">${s.waarde}</span>
-                    <span class="score-label">${s.label}</span>
                   </label>
                 `).join('')}
-              </div>
-              <div class="form-group" style="margin-top:0.5rem;">
-                <label for="toel-${as.id}-${v.id}" class="sr-only">Toelichting bij ${v.id}</label>
-                <textarea id="toel-${as.id}-${v.id}" name="toelichting-${as.id}-${v.id}" placeholder="Toelichting (optioneel)"
-                  rows="2">${current?.toelichting || ''}</textarea>
               </div>
             </div>`;
         }).join('')}
@@ -228,10 +223,9 @@ function renderInvullen(jaar, platformId) {
       scores[as.id] = {};
       for (const v of as.vragen) {
         const radio = document.querySelector(`input[name="${as.id}-${v.id}"]:checked`);
-        const textarea = document.querySelector(`textarea[name="toelichting-${as.id}-${v.id}"]`);
         scores[as.id][v.id] = {
           score: radio ? parseInt(radio.value, 10) : null,
-          toelichting: textarea?.value?.trim() || '',
+          toelichting: '',
         };
       }
     }

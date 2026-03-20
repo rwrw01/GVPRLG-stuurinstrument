@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:brandfetch.com)",
+      "WebFetch(domain:www.pinkroccadelocalgovernment.nl)",
+      "WebFetch(domain:cdn.jsdelivr.net)",
+      "Bash(curl -s \"https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js\")",
+      "Bash(openssl dgst:*)",
+      "Bash(openssl base64:*)",
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(npx playwright:*)"
+    ]
+  }
+}

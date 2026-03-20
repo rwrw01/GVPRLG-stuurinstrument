@@ -103,11 +103,35 @@ main { max-width: 1200px; margin: 0 auto; padding: 2rem; }
 
 .form-group textarea { resize: vertical; min-height: 60px; }
 
+/* Compact question row */
+.question-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.question-row:last-child { border-bottom: none; }
+
+.question-row .question-nr {
+  font-weight: 700;
+  color: var(--color-accent);
+  min-width: 1.5rem;
+  flex-shrink: 0;
+}
+
+.question-text-compact {
+  flex: 1;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
 /* Score radio buttons */
 .score-group {
   display: flex;
   gap: 0.25rem;
-  margin-top: 0.4rem;
+  flex-shrink: 0;
 }
 
 .score-option {
@@ -120,8 +144,8 @@ main { max-width: 1200px; margin: 0 auto; padding: 2rem; }
 .score-option input[type="radio"] { display: none; }
 
 .score-option .score-btn {
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
