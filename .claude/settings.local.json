@@ -10,7 +10,8 @@
       "Bash(openssl base64:*)",
       "Bash(npm init:*)",
       "Bash(npm install:*)",
-      "Bash(npx playwright:*)"
+      "Bash(npx playwright:*)",
+      "Bash(start:*)"
     ]
   }
 }
