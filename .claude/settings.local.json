@@ -11,7 +11,11 @@
       "Bash(npm init:*)",
       "Bash(npm install:*)",
       "Bash(npx playwright:*)",
-      "Bash(start:*)"
+      "Bash(start:*)",
+      "Bash(gh repo:*)",
+      "Bash(gh api:*)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://rwrw01.github.io/GVPRLG-stuurinstrument/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://rwrw01.github.io/GVPRLG-stuurinstrument/index.html)"
     ]
   }
 }
