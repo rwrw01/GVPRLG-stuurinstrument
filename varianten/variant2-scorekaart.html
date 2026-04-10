@@ -3,474 +3,591 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Variant 2 — Scorekaart Dashboard</title>
+    <title>Scorekaart — Volwassenheidsmeting PinkRoccade LG</title>
     <style>
-        *, *::before, *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #f4f5f7;
             color: #000041;
             min-height: 100vh;
-            padding: 0;
         }
 
         header {
             background: #000041;
             color: #fff;
-            padding: 2rem 2.5rem 1.8rem;
+            padding: 1.5rem 2.5rem 1.2rem;
         }
+        header h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.2rem; }
+        header h1 span { color: #E2007A; }
+        header p { font-size: 0.9rem; opacity: 0.7; }
 
-        header h1 {
-            font-size: 1.6rem;
-            font-weight: 700;
-            margin-bottom: 0.25rem;
-        }
-
-        header h1 span {
-            color: #E2007A;
-        }
-
-        header p {
-            font-size: 0.95rem;
-            opacity: 0.75;
-            font-weight: 400;
-        }
-
-        .container {
-            max-width: 960px;
-            margin: 0 auto;
-            padding: 2rem 1.5rem 3rem;
-        }
-
-        /* Legend */
-        .legend {
+        /* ── Tabs ── */
+        .tabs {
             display: flex;
-            gap: 1.5rem;
-            margin-bottom: 1.5rem;
-            font-size: 0.85rem;
-            color: #555;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-        }
-
-        .legend-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-
-        /* Summary card */
-        .summary-card {
-            background: #000041;
-            color: #fff;
-            border-radius: 12px;
-            padding: 1.5rem 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 1.5rem;
-        }
-
-        .summary-label {
-            font-size: 1rem;
-            font-weight: 500;
-            opacity: 0.85;
-        }
-
-        .summary-label strong {
-            display: block;
-            font-size: 1.15rem;
-            opacity: 1;
-            margin-bottom: 0.15rem;
-        }
-
-        .summary-score {
-            font-size: 3.2rem;
-            font-weight: 800;
-            line-height: 1;
-            color: #E2007A;
-        }
-
-        .summary-max {
-            font-size: 1.1rem;
-            font-weight: 400;
-            opacity: 0.5;
-        }
-
-        /* Grid */
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.25rem;
-        }
-
-        @media (max-width: 640px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Platform card */
-        .card {
             background: #fff;
-            border-radius: 12px;
-            padding: 1.5rem 1.75rem;
+            border-bottom: 2px solid #e2e8f0;
+            padding: 0 2rem;
+        }
+        .tab {
+            padding: 0.85rem 1.5rem;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #64748b;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.15s;
+            background: none;
+            border-top: none; border-left: none; border-right: none;
+            font-family: inherit;
+        }
+        .tab:hover { color: #000041; }
+        .tab.active { color: #E2007A; border-bottom-color: #E2007A; font-weight: 600; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .container { max-width: 960px; margin: 0 auto; padding: 1.5rem 1.5rem 3rem; }
+
+        /* ── Legend ── */
+        .legend { display: flex; gap: 1.5rem; margin-bottom: 1.25rem; font-size: 0.85rem; color: #555; }
+        .legend-item { display: flex; align-items: center; gap: 0.4rem; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+        /* ── Summary card ── */
+        .summary-card {
+            background: #000041; color: #fff; border-radius: 12px;
+            padding: 1.5rem 2rem; display: flex; align-items: center;
+            justify-content: space-between; margin-bottom: 1rem;
+        }
+        .summary-label { font-size: 1rem; font-weight: 500; opacity: 0.85; }
+        .summary-label strong { display: block; font-size: 1.15rem; opacity: 1; margin-bottom: 0.15rem; }
+        .summary-score { font-size: 3.2rem; font-weight: 800; line-height: 1; color: #E2007A; }
+        .summary-max { font-size: 1.1rem; font-weight: 400; opacity: 0.5; }
+
+        /* ── Grid ── */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+        @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+
+        /* ── Card ── */
+        .card {
+            background: #fff; border-radius: 12px; padding: 1.5rem 1.75rem;
             box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-            display: flex;
-            flex-direction: column;
-            gap: 1.1rem;
+            display: flex; flex-direction: column; gap: 1.1rem;
         }
+        .card-header { display: flex; justify-content: space-between; align-items: center; }
+        .card-title { font-size: 1rem; font-weight: 600; color: #000041; }
+        .card-score { font-size: 2.4rem; font-weight: 800; color: #000041; line-height: 1; }
+        .card-score .card-max { font-size: 0.9rem; font-weight: 400; color: #aaa; }
 
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+        /* ── Progress bars ── */
+        .bars { display: flex; flex-direction: column; gap: 0.65rem; }
+        .bar-row { display: flex; align-items: center; gap: 0.6rem; }
+        .bar-label { font-size: 0.78rem; width: 58px; flex-shrink: 0; color: #666; }
+        .bar-track { flex: 1; height: 10px; background: #eee; border-radius: 5px; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 5px; transition: width 0.6s ease; }
+        .bar-value { font-size: 0.8rem; font-weight: 700; width: 28px; text-align: right; flex-shrink: 0; }
 
-        .card-title {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #000041;
-        }
-
-        .card-score {
-            font-size: 2.4rem;
-            font-weight: 800;
-            color: #000041;
-            line-height: 1;
-        }
-
-        .card-score .card-max {
-            font-size: 0.9rem;
-            font-weight: 400;
-            color: #aaa;
-        }
-
-        /* Progress bars */
-        .bars {
-            display: flex;
-            flex-direction: column;
-            gap: 0.65rem;
-        }
-
-        .bar-row {
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-        }
-
-        .bar-label {
-            font-size: 0.78rem;
-            width: 58px;
-            flex-shrink: 0;
-            color: #666;
-        }
-
-        .bar-track {
-            flex: 1;
-            height: 10px;
-            background: #eee;
-            border-radius: 5px;
-            overflow: hidden;
-        }
-
-        .bar-fill {
-            height: 100%;
-            border-radius: 5px;
-            transition: width 0.6s ease;
-        }
-
-        .bar-value {
-            font-size: 0.8rem;
-            font-weight: 700;
-            width: 28px;
-            text-align: right;
-            flex-shrink: 0;
-        }
-
-        /* Tooltip */
-        .has-tooltip {
-            position: relative;
-            cursor: help;
-        }
-
+        /* ── Tooltip ── */
+        .has-tooltip { position: relative; cursor: help; }
         .tooltip {
-            display: none;
-            position: absolute;
-            bottom: calc(100% + 10px);
-            left: 50%;
-            transform: translateX(-50%);
-            background: #000041;
-            color: #fff;
-            padding: 1rem 1.25rem;
-            border-radius: 10px;
-            font-size: 0.82rem;
-            line-height: 1.55;
-            width: 320px;
-            z-index: 100;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
-            pointer-events: none;
+            display: none; position: absolute; bottom: calc(100% + 10px);
+            left: 50%; transform: translateX(-50%); background: #000041; color: #fff;
+            padding: 1rem 1.25rem; border-radius: 10px; font-size: 0.82rem;
+            line-height: 1.55; width: 320px; z-index: 100;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.18); pointer-events: none;
         }
-
         .tooltip::after {
-            content: '';
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            border: 6px solid transparent;
+            content: ''; position: absolute; top: 100%; left: 50%;
+            transform: translateX(-50%); border: 6px solid transparent;
             border-top-color: #000041;
         }
-
-        .has-tooltip:hover .tooltip {
-            display: block;
-        }
-
-        .tooltip-title {
-            font-weight: 700;
-            font-size: 0.95rem;
-            margin-bottom: 0.5rem;
-            color: #E2007A;
-        }
-
-        .tooltip-level {
-            margin-bottom: 0.15rem;
-        }
-
+        .has-tooltip:hover .tooltip { display: block; }
+        .tooltip-title { font-weight: 700; font-size: 0.95rem; margin-bottom: 0.5rem; color: #E2007A; }
+        .tooltip-level { margin-bottom: 0.15rem; }
         .tooltip-level.active {
-            background: rgba(226, 0, 122, 0.15);
-            border-radius: 4px;
-            padding: 0.15rem 0.35rem;
-            margin-left: -0.35rem;
-            font-weight: 600;
+            background: rgba(226, 0, 122, 0.15); border-radius: 4px;
+            padding: 0.15rem 0.35rem; margin-left: -0.35rem; font-weight: 600;
         }
+        .tooltip-score-nr { font-weight: 700; display: inline-block; width: 18px; }
 
-        .tooltip-score-nr {
-            font-weight: 700;
-            display: inline-block;
-            width: 18px;
-        }
-
-        /* Score scale bar under summary */
-        .scale-bar {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 1rem;
-            gap: 2px;
-        }
-
+        /* ── Scale bar ── */
+        .scale-bar { display: flex; justify-content: space-between; margin-bottom: 1.25rem; gap: 2px; }
         .scale-step {
-            flex: 1;
-            text-align: center;
-            padding: 0.45rem 0.25rem;
-            border-radius: 6px;
-            font-size: 0.72rem;
-            line-height: 1.3;
-            cursor: help;
-            transition: transform 0.15s;
+            flex: 1; text-align: center; padding: 0.45rem 0.25rem;
+            border-radius: 6px; font-size: 0.72rem; line-height: 1.3;
+            cursor: help; transition: transform 0.15s;
+        }
+        .scale-step:hover { transform: scale(1.05); }
+        .scale-step strong { display: block; font-size: 1rem; margin-bottom: 0.15rem; }
+
+        .bar-row .tooltip { bottom: calc(100% + 8px); left: auto; right: 0; transform: none; }
+        .bar-row .tooltip::after { left: auto; right: 18px; transform: none; }
+
+        /* ── Form styles ── */
+        .form-section {
+            background: #fff; border-radius: 12px; padding: 1.5rem 1.75rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 1.25rem;
+        }
+        .form-section h2 {
+            font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;
+            padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0;
+        }
+        .platform-select {
+            display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;
+        }
+        .platform-btn {
+            padding: 0.6rem 1.2rem; border: 2px solid #e2e8f0; border-radius: 8px;
+            background: #fff; cursor: pointer; font-size: 0.9rem; font-weight: 500;
+            font-family: inherit; transition: all 0.15s; color: #000041;
+        }
+        .platform-btn:hover { border-color: #E2007A; }
+        .platform-btn.active { border-color: #E2007A; background: #E2007A; color: #fff; }
+
+        .question-row {
+            display: flex; align-items: center; gap: 0.75rem;
+            padding: 0.65rem 0; border-bottom: 1px solid #f0f0f2;
+        }
+        .question-row:last-child { border-bottom: none; }
+        .question-nr { font-weight: 700; color: #E2007A; min-width: 1.5rem; flex-shrink: 0; font-size: 0.9rem; }
+        .question-text { flex: 1; font-size: 0.85rem; line-height: 1.45; }
+        .nds-tag {
+            display: inline-block; background: rgba(226, 0, 122, 0.1); color: #E2007A;
+            font-size: 0.7rem; font-weight: 600; padding: 0.1rem 0.4rem;
+            border-radius: 4px; margin-left: 0.4rem;
         }
 
-        .scale-step:hover {
-            transform: scale(1.05);
+        .score-group { display: flex; gap: 0.25rem; flex-shrink: 0; }
+        .score-option { display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+        .score-option input[type="radio"] { display: none; }
+        .score-btn {
+            width: 38px; height: 38px; display: flex; align-items: center;
+            justify-content: center; border: 2px solid #e2e8f0; border-radius: 8px;
+            font-weight: 600; font-size: 1rem; transition: all 0.15s; background: #fff;
+        }
+        .score-option input[type="radio"]:checked + .score-btn {
+            background: #E2007A; border-color: #E2007A; color: #fff;
+        }
+        .score-option:hover .score-btn { border-color: #E2007A; }
+        .score-label-mini {
+            font-size: 0.6rem; color: #999; margin-top: 0.15rem;
+            text-align: center; max-width: 45px; line-height: 1.2;
         }
 
-        .scale-step strong {
-            display: block;
-            font-size: 1rem;
-            margin-bottom: 0.15rem;
+        .form-actions {
+            display: flex; gap: 0.75rem; margin-top: 0.5rem; flex-wrap: wrap;
         }
+        .btn {
+            padding: 0.65rem 1.4rem; border: none; border-radius: 8px;
+            font-size: 0.9rem; font-weight: 600; cursor: pointer;
+            font-family: inherit; transition: opacity 0.15s;
+        }
+        .btn:hover { opacity: 0.85; }
+        .btn-primary { background: #E2007A; color: #fff; }
+        .btn-success { background: #15803D; color: #fff; }
+        .btn-outline { background: #fff; border: 2px solid #e2e8f0; color: #000041; }
+        .btn-danger { background: #B91C1C; color: #fff; }
 
-        /* Bar row tooltip positioning */
-        .bar-row .tooltip {
-            bottom: calc(100% + 8px);
-            left: auto;
-            right: 0;
-            transform: none;
+        .invuller-row {
+            display: flex; gap: 1rem; align-items: center; margin-bottom: 1.25rem;
         }
+        .invuller-row label { font-weight: 600; font-size: 0.9rem; white-space: nowrap; }
+        .invuller-row input {
+            flex: 1; padding: 0.55rem 0.8rem; border: 2px solid #e2e8f0;
+            border-radius: 8px; font-size: 0.9rem; font-family: inherit; max-width: 300px;
+        }
+        .invuller-row input:focus { outline: none; border-color: #E2007A; }
 
-        .bar-row .tooltip::after {
-            left: auto;
-            right: 18px;
-            transform: none;
+        .status-msg {
+            padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.85rem;
+            margin-bottom: 1rem; display: none;
         }
+        .status-msg.show { display: block; }
+        .status-msg.success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .status-msg.warning { background: #fef9c3; color: #a16207; border: 1px solid #fde047; }
 
-        /* Footer */
-        footer {
-            text-align: center;
-            padding: 1.5rem;
-            font-size: 0.75rem;
-            color: #999;
-        }
+        footer { text-align: center; padding: 1.5rem; font-size: 0.75rem; color: #999; }
     </style>
 </head>
 <body>
 
 <header>
-    <h1>Variant 2 — <span>Scorekaart</span> Dashboard</h1>
-    <p>Volwassenheidsmeting PinkRoccade LG — 2026</p>
+    <h1><span>Scorekaart</span> — Volwassenheidsmeting</h1>
+    <p>Gebruikersvereniging PinkRoccade Local Government</p>
 </header>
 
-<div class="container">
-
-    <!-- Legenda -->
-    <div class="legend">
-        <div class="legend-item">
-            <div class="legend-dot" style="background:#3786D2"></div>
-            <span>Techniek</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-dot" style="background:#15803D"></div>
-            <span>Mens</span>
-        </div>
-        <div class="legend-item">
-            <div class="legend-dot" style="background:#C2410C"></div>
-            <span>Proces</span>
-        </div>
-    </div>
-
-    <!-- Organisatie-gemiddelde -->
-    <div class="summary-card" id="summary"></div>
-
-    <!-- Platform kaarten -->
-    <div class="grid" id="grid"></div>
-
+<div class="tabs">
+    <button class="tab active" data-tab="demo">Demodata</button>
+    <button class="tab" data-tab="invullen">Invulformulier</button>
 </div>
 
-<footer>Scorekaart gegenereerd op 10 april 2026</footer>
+<!-- ═══════════ TAB 1: DEMODATA ═══════════ -->
+<div class="tab-content active" id="tab-demo">
+    <div class="container">
+        <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#3786D2"></div><span>Techniek</span></div>
+            <div class="legend-item"><div class="legend-dot" style="background:#15803D"></div><span>Mens</span></div>
+            <div class="legend-item"><div class="legend-dot" style="background:#C2410C"></div><span>Proces</span></div>
+        </div>
+        <div class="summary-card" id="summary"></div>
+        <div class="scale-bar" id="scale-bar"></div>
+        <div class="grid" id="grid"></div>
+    </div>
+</div>
+
+<!-- ═══════════ TAB 2: INVULFORMULIER ═══════════ -->
+<div class="tab-content" id="tab-invullen">
+    <div class="container">
+        <div class="status-msg" id="form-status"></div>
+        <div class="form-section">
+            <h2>Platform kiezen</h2>
+            <div class="platform-select" id="platform-select"></div>
+            <div class="invuller-row">
+                <label for="invuller">Ingevuld door</label>
+                <input type="text" id="invuller" placeholder="Uw naam">
+            </div>
+        </div>
+        <div id="form-questions"></div>
+        <div class="form-actions" id="form-actions" style="display:none;">
+            <button class="btn btn-primary" id="btn-save">Opslaan als concept</button>
+            <button class="btn btn-success" id="btn-finish">Afronden (definitief)</button>
+            <button class="btn btn-outline" id="btn-export">Exporteer JSON</button>
+            <button class="btn btn-outline" id="btn-import">Importeer JSON</button>
+            <input type="file" id="file-import" accept=".json" style="display:none">
+        </div>
+    </div>
+</div>
+
+<footer>Volwassenheidsmeting PinkRoccade LG</footer>
 
 <script>
 (function () {
-    // Demo data 2026
-    const data = {
-        belastingen:           { label: 'Belastingen',          techniek: [3,2,2,3], mens: [5,4,4,4], proces: [3,3,2,2,3,3] },
-        burgerzaken:           { label: 'Burgerzaken',           techniek: [4,3,4,5], mens: [3,3,3,3], proces: [5,4,4,4,4,3] },
-        sociaalDomein:         { label: 'Sociaal Domein',        techniek: [2,2,1,3], mens: [4,3,5,4], proces: [3,2,3,3,2,2] },
-        informatievoorziening: { label: 'Informatievoorziening', techniek: [5,4,4,5], mens: [3,3,3,4], proces: [3,3,3,2,3,4] }
+    // ── CONFIG ──
+    const CONFIG = {
+        platformen: [
+            { id: 'belastingen', naam: 'Belastingen' },
+            { id: 'burgerzaken', naam: 'Burgerzaken' },
+            { id: 'sociaal-domein', naam: 'Sociaal Domein' },
+            { id: 'informatievoorziening', naam: 'Informatievoorziening' },
+        ],
+        assen: [
+            {
+                id: 'techniek', naam: 'Techniek', kleur: '#3786D2',
+                vragen: [
+                    { id: 'common-ground-standaarden', tekst: 'De producten voldoen aan Common Ground-principes en open standaarden (API-first, ZGW-API\'s, iConnect, scheiding data/logica)', nds: 'Open' },
+                    { id: 'cloud-data', tekst: 'De producten zijn volwaardige SaaS-oplossingen met datagedreven werken: data via API\'s beschikbaar voor analyse en veilig deelbaar over overheidslagen', nds: 'Cloud' },
+                    { id: 'ai-integratie', tekst: 'AI is concreet en bruikbaar onderdeel van de productportfolio (werkende functionaliteit, niet alleen visie) en hierover zijn risicoanalyses uitgevoerd en een AI-act assessment van beschikbaar', nds: 'AI' },
+                    { id: 'digitale-weerbaarheid', tekst: 'De producten voldoen aan actuele security-eisen (BIO, NIS2, pentesting) en verminderen leveranciersafhankelijkheid', nds: 'Digitale weerbaarheid en autonomie' },
+                ],
+            },
+            {
+                id: 'mens', naam: 'Mens', kleur: '#15803D',
+                vragen: [
+                    { id: 'capaciteit-kennis', tekst: 'De personele capaciteit (aantal en kennisniveau) is op orde om producten te ondersteunen en door te ontwikkelen en heeft een meerjaars forecast' },
+                    { id: 'digitaal-vakmanschap', tekst: 'PinkRoccade investeert aantoonbaar in kennisontwikkeling (nieuwe technologieën, AI, Common Ground) en ondersteunt gemeenten hierbij', nds: 'Digitaal vakmanschap' },
+                    { id: 'klantbetrokkenheid', tekst: 'Gebruikers worden structureel betrokken bij doorontwikkeling (co-creatie, klankbordgroepen, roadmap-invloed) en de betrokkenheid wordt op kwaliteit en kwantiteit periodiek ge\u00ebvalueerd' },
+                    { id: 'opleiding-continuiteit', tekst: 'Training, documentatie en support zijn op orde; kennisborging is geborgd en niet afhankelijk van individuen' },
+                ],
+            },
+            {
+                id: 'proces', naam: 'Proces', kleur: '#C2410C',
+                vragen: [
+                    { id: 'dienstverlening-nps', tekst: 'De dienstverlening is uniform tussen businessunits; NPS en klanttevredenheid worden structureel gemeten en vertaald naar verbeteracties en gepubliceerd' },
+                    { id: 'release-incident', tekst: 'Releases zijn voorspelbaar en goed gecommuniceerd; incidenten worden snel en transparant conform SLA afgehandeld' },
+                    { id: 'roadmap-transparantie', tekst: 'De productroadmap is transparant, realistisch en sluit aan bij NDS-prioriteiten en gemeentelijke behoeften' },
+                    { id: 'burgers-ondernemers-centraal', tekst: 'De producten stellen gemeenten in staat burgers en ondernemers als \u00e9\u00e9n overheid te bedienen met ge\u00efntegreerde digitale dienstverlening', nds: 'Burgers en ondernemers centraal' },
+                    { id: 'prijsbeleid', tekst: 'Prijsbeleid (inclusief offertes) is uitlegbaar en marktconform en hanteert een voorspelbaar proces' },
+                    { id: 'lifecyclemanagement', tekst: 'Lifecyclemanagement volgt de afspraken van de uitvloeiingsregeling' },
+                ],
+            },
+        ],
+        schaal: [
+            { waarde: 1, label: 'Ad hoc', beschrijving: 'Er is niets van zichtbaar' },
+            { waarde: 2, label: 'Initieel', beschrijving: 'Ad hoc, niet structureel' },
+            { waarde: 3, label: 'Herhaalbaar', beschrijving: 'Er is een aanpak maar niet consistent' },
+            { waarde: 4, label: 'Gedefinieerd', beschrijving: 'Structureel ingericht en meetbaar' },
+            { waarde: 5, label: 'Best practice', beschrijving: 'Voorbeeldstellend, continu verbeterend' },
+        ],
     };
 
     const COLORS = { techniek: '#3786D2', mens: '#15803D', proces: '#C2410C' };
-    const LABELS = { techniek: 'Techniek', mens: 'Mens', proces: 'Proces' };
+    const AXIS_LABELS = { techniek: 'Techniek', mens: 'Mens', proces: 'Proces' };
     const MAX = 5;
+    const STORAGE_KEY = 'scorekaart-meting';
 
-    // CMMI-gebaseerde niveaus in managementtaal
     const NIVEAUS = [
-        { score: 1, label: 'Ad hoc',        color: '#B91C1C', bg: '#fee2e2',
-          kort: 'Geen grip',
+        { score: 1, label: 'Ad hoc',      color: '#B91C1C', bg: '#fee2e2', kort: 'Geen grip',
           tekst: 'Er is geen structurele aanpak. Resultaten zijn onvoorspelbaar en afhankelijk van individuele inspanning.' },
-        { score: 2, label: 'Herhaalbaar',    color: '#C2410C', bg: '#ffedd5',
-          kort: 'Beperkt grip',
+        { score: 2, label: 'Herhaalbaar',  color: '#C2410C', bg: '#ffedd5', kort: 'Beperkt grip',
           tekst: 'Basisprocessen bestaan, maar zijn niet overal geborgd. Succes hangt af van ervaren medewerkers.' },
-        { score: 3, label: 'Gedefinieerd',   color: '#a16207', bg: '#fef9c3',
-          kort: 'Gestandaardiseerd',
+        { score: 3, label: 'Gedefinieerd', color: '#a16207', bg: '#fef9c3', kort: 'Gestandaardiseerd',
           tekst: 'Processen zijn vastgelegd en worden organisatiebreed toegepast. Resultaten zijn voorspelbaar.' },
-        { score: 4, label: 'Gestuurd',       color: '#15803D', bg: '#dcfce7',
-          kort: 'Meetbaar gestuurd',
+        { score: 4, label: 'Gestuurd',     color: '#15803D', bg: '#dcfce7', kort: 'Meetbaar gestuurd',
           tekst: 'Prestaties worden gemeten en actief bijgestuurd. Afwijkingen worden vroegtijdig gesignaleerd.' },
-        { score: 5, label: 'Optimaal',       color: '#166534', bg: '#bbf7d0',
-          kort: 'Continu verbeterend',
+        { score: 5, label: 'Optimaal',     color: '#166534', bg: '#bbf7d0', kort: 'Continu verbeterend',
           tekst: 'Continu verbeteren is verankerd. De organisatie innoveert proactief en is voorbeeldstellend.' },
     ];
 
-    function getNiveau(score) {
-        const rounded = Math.round(score);
-        return NIVEAUS[Math.max(0, Math.min(4, rounded - 1))];
-    }
+    const DEMO_DATA = {
+        belastingen:           { label: 'Belastingen',          techniek: [3,2,2,3], mens: [5,4,4,4], proces: [3,3,2,2,3,3] },
+        burgerzaken:           { label: 'Burgerzaken',           techniek: [4,3,4,5], mens: [3,3,3,3], proces: [5,4,4,4,4,3] },
+        sociaalDomein:         { label: 'Sociaal Domein',        techniek: [2,2,1,3], mens: [4,3,5,4], proces: [3,2,3,3,2,2] },
+        informatievoorziening: { label: 'Informatievoorziening', techniek: [5,4,4,5], mens: [3,3,3,4], proces: [3,3,3,2,3,4] },
+    };
+
+    // ── Helpers ──
+    function avg(arr) { return arr.reduce((s, v) => s + v, 0) / arr.length; }
+    function round1(n) { return Math.round(n * 10) / 10; }
+    function getNiveau(score) { return NIVEAUS[Math.max(0, Math.min(4, Math.round(score) - 1))]; }
 
     function buildTooltipHtml(score, context) {
         const active = Math.round(score);
-        let html = '<div class="tooltip"><div class="tooltip-title">' + context + ' — ' + score.toFixed(1) + ' / 5</div>';
-        NIVEAUS.forEach(n => {
-            const isActive = n.score === active ? ' active' : '';
-            html += '<div class="tooltip-level' + isActive + '">' +
+        let html = '<div class="tooltip"><div class="tooltip-title">' + context + ' \u2014 ' + score.toFixed(1) + ' / 5</div>';
+        NIVEAUS.forEach(function(n) {
+            html += '<div class="tooltip-level' + (n.score === active ? ' active' : '') + '">' +
                 '<span class="tooltip-score-nr">' + n.score + '</span> ' +
-                '<strong>' + n.label + '</strong> — ' + n.kort +
-                '</div>';
+                '<strong>' + n.label + '</strong> \u2014 ' + n.kort + '</div>';
         });
-        html += '</div>';
-        return html;
+        return html + '</div>';
     }
 
-    function avg(arr) {
-        return arr.reduce((s, v) => s + v, 0) / arr.length;
-    }
-
-    function round1(n) {
-        return Math.round(n * 10) / 10;
-    }
-
-    // Compute per-platform averages
-    const platforms = Object.values(data).map(p => {
-        const t = round1(avg(p.techniek));
-        const m = round1(avg(p.mens));
-        const pr = round1(avg(p.proces));
-        const total = round1((t + m + pr) / 3);
-        return { label: p.label, techniek: t, mens: m, proces: pr, total };
+    // ── Tab switching ──
+    document.querySelectorAll('.tab').forEach(function(tab) {
+        tab.addEventListener('click', function() {
+            document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+            document.querySelectorAll('.tab-content').forEach(function(tc) { tc.classList.remove('active'); });
+            tab.classList.add('active');
+            document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+        });
     });
 
-    // Organisation average
-    const orgAvg = round1(platforms.reduce((s, p) => s + p.total, 0) / platforms.length);
-
-    // Render summary
-    const niv = getNiveau(orgAvg);
-    document.getElementById('summary').innerHTML =
-        '<div class="summary-label"><strong>Organisatiegemiddelde</strong>Gemiddelde score over alle platformen<br>' +
-        '<span style="font-size:0.85rem;opacity:0.7;">Niveau: ' + niv.label + ' — ' + niv.kort + '</span></div>' +
-        '<div class="summary-score has-tooltip">' + orgAvg.toFixed(1) + ' <span class="summary-max">/ ' + MAX + '</span>' +
-        buildTooltipHtml(orgAvg, 'Organisatie totaal') + '</div>';
-
-    // Render scale bar
-    let scaleHtml = '<div class="scale-bar">';
-    NIVEAUS.forEach(n => {
-        scaleHtml += '<div class="scale-step" style="background:' + n.bg + ';color:' + n.color + '" title="' + n.tekst + '">' +
-            '<strong>' + n.score + '</strong>' + n.label + '</div>';
-    });
-    scaleHtml += '</div>';
-    document.getElementById('summary').insertAdjacentHTML('afterend', scaleHtml);
-
-    // Render cards
-    const grid = document.getElementById('grid');
-
-    platforms.forEach(p => {
-        const card = document.createElement('div');
-        card.className = 'card';
-
-        const pNiv = getNiveau(p.total);
-
-        let barsHtml = '';
-        ['techniek', 'mens', 'proces'].forEach(axis => {
-            const val = p[axis];
-            const pct = (val / MAX) * 100;
-            const axisNiv = getNiveau(val);
-            barsHtml +=
-                '<div class="bar-row has-tooltip">' +
-                    '<span class="bar-label">' + LABELS[axis] + '</span>' +
-                    '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;background:' + COLORS[axis] + '"></div></div>' +
-                    '<span class="bar-value" style="color:' + COLORS[axis] + '">' + val.toFixed(1) + '</span>' +
-                    buildTooltipHtml(val, p.label + ' — ' + LABELS[axis]) +
-                '</div>';
+    // ══════════════════════════════════════════════
+    //  TAB 1: DEMODATA DASHBOARD
+    // ══════════════════════════════════════════════
+    function renderDemo() {
+        var platforms = Object.values(DEMO_DATA).map(function(p) {
+            var t = round1(avg(p.techniek));
+            var m = round1(avg(p.mens));
+            var pr = round1(avg(p.proces));
+            var total = round1((t + m + pr) / 3);
+            return { label: p.label, techniek: t, mens: m, proces: pr, total: total };
         });
 
-        card.innerHTML =
-            '<div class="card-header">' +
-                '<span class="card-title">' + p.label + '</span>' +
-                '<span class="card-score has-tooltip">' + p.total.toFixed(1) + ' <span class="card-max">/ ' + MAX + '</span>' +
-                    buildTooltipHtml(p.total, p.label + ' totaal') +
-                '</span>' +
-            '</div>' +
-            '<div style="font-size:0.78rem;color:' + pNiv.color + ';margin-top:-0.5rem;">' + pNiv.label + ' — ' + pNiv.kort + '</div>' +
-            '<div class="bars">' + barsHtml + '</div>';
+        var orgAvg = round1(platforms.reduce(function(s, p) { return s + p.total; }, 0) / platforms.length);
+        var niv = getNiveau(orgAvg);
 
-        grid.appendChild(card);
+        document.getElementById('summary').innerHTML =
+            '<div class="summary-label"><strong>Organisatiegemiddelde</strong>Gemiddelde score over alle platformen<br>' +
+            '<span style="font-size:0.85rem;opacity:0.7;">Niveau: ' + niv.label + ' \u2014 ' + niv.kort + '</span></div>' +
+            '<div class="summary-score has-tooltip">' + orgAvg.toFixed(1) + ' <span class="summary-max">/ ' + MAX + '</span>' +
+            buildTooltipHtml(orgAvg, 'Organisatie totaal') + '</div>';
+
+        var scaleHtml = '';
+        NIVEAUS.forEach(function(n) {
+            scaleHtml += '<div class="scale-step" style="background:' + n.bg + ';color:' + n.color + '" title="' + n.tekst + '">' +
+                '<strong>' + n.score + '</strong>' + n.label + '</div>';
+        });
+        document.getElementById('scale-bar').innerHTML = scaleHtml;
+
+        var grid = document.getElementById('grid');
+        grid.innerHTML = '';
+
+        platforms.forEach(function(p) {
+            var card = document.createElement('div');
+            card.className = 'card';
+            var pNiv = getNiveau(p.total);
+            var barsHtml = '';
+
+            ['techniek', 'mens', 'proces'].forEach(function(axis) {
+                var val = p[axis];
+                var pct = (val / MAX) * 100;
+                barsHtml +=
+                    '<div class="bar-row has-tooltip">' +
+                        '<span class="bar-label">' + AXIS_LABELS[axis] + '</span>' +
+                        '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;background:' + COLORS[axis] + '"></div></div>' +
+                        '<span class="bar-value" style="color:' + COLORS[axis] + '">' + val.toFixed(1) + '</span>' +
+                        buildTooltipHtml(val, p.label + ' \u2014 ' + AXIS_LABELS[axis]) +
+                    '</div>';
+            });
+
+            card.innerHTML =
+                '<div class="card-header">' +
+                    '<span class="card-title">' + p.label + '</span>' +
+                    '<span class="card-score has-tooltip">' + p.total.toFixed(1) + ' <span class="card-max">/ ' + MAX + '</span>' +
+                        buildTooltipHtml(p.total, p.label + ' totaal') + '</span>' +
+                '</div>' +
+                '<div style="font-size:0.78rem;color:' + pNiv.color + ';margin-top:-0.5rem;">' + pNiv.label + ' \u2014 ' + pNiv.kort + '</div>' +
+                '<div class="bars">' + barsHtml + '</div>';
+
+            grid.appendChild(card);
+        });
+    }
+
+    renderDemo();
+
+    // ══════════════════════════════════════════════
+    //  TAB 2: INVULFORMULIER
+    // ══════════════════════════════════════════════
+    var activePlatform = null;
+
+    function loadData() {
+        try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch(e) { return {}; }
+    }
+    function saveData(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+    function showStatus(msg, type) {
+        var el = document.getElementById('form-status');
+        el.textContent = msg;
+        el.className = 'status-msg show ' + type;
+        setTimeout(function() { el.classList.remove('show'); }, 3000);
+    }
+
+    // Render platform buttons
+    var selectEl = document.getElementById('platform-select');
+    CONFIG.platformen.forEach(function(p) {
+        var btn = document.createElement('button');
+        btn.className = 'platform-btn';
+        btn.textContent = p.naam;
+        btn.dataset.id = p.id;
+        btn.addEventListener('click', function() { selectPlatform(p.id); });
+        selectEl.appendChild(btn);
+    });
+
+    function selectPlatform(platformId) {
+        activePlatform = platformId;
+        document.querySelectorAll('.platform-btn').forEach(function(b) {
+            b.classList.toggle('active', b.dataset.id === platformId);
+        });
+        renderForm(platformId);
+        document.getElementById('form-actions').style.display = 'flex';
+    }
+
+    function renderForm(platformId) {
+        var data = loadData();
+        var platformData = data[platformId] || {};
+        var container = document.getElementById('form-questions');
+        container.innerHTML = '';
+
+        // Load invuller
+        document.getElementById('invuller').value = platformData.invuller || '';
+
+        var qNr = 0;
+        CONFIG.assen.forEach(function(as) {
+            var section = document.createElement('div');
+            section.className = 'form-section';
+            var html = '<h2 style="color:' + as.kleur + '">' + as.naam + '</h2>';
+
+            as.vragen.forEach(function(v) {
+                qNr++;
+                var savedScore = platformData[as.id] && platformData[as.id][v.id] ? platformData[as.id][v.id].score : null;
+                var ndsTag = v.nds ? '<span class="nds-tag">' + v.nds + '</span>' : '';
+
+                html += '<div class="question-row">' +
+                    '<span class="question-nr">' + qNr + '</span>' +
+                    '<span class="question-text">' + v.tekst + ndsTag + '</span>' +
+                    '<div class="score-group" role="radiogroup">';
+
+                CONFIG.schaal.forEach(function(s) {
+                    var checked = savedScore === s.waarde ? ' checked' : '';
+                    html += '<label class="score-option">' +
+                        '<input type="radio" name="' + as.id + '-' + v.id + '" value="' + s.waarde + '"' + checked + '>' +
+                        '<span class="score-btn">' + s.waarde + '</span>' +
+                        '<span class="score-label-mini">' + s.label + '</span>' +
+                        '</label>';
+                });
+
+                html += '</div></div>';
+            });
+
+            section.innerHTML = html;
+            container.appendChild(section);
+        });
+    }
+
+    function collectScores() {
+        var scores = {};
+        CONFIG.assen.forEach(function(as) {
+            scores[as.id] = {};
+            as.vragen.forEach(function(v) {
+                var radio = document.querySelector('input[name="' + as.id + '-' + v.id + '"]:checked');
+                scores[as.id][v.id] = {
+                    score: radio ? parseInt(radio.value, 10) : null,
+                    toelichting: '',
+                };
+            });
+        });
+        return scores;
+    }
+
+    function allFilled(scores) {
+        return CONFIG.assen.every(function(as) {
+            return as.vragen.every(function(v) { return scores[as.id][v.id].score != null; });
+        });
+    }
+
+    // Save concept
+    document.getElementById('btn-save').addEventListener('click', function() {
+        if (!activePlatform) return;
+        var data = loadData();
+        var scores = collectScores();
+        data[activePlatform] = scores;
+        data[activePlatform].invuller = document.getElementById('invuller').value.trim();
+        data[activePlatform].status = 'concept';
+        data[activePlatform].laatstGewijzigd = new Date().toISOString();
+        saveData(data);
+        showStatus('Opgeslagen als concept voor ' + CONFIG.platformen.find(function(p) { return p.id === activePlatform; }).naam, 'success');
+    });
+
+    // Finish (definitief)
+    document.getElementById('btn-finish').addEventListener('click', function() {
+        if (!activePlatform) return;
+        var invuller = document.getElementById('invuller').value.trim();
+        if (!invuller) { showStatus('Vul uw naam in bij "Ingevuld door"', 'warning'); return; }
+        var scores = collectScores();
+        if (!allFilled(scores)) { showStatus('Vul alle vragen in voordat u afrondt', 'warning'); return; }
+        var data = loadData();
+        data[activePlatform] = scores;
+        data[activePlatform].invuller = invuller;
+        data[activePlatform].status = 'definitief';
+        data[activePlatform].laatstGewijzigd = new Date().toISOString();
+        saveData(data);
+        showStatus('Definitief opgeslagen voor ' + CONFIG.platformen.find(function(p) { return p.id === activePlatform; }).naam, 'success');
+    });
+
+    // Export JSON
+    document.getElementById('btn-export').addEventListener('click', function() {
+        var data = loadData();
+        if (Object.keys(data).length === 0) { showStatus('Geen data om te exporteren', 'warning'); return; }
+        var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'scorekaart-meting-' + new Date().toISOString().slice(0, 10) + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+
+    // Import JSON
+    document.getElementById('btn-import').addEventListener('click', function() {
+        document.getElementById('file-import').click();
+    });
+    document.getElementById('file-import').addEventListener('change', function(e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        e.target.value = '';
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+            try {
+                var imported = JSON.parse(ev.target.result);
+                saveData(imported);
+                showStatus('Data ge\u00efmporteerd', 'success');
+                if (activePlatform) renderForm(activePlatform);
+            } catch(err) {
+                showStatus('Ongeldig JSON-bestand', 'warning');
+            }
+        };
+        reader.readAsText(file);
     });
 })();
 </script>
