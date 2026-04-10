@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Variant 2 — Scorekaart Dashboard</title>
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f4f5f7;
+            color: #000041;
+            min-height: 100vh;
+            padding: 0;
+        }
+
+        header {
+            background: #000041;
+            color: #fff;
+            padding: 2rem 2.5rem 1.8rem;
+        }
+
+        header h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        header h1 span {
+            color: #E2007A;
+        }
+
+        header p {
+            font-size: 0.95rem;
+            opacity: 0.75;
+            font-weight: 400;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 3rem;
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.85rem;
+            color: #555;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* Summary card */
+        .summary-card {
+            background: #000041;
+            color: #fff;
+            border-radius: 12px;
+            padding: 1.5rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .summary-label {
+            font-size: 1rem;
+            font-weight: 500;
+            opacity: 0.85;
+        }
+
+        .summary-label strong {
+            display: block;
+            font-size: 1.15rem;
+            opacity: 1;
+            margin-bottom: 0.15rem;
+        }
+
+        .summary-score {
+            font-size: 3.2rem;
+            font-weight: 800;
+            line-height: 1;
+            color: #E2007A;
+        }
+
+        .summary-max {
+            font-size: 1.1rem;
+            font-weight: 400;
+            opacity: 0.5;
+        }
+
+        /* Grid */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
+        }
+
+        @media (max-width: 640px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Platform card */
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 1.5rem 1.75rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+            display: flex;
+            flex-direction: column;
+            gap: 1.1rem;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #000041;
+        }
+
+        .card-score {
+            font-size: 2.4rem;
+            font-weight: 800;
+            color: #000041;
+            line-height: 1;
+        }
+
+        .card-score .card-max {
+            font-size: 0.9rem;
+            font-weight: 400;
+            color: #aaa;
+        }
+
+        /* Progress bars */
+        .bars {
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+        }
+
+        .bar-row {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .bar-label {
+            font-size: 0.78rem;
+            width: 58px;
+            flex-shrink: 0;
+            color: #666;
+        }
+
+        .bar-track {
+            flex: 1;
+            height: 10px;
+            background: #eee;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.6s ease;
+        }
+
+        .bar-value {
+            font-size: 0.8rem;
+            font-weight: 700;
+            width: 28px;
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        /* Tooltip */
+        .has-tooltip {
+            position: relative;
+            cursor: help;
+        }
+
+        .tooltip {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #000041;
+            color: #fff;
+            padding: 1rem 1.25rem;
+            border-radius: 10px;
+            font-size: 0.82rem;
+            line-height: 1.55;
+            width: 320px;
+            z-index: 100;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+            pointer-events: none;
+        }
+
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #000041;
+        }
+
+        .has-tooltip:hover .tooltip {
+            display: block;
+        }
+
+        .tooltip-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+            color: #E2007A;
+        }
+
+        .tooltip-level {
+            margin-bottom: 0.15rem;
+        }
+
+        .tooltip-level.active {
+            background: rgba(226, 0, 122, 0.15);
+            border-radius: 4px;
+            padding: 0.15rem 0.35rem;
+            margin-left: -0.35rem;
+            font-weight: 600;
+        }
+
+        .tooltip-score-nr {
+            font-weight: 700;
+            display: inline-block;
+            width: 18px;
+        }
+
+        /* Score scale bar under summary */
+        .scale-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1rem;
+            gap: 2px;
+        }
+
+        .scale-step {
+            flex: 1;
+            text-align: center;
+            padding: 0.45rem 0.25rem;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            line-height: 1.3;
+            cursor: help;
+            transition: transform 0.15s;
+        }
+
+        .scale-step:hover {
+            transform: scale(1.05);
+        }
+
+        .scale-step strong {
+            display: block;
+            font-size: 1rem;
+            margin-bottom: 0.15rem;
+        }
+
+        /* Bar row tooltip positioning */
+        .bar-row .tooltip {
+            bottom: calc(100% + 8px);
+            left: auto;
+            right: 0;
+            transform: none;
+        }
+
+        .bar-row .tooltip::after {
+            left: auto;
+            right: 18px;
+            transform: none;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 1.5rem;
+            font-size: 0.75rem;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Variant 2 — <span>Scorekaart</span> Dashboard</h1>
+    <p>Volwassenheidsmeting PinkRoccade LG — 2026</p>
+</header>
+
+<div class="container">
+
+    <!-- Legenda -->
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-dot" style="background:#3786D2"></div>
+            <span>Techniek</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background:#15803D"></div>
+            <span>Mens</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background:#C2410C"></div>
+            <span>Proces</span>
+        </div>
+    </div>
+
+    <!-- Organisatie-gemiddelde -->
+    <div class="summary-card" id="summary"></div>
+
+    <!-- Platform kaarten -->
+    <div class="grid" id="grid"></div>
+
+</div>
+
+<footer>Scorekaart gegenereerd op 10 april 2026</footer>
+
+<script>
+(function () {
+    // Demo data 2026
+    const data = {
+        belastingen:           { label: 'Belastingen',          techniek: [3,2,2,3], mens: [5,4,4,4], proces: [3,3,2,2,3,3] },
+        burgerzaken:           { label: 'Burgerzaken',           techniek: [4,3,4,5], mens: [3,3,3,3], proces: [5,4,4,4,4,3] },
+        sociaalDomein:         { label: 'Sociaal Domein',        techniek: [2,2,1,3], mens: [4,3,5,4], proces: [3,2,3,3,2,2] },
+        informatievoorziening: { label: 'Informatievoorziening', techniek: [5,4,4,5], mens: [3,3,3,4], proces: [3,3,3,2,3,4] }
+    };
+
+    const COLORS = { techniek: '#3786D2', mens: '#15803D', proces: '#C2410C' };
+    const LABELS = { techniek: 'Techniek', mens: 'Mens', proces: 'Proces' };
+    const MAX = 5;
+
+    // CMMI-gebaseerde niveaus in managementtaal
+    const NIVEAUS = [
+        { score: 1, label: 'Ad hoc',        color: '#B91C1C', bg: '#fee2e2',
+          kort: 'Geen grip',
+          tekst: 'Er is geen structurele aanpak. Resultaten zijn onvoorspelbaar en afhankelijk van individuele inspanning.' },
+        { score: 2, label: 'Herhaalbaar',    color: '#C2410C', bg: '#ffedd5',
+          kort: 'Beperkt grip',
+          tekst: 'Basisprocessen bestaan, maar zijn niet overal geborgd. Succes hangt af van ervaren medewerkers.' },
+        { score: 3, label: 'Gedefinieerd',   color: '#a16207', bg: '#fef9c3',
+          kort: 'Gestandaardiseerd',
+          tekst: 'Processen zijn vastgelegd en worden organisatiebreed toegepast. Resultaten zijn voorspelbaar.' },
+        { score: 4, label: 'Gestuurd',       color: '#15803D', bg: '#dcfce7',
+          kort: 'Meetbaar gestuurd',
+          tekst: 'Prestaties worden gemeten en actief bijgestuurd. Afwijkingen worden vroegtijdig gesignaleerd.' },
+        { score: 5, label: 'Optimaal',       color: '#166534', bg: '#bbf7d0',
+          kort: 'Continu verbeterend',
+          tekst: 'Continu verbeteren is verankerd. De organisatie innoveert proactief en is voorbeeldstellend.' },
+    ];
+
+    function getNiveau(score) {
+        const rounded = Math.round(score);
+        return NIVEAUS[Math.max(0, Math.min(4, rounded - 1))];
+    }
+
+    function buildTooltipHtml(score, context) {
+        const active = Math.round(score);
+        let html = '<div class="tooltip"><div class="tooltip-title">' + context + ' — ' + score.toFixed(1) + ' / 5</div>';
+        NIVEAUS.forEach(n => {
+            const isActive = n.score === active ? ' active' : '';
+            html += '<div class="tooltip-level' + isActive + '">' +
+                '<span class="tooltip-score-nr">' + n.score + '</span> ' +
+                '<strong>' + n.label + '</strong> — ' + n.kort +
+                '</div>';
+        });
+        html += '</div>';
+        return html;
+    }
+
+    function avg(arr) {
+        return arr.reduce((s, v) => s + v, 0) / arr.length;
+    }
+
+    function round1(n) {
+        return Math.round(n * 10) / 10;
+    }
+
+    // Compute per-platform averages
+    const platforms = Object.values(data).map(p => {
+        const t = round1(avg(p.techniek));
+        const m = round1(avg(p.mens));
+        const pr = round1(avg(p.proces));
+        const total = round1((t + m + pr) / 3);
+        return { label: p.label, techniek: t, mens: m, proces: pr, total };
+    });
+
+    // Organisation average
+    const orgAvg = round1(platforms.reduce((s, p) => s + p.total, 0) / platforms.length);
+
+    // Render summary
+    const niv = getNiveau(orgAvg);
+    document.getElementById('summary').innerHTML =
+        '<div class="summary-label"><strong>Organisatiegemiddelde</strong>Gemiddelde score over alle platformen<br>' +
+        '<span style="font-size:0.85rem;opacity:0.7;">Niveau: ' + niv.label + ' — ' + niv.kort + '</span></div>' +
+        '<div class="summary-score has-tooltip">' + orgAvg.toFixed(1) + ' <span class="summary-max">/ ' + MAX + '</span>' +
+        buildTooltipHtml(orgAvg, 'Organisatie totaal') + '</div>';
+
+    // Render scale bar
+    let scaleHtml = '<div class="scale-bar">';
+    NIVEAUS.forEach(n => {
+        scaleHtml += '<div class="scale-step" style="background:' + n.bg + ';color:' + n.color + '" title="' + n.tekst + '">' +
+            '<strong>' + n.score + '</strong>' + n.label + '</div>';
+    });
+    scaleHtml += '</div>';
+    document.getElementById('summary').insertAdjacentHTML('afterend', scaleHtml);
+
+    // Render cards
+    const grid = document.getElementById('grid');
+
+    platforms.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        const pNiv = getNiveau(p.total);
+
+        let barsHtml = '';
+        ['techniek', 'mens', 'proces'].forEach(axis => {
+            const val = p[axis];
+            const pct = (val / MAX) * 100;
+            const axisNiv = getNiveau(val);
+            barsHtml +=
+                '<div class="bar-row has-tooltip">' +
+                    '<span class="bar-label">' + LABELS[axis] + '</span>' +
+                    '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;background:' + COLORS[axis] + '"></div></div>' +
+                    '<span class="bar-value" style="color:' + COLORS[axis] + '">' + val.toFixed(1) + '</span>' +
+                    buildTooltipHtml(val, p.label + ' — ' + LABELS[axis]) +
+                '</div>';
+        });
+
+        card.innerHTML =
+            '<div class="card-header">' +
+                '<span class="card-title">' + p.label + '</span>' +
+                '<span class="card-score has-tooltip">' + p.total.toFixed(1) + ' <span class="card-max">/ ' + MAX + '</span>' +
+                    buildTooltipHtml(p.total, p.label + ' totaal') +
+                '</span>' +
+            '</div>' +
+            '<div style="font-size:0.78rem;color:' + pNiv.color + ';margin-top:-0.5rem;">' + pNiv.label + ' — ' + pNiv.kort + '</div>' +
+            '<div class="bars">' + barsHtml + '</div>';
+
+        grid.appendChild(card);
+    });
+})();
+</script>
+
+</body>
+</html>
