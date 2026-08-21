@@ -106,6 +106,7 @@ main { max-width: 1200px; margin: 0 auto; padding: 2rem; }
 /* Compact question row */
 .question-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;
   padding: 0.5rem 0;
@@ -113,6 +114,28 @@ main { max-width: 1200px; margin: 0 auto; padding: 2rem; }
 }
 
 .question-row:last-child { border-bottom: none; }
+
+.question-toelichting {
+  flex: 1 1 100%;
+}
+
+.question-toelichting label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+  margin-bottom: 0.25rem;
+}
+
+.question-toelichting textarea {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 40px;
+}
 
 .question-row .question-nr {
   font-weight: 700;

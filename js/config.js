@@ -2,6 +2,7 @@
 export const CONFIG = {
   platformen: [
     { id: 'belastingen', naam: 'Belastingen' },
+    { id: 'ro', naam: 'R&O' },
     { id: 'burgerzaken', naam: 'Burgerzaken' },
     { id: 'sociaal-domein', naam: 'Sociaal Domein' },
     { id: 'informatievoorziening', naam: 'Informatievoorziening' },
@@ -40,6 +41,8 @@ export const CONFIG = {
         { id: 'burgers-ondernemers-centraal', tekst: 'De producten stellen gemeenten in staat burgers en ondernemers als één overheid te bedienen met geïntegreerde digitale dienstverlening', nds: 'Burgers en ondernemers centraal' },
         { id: 'prijsbeleid', tekst: 'Prijsbeleid (inclusief offertes) is uitlegbaar en marktconform en hanteert een voorspelbaar proces' },
         { id: 'lifecyclemanagement', tekst: 'Lifecyclemanagement volgt de afspraken van de uitvloeiingsregeling' },
+        { id: 'partner-productontwikkeling', tekst: 'PinkRoccade is een partner van betekenis: de productontwikkeling sluit voldoende aan bij de wensen en eisen die vanuit de markt (gemeenten) worden gesteld' },
+        { id: 'partner-dienstverlening', tekst: 'PinkRoccade is een partner van betekenis: de dienstverlening sluit voldoende aan bij de wensen en eisen die vanuit de markt (gemeenten) worden gesteld' },
       ],
     },
   ],
@@ -52,11 +55,11 @@ export const CONFIG = {
     { id: 'Digitaal vakmanschap', kleur: '#C2410C' },
   ],
   schaal: [
-    { waarde: 1, label: 'Afwezig', beschrijving: 'Er is niets van zichtbaar' },
-    { waarde: 2, label: 'Initieel', beschrijving: 'Ad hoc, niet structureel' },
-    { waarde: 3, label: 'Herhaalbaar', beschrijving: 'Er is een aanpak maar niet consistent' },
-    { waarde: 4, label: 'Gedefinieerd', beschrijving: 'Structureel ingericht en meetbaar' },
-    { waarde: 5, label: 'Best practice', beschrijving: 'Voorbeeldstellend, continu verbeterend' },
+    { waarde: 1, label: 'Initial', beschrijving: 'Ad-hoc, geen gestructureerde aanpak' },
+    { waarde: 2, label: 'Managed', beschrijving: 'Herhaalbaar op projectniveau, nog niet organisatiebreed geborgd' },
+    { waarde: 3, label: 'Defined', beschrijving: 'Gestandaardiseerd en organisatiebreed vastgelegd' },
+    { waarde: 4, label: 'Quantitatively Managed', beschrijving: 'Gemeten en gestuurd op basis van data' },
+    { waarde: 5, label: 'Optimizing', beschrijving: 'Continue verbetering ingebed in de organisatie' },
   ],
 };
 

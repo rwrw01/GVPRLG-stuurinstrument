@@ -12,6 +12,12 @@ import { createRadarChart, createNdsRadarChart, createDetailBars, destroyChart, 
 const app = document.getElementById('app');
 let activeCharts = [];
 
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
 function destroyAllCharts() {
   activeCharts.forEach(destroyChart);
   activeCharts = [];
@@ -148,7 +154,7 @@ function renderMeting(jaar) {
       if (!confirm('Weet je zeker dat je deze meting wilt heropenen?')) return;
       const pd = meting.platformen[btn.dataset.platform];
       savePlatformScores(jaar, btn.dataset.platform, pd.invuller,
-        { techniek: pd.techniek, mens: pd.mens, proces: pd.proces }, 'concept');
+        { techniek: pd.techniek, mens: pd.mens, proces: pd.proces, algemeneToelichting: pd.algemeneToelichting }, 'concept');
       navigate('meting', { jaar });
     });
   });
@@ -182,8 +188,19 @@ function renderInvullen(jaar, platformId) {
     <div class="card">
       <div class="form-group">
         <label for="invuller">Naam invuller (verplicht)</label>
-        <input type="text" id="invuller" value="${existing?.invuller || ''}" placeholder="Uw naam">
+        <input type="text" id="invuller" value="${escapeHtml(existing?.invuller || '')}" placeholder="Uw naam">
       </div>
+    </div>
+    <div class="card">
+      <h3>Toelichting op de schaal (CMMI-niveaus)</h3>
+      <table aria-label="Toelichting scoreschaal 1-5">
+        <thead><tr><th>Niveau</th><th>Naam</th><th>Beschrijving</th></tr></thead>
+        <tbody>
+          ${CONFIG.schaal.map((s) => `
+            <tr><td class="score-${s.waarde}">${s.waarde}</td><td>${escapeHtml(s.label)}</td><td>${escapeHtml(s.beschrijving)}</td></tr>
+          `).join('')}
+        </tbody>
+      </table>
     </div>
     ${CONFIG.assen.map((as) => `
       <div class="card">
@@ -205,10 +222,20 @@ function renderInvullen(jaar, platformId) {
                   </label>
                 `).join('')}
               </div>
+              <div class="question-toelichting">
+                <label for="toelichting-${as.id}-${v.id}">Opmerking (optioneel)</label>
+                <textarea id="toelichting-${as.id}-${v.id}" placeholder="Onderbouwing / verantwoording voor deze score">${escapeHtml(current?.toelichting || '')}</textarea>
+              </div>
             </div>`;
         }).join('')}
       </div>
     `).join('')}
+    <div class="card">
+      <div class="form-group">
+        <label for="algemene-toelichting">Algemene toelichting bij deze meting (optioneel)</label>
+        <textarea id="algemene-toelichting" placeholder="Overkoepelende opmerkingen bij deze platform-meting">${escapeHtml(existing?.algemeneToelichting || '')}</textarea>
+      </div>
+    </div>
     <div class="btn-group">
       <button class="btn btn-primary" id="btn-save">Opslaan als concept</button>
       <button class="btn btn-success" id="btn-finish">Afronden (definitief)</button>
@@ -223,12 +250,14 @@ function renderInvullen(jaar, platformId) {
       scores[as.id] = {};
       for (const v of as.vragen) {
         const radio = document.querySelector(`input[name="${as.id}-${v.id}"]:checked`);
+        const toelichting = document.getElementById(`toelichting-${as.id}-${v.id}`);
         scores[as.id][v.id] = {
           score: radio ? parseInt(radio.value, 10) : null,
-          toelichting: '',
+          toelichting: toelichting ? toelichting.value.trim() : '',
         };
       }
     }
+    scores.algemeneToelichting = document.getElementById('algemene-toelichting').value.trim();
     return scores;
   }
 
