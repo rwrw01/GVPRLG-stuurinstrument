@@ -6,3 +6,14 @@ test-*.json
 
 # PII
 luca.jpeg
+
+# Next.js / Node
+.next/
+.env.local
+next-env.d.ts
+
+# Prisma
+prisma/dev.db
+
+# TypeScript incremental build cache
+*.tsbuildinfo

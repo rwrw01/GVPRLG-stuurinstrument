@@ -1,23 +1,36 @@
 {
-  "name": "pink",
+  "name": "gvprlg",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "directories": {
-    "doc": "docs"
-  },
+  "description": "GVPRLG volwassenheidsmeting",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:generate": "prisma generate"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
+  "license": "EUPL-1.2",
   "devDependencies": {
-    "@playwright/test": "^1.58.2",
-    "serve": "^14.2.6"
+    "@playwright/test": "1.58.2",
+    "@types/node": "24.0.0",
+    "@types/react": "19.0.0",
+    "@types/react-dom": "19.0.0",
+    "prisma": "7.10.0",
+    "serve": "14.2.6",
+    "typescript": "7.0.2",
+    "vitest": "5.0.3"
   },
   "dependencies": {
-    "xlsx": "^0.18.5"
+    "@prisma/client": "7.10.0",
+    "next": "16.4.0",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "xlsx": "0.18.5",
+    "zod": "4.6.5"
   }
 }
