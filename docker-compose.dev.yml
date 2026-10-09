@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: gvprlg-dev-postgres
+    environment:
+      POSTGRES_USER: gvprlg
+      POSTGRES_PASSWORD: devpassword
+      POSTGRES_DB: gvprlg
+    ports:
+      - "5433:5432"
+    volumes:
+      - gvprlg-dev-pgdata:/var/lib/postgresql/data
+
+volumes:
+  gvprlg-dev-pgdata:

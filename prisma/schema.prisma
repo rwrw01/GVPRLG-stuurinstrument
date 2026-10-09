@@ -1,0 +1,66 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Meting {
+  id         String          @id @default(cuid())
+  jaar       Int             @unique
+  aangemaakt DateTime        @default(now())
+  isOefening Boolean         @default(false)
+  platformen PlatformScore[]
+
+  @@map("metingen")
+}
+
+model PlatformScore {
+  id                  String       @id @default(cuid())
+  metingId            String
+  meting              Meting       @relation(fields: [metingId], references: [id], onDelete: Cascade)
+  platformId          String
+  status              String       @default("concept")
+  algemeneToelichting String       @default("")
+  laatstGewijzigdDoor String
+  laatstGewijzigdOp   DateTime     @default(now())
+  vraagScores         VraagScore[]
+
+  @@unique([metingId, platformId])
+  @@map("platform_scores")
+}
+
+model VraagScore {
+  id              String        @id @default(cuid())
+  platformScoreId String
+  platformScore   PlatformScore @relation(fields: [platformScoreId], references: [id], onDelete: Cascade)
+  vraagId         String
+  score           Int?
+  toelichting     String        @default("")
+
+  @@unique([platformScoreId, vraagId])
+  @@map("vraag_scores")
+}
+
+model PlatformInvuller {
+  id         String @id @default(cuid())
+  metingId   String
+  platformId String
+  gebruiker  String
+
+  @@unique([metingId, platformId, gebruiker])
+  @@map("platform_invullers")
+}
+
+model AuditLogEntry {
+  id       String   @id @default(cuid())
+  actor    String
+  actie    String
+  doelType String
+  doelId   String
+  tijdstip DateTime @default(now())
+  detail   String   @default("")
+
+  @@map("audit_log")
+}

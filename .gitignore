@@ -9,6 +9,7 @@ luca.jpeg
 
 # Next.js / Node
 .next/
+.env
 .env.local
 next-env.d.ts
 
