@@ -13,4 +13,12 @@ export default defineConfig({
     port: 3456,
     reuseExistingServer: true,
   },
+  projects: [
+    { name: 'static-site', testMatch: 'volwassenheidsmeting.spec.js' },
+    {
+      name: 'backend-fase-a',
+      testMatch: 'gvprlg-backend-fase-a.spec.js',
+      use: { baseURL: 'http://localhost:3000' },
+    },
+  ],
 });
