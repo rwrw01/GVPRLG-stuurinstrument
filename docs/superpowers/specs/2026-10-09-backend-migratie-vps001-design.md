@@ -140,14 +140,25 @@ cd /opt/gvprlg && git pull && docker compose build && docker compose up -d
 
 - Dockerfile (multi-stage, Alpine, non-root, HEALTHCHECK) bouwt native op VPS-001 zelf (ARM64)
   — geen cross-compile/QEMU nodig, dus ook geen `ghcr.io`-tussenstap vereist.
-- `sovereign-stack` krijgt een nieuwe `stacks/gvprlg/docker-compose.yml`, met dezelfde hardening
-  als SiteGuardian: `read_only`, `cap_drop: ALL`, `no-new-privileges`, memory/pids-limits,
-  `restart: on-failure:5`, Traefik-labels met `crowdsec@file`+`rate-limit@file`-middlewares.
-  Secrets (database-wachtwoord, eventuele toekomstige API-keys) volgen de bestaande
-  sovereign-stack-conventie: `/opt/gvprlg/secrets/` (chmod 700, root-only), nooit als
-  plaintext-waarde in `docker-compose.yml` of een gecommit `.env`-bestand — uitsluitend
-  file-references, zoals de rest van de stack. De lokale dev-only `devpassword` uit fase A
-  (`docker-compose.dev.yml`, nooit op VPS-001 gedraaid) wordt hier niet hergebruikt.
+- **Compose-locatie (bewust afwijkend van SiteGuardian/bridge):** `docker-compose.yml` leeft
+  in de GVPRLG-repo zelf, naast de broncode — niet in `stacks/gvprlg/` in sovereign-stack.
+  Andere custom-apps bewaren hun compose-bestand wél in sovereign-stack, maar die pullen een
+  kant-en-klaar `ghcr.io`-image; gvprlg bouwt lokaal uit eigen broncode (`build: context: .`),
+  dus moet zelfstandig te clonen/bouwen zijn. `/opt/gvprlg/` op VPS-001 is simpelweg een
+  git-clone van de GVPRLG-repo — geen afhankelijkheid van sovereign-stack's eigen
+  directory-sync-mechanisme.
+- Hardening in die compose, zelfde als SiteGuardian: `read_only`, `cap_drop: ALL`,
+  `no-new-privileges`, memory/pids-limits, `restart: on-failure:5`, Traefik-labels met
+  `crowdsec@file`+`rate-limit@file`-middlewares. Secrets (database-wachtwoord, eventuele
+  toekomstige API-keys) volgen de bestaande sovereign-stack-conventie:
+  `/opt/gvprlg/secrets/` (chmod 700, root-only), nooit als plaintext-waarde in
+  `docker-compose.yml` of een gecommit `.env`-bestand — uitsluitend file-references, zoals de
+  rest van de stack. De lokale dev-only `devpassword` uit fase A (`docker-compose.dev.yml`,
+  nooit op VPS-001 gedraaid) wordt hier niet hergebruikt.
+- **De enige wijziging in sovereign-stack zelf:** `net-fe-gvprlg` toevoegen aan de
+  netwerklijst van `stacks/traefik/docker-compose.yml` (zodat Traefik's container het nieuwe,
+  los aangemaakte `net-fe-gvprlg`-netwerk kan bereiken) — geen `stacks/gvprlg/`-map in
+  sovereign-stack.
 - Geen GitHub Actions-workflow, geen GitHub-repo-secrets, geen `deploy-gvprlg.yml` in
   sovereign-stack. Toekomstige updates: beheerder logt in, `git pull`, herbouwt, herstart —
   zelfde, bewust handmatige stap als andere admin-taken in `docs/admin-guide.md`.
