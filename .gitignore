@@ -19,3 +19,6 @@ prisma/dev.db
 
 # TypeScript incremental build cache
 *.tsbuildinfo
+
+# Production secrets (nooit committen)
+/secrets/
