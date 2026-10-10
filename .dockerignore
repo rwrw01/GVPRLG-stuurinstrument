@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+.superpowers
+test-results
+playwright-report
+tests
+js
+css
+varianten
+docs
+*.md
+.env
+.env.local
+.env.test
+docker-compose.dev.yml
