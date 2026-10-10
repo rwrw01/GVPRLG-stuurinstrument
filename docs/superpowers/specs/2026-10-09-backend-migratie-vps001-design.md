@@ -126,6 +126,11 @@ Volgt het bestaande patroon voor custom apps op VPS-001 (zoals `uren`/projectadm
 - `sovereign-stack` krijgt een nieuwe `stacks/gvprlg/docker-compose.yml`, met dezelfde hardening
   als SiteGuardian: `read_only`, `cap_drop: ALL`, `no-new-privileges`, memory/pids-limits,
   `restart: on-failure:5`, Traefik-labels met `crowdsec@file`+`rate-limit@file`-middlewares.
+  Secrets (database-wachtwoord, eventuele toekomstige API-keys) volgen de bestaande
+  sovereign-stack-conventie: `/opt/gvprlg/secrets/` (chmod 700, root-only), nooit als
+  plaintext-waarde in `docker-compose.yml` of een gecommit `.env`-bestand — uitsluitend
+  file-references, zoals de rest van de stack. De lokale dev-only `devpassword` uit fase A
+  (`docker-compose.dev.yml`, nooit op VPS-001 gedraaid) wordt hier niet hergebruikt.
 - Nieuwe `deploy-gvprlg.yml`-workflow in `sovereign-stack` die via Tailscale/SSH pullt en
   herstart — zelfde mechaniek als de andere custom stacks.
 - **Domein: `spinnenweb.gvprlg.nl`** (vervangt de eerdere aanname `gvprlg.publicvibes.nl`).
