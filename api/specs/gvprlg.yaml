@@ -1,0 +1,91 @@
+openapi: 3.1.0
+info:
+  title: GVPRLG Volwassenheidsmeting API
+  version: 1.0.0-fase-a
+paths:
+  /api/metingen:
+    get:
+      summary: Lijst alle metingen
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Maak een nieuwe meting aan voor een jaar
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [jaar]
+              properties:
+                jaar:
+                  type: integer
+                  minimum: 2020
+                  maximum: 2100
+      responses:
+        '201':
+          description: Aangemaakt
+        '400':
+          description: Ongeldige invoer (problem+json)
+        '409':
+          description: Meting voor dit jaar bestaat al (problem+json)
+  /api/metingen/{jaar}/platformen/{platformId}:
+    get:
+      summary: Haal de scores van één platform binnen een meting op
+      parameters:
+        - name: jaar
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: platformId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+        '404':
+          description: Meting of platform niet gevonden (problem+json)
+    put:
+      summary: Sla scores en opmerkingen op voor één platform (concept of definitief)
+      parameters:
+        - name: jaar
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: platformId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status, vraagScores]
+              properties:
+                status:
+                  type: string
+                  enum: [concept, definitief]
+                algemeneToelichting:
+                  type: string
+                vraagScores:
+                  type: array
+                  items:
+                    type: object
+                    required: [vraagId, score]
+                    properties:
+                      vraagId: { type: string }
+                      score: { type: integer, minimum: 1, maximum: 5, nullable: true }
+                      toelichting: { type: string }
+      responses:
+        '200':
+          description: Opgeslagen
+        '400':
+          description: Ongeldige invoer (problem+json)
+        '404':
+          description: Meting of platform niet gevonden (problem+json)
+        '422':
+          description: Niet alle vragen ingevuld bij afronden (problem+json)
