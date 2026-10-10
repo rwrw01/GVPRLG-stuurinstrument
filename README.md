@@ -26,6 +26,24 @@ npm run dev
 `npm run test:unit` draait tegen de database in `.env.test` (een apart `_test`-gesufixte
 database op dezelfde lokale Postgres) — nooit tegen de interactieve dev-database in `.env`.
 
+## Deployment (VPS-001, handmatig — bewust geen CI/CD)
+
+Zie `docs/superpowers/specs/2026-10-09-backend-migratie-vps001-design.md` §7 voor de
+motivatie. Op VPS-001, via de bestaande Tailscale-SSH-sessie:
+
+```bash
+ssh ralph@100.64.0.2
+cd /opt/gvprlg
+git pull
+docker compose build
+docker compose up -d
+```
+
+Secrets staan in `/opt/gvprlg/secrets/` (chmod 700, root-only) — nooit in `docker-compose.yml`
+of een gecommit bestand. Eerste keer: maak `secrets/db_password` aan met een sterk,
+gegenereerd wachtwoord (`openssl rand -base64 32 > /opt/gvprlg/secrets/db_password`) vóór de
+eerste `docker compose up -d`.
+
 ## Dependencies en licenties
 
 | Package | Versie | Licentie |
