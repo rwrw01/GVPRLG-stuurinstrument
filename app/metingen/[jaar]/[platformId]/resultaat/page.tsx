@@ -11,19 +11,58 @@ interface PlatformData {
   scoresPerAs: PlatformScoresByAs;
 }
 
+type PageState =
+  | { status: 'laden' }
+  | { status: 'leeg' }
+  | { status: 'fout'; melding: string }
+  | { status: 'ok'; platform: PlatformData };
+
 export default function ResultaatPage() {
   const params = useParams<{ jaar: string; platformId: string }>();
-  const [data, setData] = useState<PlatformData | null>(null);
+  const [state, setState] = useState<PageState>({ status: 'laden' });
 
   useEffect(() => {
+    setState({ status: 'laden' });
     fetch(`/api/metingen/${params.jaar}/platformen/${params.platformId}`)
-      .then((r) => r.json())
-      .then((json) => setData(json.platform));
+      .then(async (response) => {
+        if (!response.ok) {
+          const problem = await response.json().catch(() => null);
+          setState({ status: 'fout', melding: problem?.detail ?? 'Onbekende fout bij het ophalen van de resultaten.' });
+          return;
+        }
+        const json = await response.json();
+        if (!json.platform) {
+          setState({ status: 'leeg' });
+        } else {
+          setState({ status: 'ok', platform: json.platform });
+        }
+      })
+      .catch(() => setState({ status: 'fout', melding: 'Kon de resultaten niet laden.' }));
   }, [params.jaar, params.platformId]);
 
-  if (!data) return <p>Laden...</p>;
-
   const platform = CONFIG.platformen.find((p) => p.id === params.platformId);
+
+  if (state.status === 'laden') return <p>Laden...</p>;
+
+  if (state.status === 'fout') {
+    return (
+      <div>
+        <h2>{platform?.naam} — Resultaat {params.jaar}</h2>
+        <div className="alert alert-warning" role="alert">{state.melding}</div>
+      </div>
+    );
+  }
+
+  if (state.status === 'leeg') {
+    return (
+      <div>
+        <h2>{platform?.naam} — Resultaat {params.jaar}</h2>
+        <div className="alert alert-info" role="alert">Dit platform is nog niet ingevuld.</div>
+      </div>
+    );
+  }
+
+  const { platform: data } = state;
   const gemPerAs = berekenGemiddeldePerAs(data.scoresPerAs);
   const totaal = berekenTotaalGemiddelde(data.scoresPerAs);
 

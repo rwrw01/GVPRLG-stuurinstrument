@@ -15,18 +15,26 @@ interface PlatformData {
 export default function InvulformulierPage() {
   const params = useParams<{ jaar: string; platformId: string }>();
   const router = useRouter();
-  const [data, setData] = useState<PlatformData | null>(null);
+  const [laden, setLaden] = useState(true);
+  const [laadFout, setLaadFout] = useState<string | null>(null);
   const [algemeneToelichting, setAlgemeneToelichting] = useState('');
   const [scores, setScores] = useState<Record<string, number | null>>({});
   const [toelichtingen, setToelichtingen] = useState<Record<string, string>>({});
   const [fout, setFout] = useState<string | null>(null);
 
   useEffect(() => {
+    setLaden(true);
+    setLaadFout(null);
     fetch(`/api/metingen/${params.jaar}/platformen/${params.platformId}`)
-      .then((r) => r.json())
-      .then((json) => {
+      .then(async (response) => {
+        if (!response.ok) {
+          const problem = await response.json().catch(() => null);
+          setLaadFout(problem?.detail ?? 'Onbekende fout bij het laden van dit platform.');
+          setLaden(false);
+          return;
+        }
+        const json = await response.json();
         const platform: PlatformData | null = json.platform;
-        setData(platform);
         setAlgemeneToelichting(platform?.algemeneToelichting ?? '');
         const vlakkeScores: Record<string, number | null> = {};
         for (const as of CONFIG.assen) {
@@ -36,6 +44,11 @@ export default function InvulformulierPage() {
         }
         setScores(vlakkeScores);
         setToelichtingen(platform?.toelichtingen ?? {});
+        setLaden(false);
+      })
+      .catch(() => {
+        setLaadFout('Kon dit platform niet laden.');
+        setLaden(false);
       });
   }, [params.jaar, params.platformId]);
 
@@ -65,9 +78,18 @@ export default function InvulformulierPage() {
     }
   }
 
-  if (!data && data !== null) return <p>Laden...</p>;
-
   const platform = CONFIG.platformen.find((p) => p.id === params.platformId);
+
+  if (laden) return <p>Laden...</p>;
+
+  if (laadFout) {
+    return (
+      <div>
+        <h2>{platform?.naam} — Meting {params.jaar}</h2>
+        <div className="alert alert-warning" role="alert">{laadFout}</div>
+      </div>
+    );
+  }
 
   return (
     <div>

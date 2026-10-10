@@ -11,6 +11,7 @@ luca.jpeg
 .next/
 .env
 .env.local
+.env.test
 next-env.d.ts
 
 # Prisma
