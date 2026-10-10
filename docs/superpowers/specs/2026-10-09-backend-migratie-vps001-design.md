@@ -117,12 +117,29 @@ projectstandaard: TypeScript strict, geen `any`).
   - `src/data/` — Prisma-repository + migraties
 - Zod-schema's op alle API-grenzen; RFC 9457 `application/problem+json` voor API-foutmeldingen.
 
-## 7. Deployment en CI/CD
+## 7. Deployment (bewust zonder GitHub Actions/CI-CD)
 
-Volgt het bestaande patroon voor custom apps op VPS-001 (zoals `uren`/projectadmin):
+Volgt qua compose-structuur het bestaande patroon voor custom apps op VPS-001 (zoals
+SiteGuardian), maar **expliciet niet** het bestaande CI/CD-automatiseringspatroon (GitHub
+Actions → `ghcr.io` → Tailscale/SSH) dat `uren`/SiteGuardian/Git-Guardian gebruiken.
 
-- GVPRLG blijft een eigen GitHub-repo, krijgt een GitHub Actions-workflow die bouwt en pusht naar
-  `ghcr.io` (multi-stage Dockerfile, Alpine, non-root, HEALTHCHECK, gepinde digest).
+**Besluit en motivatie:** dat patroon vereist 4 GitHub-repo-secrets (`TAILSCALE_AUTHKEY`,
+`VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`) — in feite het VPN-toetredingsbewijs en de SSH-sleutel
+voor de volledige VPS-001, niet alleen voor de gvprlg-app. Een supply-chain-incident in een van
+de gebruikte third-party GitHub Actions (`docker/build-push-action`, `tailscale/github-action`,
+`appleboy/ssh-action`) zou daarmee potentieel toegang geven tot de hele server (Keycloak, Wazuh,
+de rest), niet alleen tot gvprlg. Dat staat haaks op het zero-trust/assume-breach-uitgangspunt
+van de rest van de stack. Besluit: GVPRLG deployt **handmatig**, getriggerd door de beheerder
+via de bestaande, al-vertrouwde Tailscale-SSH-sessie — geen GitHub-secrets, geen `ghcr.io`,
+geen third-party Actions in het pad:
+
+```bash
+ssh ralph@100.64.0.2
+cd /opt/gvprlg && git pull && docker compose build && docker compose up -d
+```
+
+- Dockerfile (multi-stage, Alpine, non-root, HEALTHCHECK) bouwt native op VPS-001 zelf (ARM64)
+  — geen cross-compile/QEMU nodig, dus ook geen `ghcr.io`-tussenstap vereist.
 - `sovereign-stack` krijgt een nieuwe `stacks/gvprlg/docker-compose.yml`, met dezelfde hardening
   als SiteGuardian: `read_only`, `cap_drop: ALL`, `no-new-privileges`, memory/pids-limits,
   `restart: on-failure:5`, Traefik-labels met `crowdsec@file`+`rate-limit@file`-middlewares.
@@ -131,8 +148,16 @@ Volgt het bestaande patroon voor custom apps op VPS-001 (zoals `uren`/projectadm
   plaintext-waarde in `docker-compose.yml` of een gecommit `.env`-bestand — uitsluitend
   file-references, zoals de rest van de stack. De lokale dev-only `devpassword` uit fase A
   (`docker-compose.dev.yml`, nooit op VPS-001 gedraaid) wordt hier niet hergebruikt.
-- Nieuwe `deploy-gvprlg.yml`-workflow in `sovereign-stack` die via Tailscale/SSH pullt en
-  herstart — zelfde mechaniek als de andere custom stacks.
+- Geen GitHub Actions-workflow, geen GitHub-repo-secrets, geen `deploy-gvprlg.yml` in
+  sovereign-stack. Toekomstige updates: beheerder logt in, `git pull`, herbouwt, herstart —
+  zelfde, bewust handmatige stap als andere admin-taken in `docs/admin-guide.md`.
+- **Open/te verifiëren vóór de eerste live deploy (niet aannemen):** de exacte werking van het
+  bestaande `/opt/scripts/deploy.sh` (gebruikt door andere stacks, leeft alleen op de server)
+  is hier niet van toepassing — gvprlg gebruikt het hierboven beschreven eigen, eenvoudiger
+  pad. Wel moet vóór de eerste deploy via SSH bevestigd worden dat `/opt/gvprlg/` nog niet
+  bestaat en dat `docker network create net-fe-gvprlg` niet botst met een bestaand netwerk
+  (geen vooraf gereserveerd subnet-schema nodig — Docker wijst dat automatisch toe, bevestigd
+  in `docs/deployment-plan.md`).
 - **Domein: `spinnenweb.gvprlg.nl`** (vervangt de eerdere aanname `gvprlg.publicvibes.nl`).
   Geverifieerd in `stacks/traefik/traefik.yml`: de Let's Encrypt-resolver gebruikt een
   **HTTP-01-challenge** (`httpChallenge: entryPoint: web`), geen DNS-01 met een aan specifieke
@@ -184,6 +209,9 @@ Volgt het bestaande patroon voor custom apps op VPS-001 (zoals `uren`/projectadm
    (zie §7).
 5. ~~Mag een invuller meer dan één platform tegelijk toegewezen krijgen?~~ — **opgelost:** ja,
    bevestigd (zie §2).
+6. **Vóór de eerste live deploy te verifiëren via SSH (niet aannemen):** bestaat `/opt/gvprlg/`
+   al niet, en botst `docker network create net-fe-gvprlg` niet met een bestaand netwerk op
+   VPS-001 (zie §7).
 
 ## 10. Fasering (voorstel voor het implementatieplan)
 
@@ -193,8 +221,9 @@ Volgt het bestaande patroon voor custom apps op VPS-001 (zoals `uren`/projectadm
 2. **Fase B — Authenticatie:** Keycloak-realm `gvprlg`, passwordless OTP-flow, NextAuth-integratie,
    uitnodigingsproces, audit-trail.
 3. **Fase C — Oefenomgeving:** sandbox-meting + reset-functie voor de beheerder.
-4. **Fase D — Deployment:** Dockerfile, CI/CD-workflows, `stacks/gvprlg/` in sovereign-stack,
-   DNS/Traefik, backup-integratie.
+4. **Fase D — Deployment:** Dockerfile, handmatige SSH-gebaseerde deploy (bewust geen
+   CI/CD-workflows, zie §7), `stacks/gvprlg/` in sovereign-stack, DNS/Traefik,
+   backup-integratie.
 
 Elke fase is apart testbaar en oplevert op zichzelf waarde (fase A is al bruikbaar voor interne
 PinkRoccade-tests, ook zonder dat invullers al toegang hebben).
