@@ -14,7 +14,7 @@ services:
       DB_NAME: gvprlg
     volumes:
       - ./migrate-entrypoint.sh:/usr/local/bin/migrate-entrypoint.sh:ro
-    entrypoint: ["/usr/local/bin/migrate-entrypoint.sh"]
+    entrypoint: ["/bin/sh", "/usr/local/bin/migrate-entrypoint.sh"]
     restart: "no"
     secrets:
       - db_password
@@ -41,7 +41,7 @@ services:
       NODE_ENV: "production"
     volumes:
       - ./app-entrypoint.sh:/usr/local/bin/app-entrypoint.sh:ro
-    entrypoint: ["/usr/local/bin/app-entrypoint.sh"]
+    entrypoint: ["/bin/sh", "/usr/local/bin/app-entrypoint.sh"]
     secrets:
       - db_password
     security_opt:
@@ -107,17 +107,27 @@ services:
       - FOWNER
       - SETGID
       - SETUID
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
     deploy:
       resources:
         limits:
           memory: 512M
           pids: 100
     restart: on-failure:5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U gvprlg"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
 networks:
   gvprlg-internal:

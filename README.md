@@ -29,7 +29,45 @@ database op dezelfde lokale Postgres) — nooit tegen de interactieve dev-databa
 ## Deployment (VPS-001, handmatig — bewust geen CI/CD)
 
 Zie `docs/superpowers/specs/2026-10-09-backend-migratie-vps001-design.md` §7 voor de
-motivatie. Op VPS-001, via de bestaande Tailscale-SSH-sessie:
+motivatie.
+
+### Eerste keer (koude deploy)
+
+```bash
+ssh ralph@100.64.0.2
+
+# 1. Clone (alleen de eerste keer)
+sudo git clone <gvprlg-repo-url> /opt/gvprlg
+cd /opt/gvprlg
+
+# 2. Secret aanmaken VÓÓR de eerste `docker compose up`
+#    (ontbreekt het bestand bij `up`, dan maakt Docker er per ongeluk een MAP van met
+#    diezelfde naam — controleer dus dat dit een bestand is, niet een map, voordat je verdergaat)
+mkdir -p secrets
+chmod 700 secrets
+openssl rand -hex 32 > secrets/db_password
+chmod 0444 secrets/db_password
+test -f secrets/db_password && ! test -d secrets/db_password
+
+# 3. Het externe Traefik-netwerk moet bestaan VÓÓR `docker compose up`
+#    (zowel deze compose als Traefik's eigen compose declareren het als `external: true` —
+#    geen van beide maakt het aan, dus dit is een losse, eenmalige stap)
+docker network create net-fe-gvprlg
+
+# 4. Pas hierna de Traefik-wijziging uit het voorbereide diff (zie plan Task 5) toepassen
+#    in sovereign-stack, zodat Traefik het netwerk ook kent.
+
+# 5. Bouwen en starten
+docker compose build
+docker compose up -d
+```
+
+Let op bij het wachtwoord: gebruik `openssl rand -hex 32` (alleen `[A-Za-z0-9]`), niet
+`-base64` — base64 kan `/` en `+` bevatten, en die breken de `DATABASE_URL` die de
+entrypoint-scripts samenstellen (zie `app-entrypoint.sh`/`migrate-entrypoint.sh`, die dit nu
+ook expliciet afwijzen met een duidelijke foutmelding in plaats van stil te falen).
+
+### Volgende keren (update)
 
 ```bash
 ssh ralph@100.64.0.2
@@ -39,10 +77,9 @@ docker compose build
 docker compose up -d
 ```
 
-Secrets staan in `/opt/gvprlg/secrets/` (chmod 700, root-only) — nooit in `docker-compose.yml`
-of een gecommit bestand. Eerste keer: maak `secrets/db_password` aan met een sterk,
-gegenereerd wachtwoord (`openssl rand -base64 32 > /opt/gvprlg/secrets/db_password`) vóór de
-eerste `docker compose up -d`.
+Secrets staan in `/opt/gvprlg/secrets/` (map chmod 700, root-only; het bestand zelf chmod
+0444 zodat de non-root containergebruiker het kan lezen) — nooit in `docker-compose.yml` of
+een gecommit bestand.
 
 ## Dependencies en licenties
 
