@@ -3,6 +3,8 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
   testDir: './tests',
   timeout: 30000,
+  // Next.js dev compiles routes on first hit; the default 5s expect timeout is too tight for that cold start.
+  expect: { timeout: 15000 },
   use: {
     browserName: 'chromium',
     headless: true,
