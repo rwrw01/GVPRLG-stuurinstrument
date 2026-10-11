@@ -2,6 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
+  globalSetup: './tests/e2e-global-setup.ts',
   timeout: 30000,
   // Next.js dev compiles routes on first hit; the default 5s expect timeout is too tight for that cold start.
   expect: { timeout: 15000 },
@@ -19,7 +20,7 @@ export default defineConfig({
     { name: 'static-site', testMatch: 'volwassenheidsmeting.spec.js' },
     {
       name: 'backend-fase-a',
-      testMatch: 'gvprlg-backend-fase-a.spec.js',
+      testMatch: ['gvprlg-backend-fase-a.spec.js', 'gvprlg-spinnenweb.spec.js'],
       use: { baseURL: 'http://localhost:3000' },
     },
   ],

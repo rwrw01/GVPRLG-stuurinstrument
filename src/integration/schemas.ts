@@ -23,3 +23,5 @@ export const RouteParamsSchema = z.object({
   jaar: z.string().regex(/^\d{4}$/, 'jaar moet een viercijferig getal zijn').transform(Number).pipe(z.number().int().min(2020).max(2100)),
   platformId: z.string().min(1).max(64),
 });
+
+export const JaarParamsSchema = z.object({ jaar: RouteParamsSchema.shape.jaar });

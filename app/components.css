@@ -1,0 +1,43 @@
+/* Breadcrumb */
+.kruimelpad { margin-bottom: 1.25rem; font-size: 0.9rem; }
+.kruimelpad ol { list-style: none; display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.kruimelpad li + li::before { content: '›'; margin-right: 0.35rem; color: var(--color-muted); }
+.kruimelpad a { color: var(--color-secondary); }
+.kruimelpad [aria-current='page'] { font-weight: 600; }
+
+/* Platform status icon */
+.platform-status { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; font-weight: 600; }
+.platform-status svg { fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.status-definitief { color: var(--color-success); }
+.status-definitief circle { fill: var(--color-success); stroke: var(--color-success); }
+.status-definitief path { stroke: white; }
+.status-concept { color: var(--color-warning); }
+.status-concept circle { stroke: var(--color-warning); }
+.status-concept path { stroke: var(--color-warning); }
+.status-leeg { color: var(--color-muted); }
+.status-leeg circle { stroke: var(--color-muted); stroke-dasharray: 3 3; }
+.platform-kop { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
+.card.is-definitief { border-left: 4px solid var(--color-success); }
+
+/* Spinnenweb (radar chart) */
+.spinnenweb { margin: 0 auto; }
+.spinnenweb svg { width: 100%; height: auto; overflow: visible; }
+.spinnenweb-ring { fill: none; stroke: var(--color-border); }
+.spinnenweb-as { stroke: var(--color-border); }
+.spinnenweb-label { font-size: 13px; font-weight: 600; }
+.spinnenweb-tick { font-size: 10px; fill: var(--color-muted); }
+.spinnenweb-legenda { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; font-size: 0.8rem; margin-top: 0.5rem; }
+.spinnenweb-swatch { display: inline-block; width: 0.8rem; height: 0.8rem; border-radius: 2px; margin-right: 0.3rem; vertical-align: middle; }
+.totaalscore { text-align: center; font-size: 1.3rem; font-weight: 700; margin-top: 0.5rem; }
+
+/* Per-question detail */
+.vraag-detail-as { margin-bottom: 1.25rem; }
+.vraag-detail-as h4 { margin-bottom: 0.5rem; }
+.vraag-detail { margin-bottom: 0.75rem; }
+.vraag-detail-kop { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.85rem; }
+.vraag-detail-balk { height: 8px; background: var(--color-border); border-radius: 4px; overflow: hidden; margin-top: 0.2rem; }
+.vraag-detail-balk > div { height: 100%; border-radius: 4px; }
+.balk-1, .balk-2 { background: var(--color-danger); }
+.balk-3 { background: var(--color-warning); }
+.balk-4, .balk-5 { background: var(--color-success); }
+.vraag-detail-toelichting { font-size: 0.8rem; color: var(--color-muted); font-style: italic; margin-top: 0.2rem; }

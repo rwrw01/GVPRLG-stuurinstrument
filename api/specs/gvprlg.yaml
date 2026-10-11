@@ -30,6 +30,21 @@ paths:
           description: Ongeldige invoer (problem+json)
         '409':
           description: Meting voor dit jaar bestaat al (problem+json)
+  /api/metingen/{jaar}:
+    get:
+      summary: Haal één meting op met status en scores van alle ingevulde platformen
+      parameters:
+        - name: jaar
+          in: path
+          required: true
+          schema: { type: integer, minimum: 2020, maximum: 2100 }
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Ongeldig jaar (problem+json)
+        '404':
+          description: Meting niet gevonden (problem+json)
   /api/metingen/{jaar}/platformen/{platformId}:
     get:
       summary: Haal de scores van één platform binnen een meting op

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { berekenGemiddeldePerAs, berekenTotaalGemiddelde, type PlatformScoresByAs } from './scores';
+import { berekenGemiddeldePerAs, berekenGemiddeldePerVraag, berekenOrganisatieGemiddelde, berekenTotaalGemiddelde, type PlatformScoresByAs } from './scores';
 
 describe('berekenGemiddeldePerAs', () => {
   it('berekent het gemiddelde per as, negeert null-scores', () => {
@@ -31,5 +31,32 @@ describe('berekenTotaalGemiddelde', () => {
 
   it('geeft null als geen enkele as een score heeft', () => {
     expect(berekenTotaalGemiddelde({ techniek: {}, mens: {}, proces: {} })).toBeNull();
+  });
+});
+
+describe('berekenOrganisatieGemiddelde', () => {
+  it('should average each axis over the given platforms when several platforms have scores', () => {
+    const a: PlatformScoresByAs = { techniek: { 'common-ground-standaarden': 4 }, mens: { 'capaciteit-kennis': 2 }, proces: {} };
+    const b: PlatformScoresByAs = { techniek: { 'common-ground-standaarden': 2 }, mens: { 'capaciteit-kennis': 4 }, proces: {} };
+    const result = berekenOrganisatieGemiddelde([a, b]);
+    expect(result.techniek).toBe(3);
+    expect(result.mens).toBe(3);
+    expect(result.proces).toBeNull();
+  });
+
+  it('should return null for every axis when no platforms are given', () => {
+    const result = berekenOrganisatieGemiddelde([]);
+    expect(result).toEqual({ techniek: null, mens: null, proces: null });
+  });
+});
+
+describe('berekenGemiddeldePerVraag', () => {
+  it('should average each question over the platforms and ignore missing scores', () => {
+    const a: PlatformScoresByAs = { techniek: { 'cloud-data': 4, 'ai-integratie': null }, mens: {}, proces: {} };
+    const b: PlatformScoresByAs = { techniek: { 'cloud-data': 2 }, mens: {}, proces: {} };
+    const result = berekenGemiddeldePerVraag([a, b]);
+    expect(result['cloud-data']).toBe(3);
+    expect(result['ai-integratie']).toBeNull();
+    expect(Object.keys(result)).toHaveLength(16);
   });
 });

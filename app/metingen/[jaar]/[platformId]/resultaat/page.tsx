@@ -3,12 +3,16 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { CONFIG } from '@/src/service/config';
-import { berekenGemiddeldePerAs, berekenTotaalGemiddelde, type PlatformScoresByAs } from '@/src/service/scores';
+import { berekenGemiddeldePerAs, berekenGemiddeldePerVraag, berekenTotaalGemiddelde, type PlatformScoresByAs } from '@/src/service/scores';
+import { Spinnenweb } from '@/src/ui/components/Spinnenweb';
+import { VraagDetail } from '@/src/ui/components/VraagDetail';
+import { AS_GROEPEN, VRAAG_SPAKEN, naarSpaakWaarden } from '@/src/ui/components/_spinnenwebSpaken';
 
 interface PlatformData {
   status: string;
   algemeneToelichting: string;
   scoresPerAs: PlatformScoresByAs;
+  toelichtingen: Record<string, string>;
 }
 
 type PageState =
@@ -22,22 +26,28 @@ export default function ResultaatPage() {
   const [state, setState] = useState<PageState>({ status: 'laden' });
 
   useEffect(() => {
+    let actief = true;
     setState({ status: 'laden' });
     fetch(`/api/metingen/${params.jaar}/platformen/${params.platformId}`)
       .then(async (response) => {
+        if (!actief) return;
         if (!response.ok) {
           const problem = await response.json().catch(() => null);
           setState({ status: 'fout', melding: problem?.detail ?? 'Onbekende fout bij het ophalen van de resultaten.' });
           return;
         }
         const json = await response.json();
+        if (!actief) return;
         if (!json.platform) {
           setState({ status: 'leeg' });
         } else {
           setState({ status: 'ok', platform: json.platform });
         }
       })
-      .catch(() => setState({ status: 'fout', melding: 'Kon de resultaten niet laden.' }));
+      .catch(() => actief && setState({ status: 'fout', melding: 'Kon de resultaten niet laden.' }));
+    return () => {
+      actief = false;
+    };
   }, [params.jaar, params.platformId]);
 
   const platform = CONFIG.platformen.find((p) => p.id === params.platformId);
@@ -70,22 +80,39 @@ export default function ResultaatPage() {
     <div>
       <h2>{platform?.naam} — Resultaat {params.jaar}</h2>
       <span className={`badge badge-${data.status}`}>{data.status}</span>
-      <table aria-label="Scores per as">
-        <thead>
-          <tr>
-            {CONFIG.assen.map((a) => <th key={a.id}>{a.naam}</th>)}
-            <th>Totaal</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            {CONFIG.assen.map((a) => (
-              <td key={a.id}>{gemPerAs[a.id]?.toFixed(1) ?? '-'}</td>
-            ))}
-            <td>{totaal?.toFixed(1) ?? '-'}</td>
-          </tr>
-        </tbody>
-      </table>
+      <div style={{ marginTop: '1rem' }}>
+        <div className="card">
+          <h3>Spinnenweb</h3>
+          <Spinnenweb
+            titel={`Spinnenweb ${platform?.naam ?? params.platformId} ${params.jaar}`}
+            spaken={VRAAG_SPAKEN}
+            groepen={AS_GROEPEN}
+            grootte={420}
+            series={[{ label: `${platform?.naam} ${params.jaar}`, waarden: naarSpaakWaarden(berekenGemiddeldePerVraag([data.scoresPerAs])), kleur: '#E2007A', gestippeld: data.status === 'concept' }]}
+          />
+          <p className="totaalscore">Totaal: {totaal?.toFixed(1) ?? '-'} / 5</p>
+          <table aria-label="Scores per as">
+            <thead>
+              <tr>
+                {CONFIG.assen.map((a) => <th key={a.id}>{a.naam}</th>)}
+                <th>Totaal</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                {CONFIG.assen.map((a) => (
+                  <td key={a.id}>{gemPerAs[a.id]?.toFixed(1) ?? '-'}</td>
+                ))}
+                <td>{totaal?.toFixed(1) ?? '-'}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div className="card">
+          <h3>Detail per vraag</h3>
+          <VraagDetail scoresPerAs={data.scoresPerAs} toelichtingen={data.toelichtingen ?? {}} />
+        </div>
+      </div>
       {data.algemeneToelichting && (
         <div className="card">
           <h3>Algemene toelichting</h3>

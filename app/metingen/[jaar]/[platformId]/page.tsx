@@ -23,10 +23,14 @@ export default function InvulformulierPage() {
   const [fout, setFout] = useState<string | null>(null);
 
   useEffect(() => {
+    // Ignore responses of a superseded run (StrictMode double effect, fast navigation),
+    // otherwise a late response overwrites scores the user already clicked.
+    let actief = true;
     setLaden(true);
     setLaadFout(null);
     fetch(`/api/metingen/${params.jaar}/platformen/${params.platformId}`)
       .then(async (response) => {
+        if (!actief) return;
         if (!response.ok) {
           const problem = await response.json().catch(() => null);
           setLaadFout(problem?.detail ?? 'Onbekende fout bij het laden van dit platform.');
@@ -34,6 +38,7 @@ export default function InvulformulierPage() {
           return;
         }
         const json = await response.json();
+        if (!actief) return;
         const platform: PlatformData | null = json.platform;
         setAlgemeneToelichting(platform?.algemeneToelichting ?? '');
         const vlakkeScores: Record<string, number | null> = {};
@@ -47,9 +52,13 @@ export default function InvulformulierPage() {
         setLaden(false);
       })
       .catch(() => {
+        if (!actief) return;
         setLaadFout('Kon dit platform niet laden.');
         setLaden(false);
       });
+    return () => {
+      actief = false;
+    };
   }, [params.jaar, params.platformId]);
 
   async function opslaan(status: 'concept' | 'definitief') {

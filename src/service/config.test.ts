@@ -20,6 +20,13 @@ describe('CONFIG', () => {
   });
 });
 
+describe('CONFIG vragen', () => {
+  it('should give every question a short label of at most 22 characters for the spinnenweb', () => {
+    const vragen = CONFIG.assen.flatMap((a) => a.vragen);
+    expect(vragen.every((v) => v.kort.length > 0 && v.kort.length <= 22)).toBe(true);
+  });
+});
+
 describe('getNdsVragen', () => {
   it('verzamelt alle vragen met een nds-tag over alle assen', () => {
     const ndsVragen = getNdsVragen();
