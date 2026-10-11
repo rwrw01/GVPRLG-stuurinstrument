@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('GVPRLG backend fase A — happy flow', () => {
   test('maakt een meting aan, vult een platform in met opmerkingen, rondt af, toont resultaat', async ({ page, request }) => {
-    const jaar = 2020 + Math.floor(Math.random() * 80); // uniek per testrun, binnen het door CreateMetingSchema toegestane bereik (2020-2100)
+    const jaar = 2030 + Math.floor(Math.random() * 70); // uniek per testrun: 2030-2099, buiten de door de migratie geseede jaren 2026-2028
 
     await page.goto('/');
     await page.fill('#nieuw-jaar', String(jaar));
@@ -46,7 +46,7 @@ test.describe('GVPRLG backend fase A — happy flow', () => {
   });
 
   test('weigert afronden met ontbrekende scores', async ({ page }) => {
-    const jaar = 2020 + Math.floor(Math.random() * 80);
+    const jaar = 2030 + Math.floor(Math.random() * 70); // buiten de geseede jaren 2026-2028
     await page.goto('/');
     await page.fill('#nieuw-jaar', String(jaar));
     await page.click('text=Meting aanmaken');
@@ -61,7 +61,7 @@ test.describe('GVPRLG backend fase A — happy flow', () => {
   });
 
   test('resultaatpagina toont een duidelijke melding voor een platform dat nog niet is ingevuld', async ({ page }) => {
-    const jaar = 2020 + Math.floor(Math.random() * 80);
+    const jaar = 2030 + Math.floor(Math.random() * 70); // buiten de geseede jaren 2026-2028
     await page.goto('/');
     await page.fill('#nieuw-jaar', String(jaar));
     await page.click('text=Meting aanmaken');

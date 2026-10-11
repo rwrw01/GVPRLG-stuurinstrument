@@ -23,6 +23,13 @@ npm install
 npm run dev
 ```
 
+De migraties maken de meetjaren 2026, 2027 en 2028 automatisch aan. Voorbeeldwaardes voor
+2026 (lokaal testen en demo's, nooit op productiedata) vul je met een draaiende app via:
+
+```bash
+node scripts/seed-voorbeeldwaardes-2026.mjs http://127.0.0.1:3000
+```
+
 `npm run test:unit` draait tegen de database in `.env.test` (een apart `_test`-gesufixte
 database op dezelfde lokale Postgres) — nooit tegen de interactieve dev-database in `.env`.
 

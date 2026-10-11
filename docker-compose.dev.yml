@@ -1,3 +1,7 @@
+# Own project name: docker-compose.yml in this directory also has a 'postgres' service; sharing the
+# default project name would make one stack replace the other's container.
+name: gvprlg-dev
+
 services:
   postgres:
     image: postgres:16-alpine
