@@ -153,7 +153,30 @@ describe('wijzigGebruikerDoorBeheerder', () => {
 
     expect(resultaat).toMatchObject({ ok: true, data: { keycloakSub: null, status: 'uitgenodigd' } });
     const audit = await prisma.auditLogEntry.findMany({ where: { actie: 'account_ontkoppeld' } });
-    expect(audit[0]).toMatchObject({ actor: beheerder.id, doelId: jan.id, detail: 'email=jan@test.local;sub=sub-jan' });
+    expect(audit[0]).toMatchObject({ actor: beheerder.id, doelId: jan.id, detail: 'email=jan@test.local' });
+    expect(audit[0]?.detail).not.toContain('sub-jan');
+  });
+
+  it('weigert dat een beheerder zijn eigen account ontkoppelt', async () => {
+    await tweedeBeheerder();
+    await bindKeycloakSub(beheerder.id, 'sub-bea');
+
+    const resultaat = await wijzigGebruikerDoorBeheerder(beheerder, beheerder.id, { actie: 'ontkoppelAccount' });
+
+    expect(resultaat).toEqual({ ok: false, error: 'zelfbescherming' });
+    expect(await vindGebruikerOpId(beheerder.id)).toMatchObject({ keycloakSub: 'sub-bea', status: 'actief' });
+    expect(await prisma.auditLogEntry.count()).toBe(0);
+  });
+
+  it('weigert het ontkoppelen van de laatste beheerder', async () => {
+    const doel = await tweedeBeheerder();
+    await bindKeycloakSub(doel.id, 'sub-bob');
+    await prisma.gebruiker.update({ where: { id: beheerder.id }, data: { status: 'ingetrokken' } });
+
+    const resultaat = await wijzigGebruikerDoorBeheerder(beheerder, doel.id, { actie: 'ontkoppelAccount' });
+
+    expect(resultaat).toEqual({ ok: false, error: 'laatste-beheerder' });
+    expect(await vindGebruikerOpId(doel.id)).toMatchObject({ keycloakSub: 'sub-bob', status: 'actief' });
   });
 
   it('geeft niet-gevonden voor een onbekende gebruiker', async () => {

@@ -19,8 +19,10 @@ export type WijzigFout = 'niet-gevonden' | 'zelfbescherming' | 'laatste-beheerde
 
 type Bescherming = Extract<WijzigFout, 'zelfbescherming' | 'laatste-beheerder'>;
 
+// Unlinking also removes access: the user drops to `uitgenodigd` until the next login.
 function ontneemtBeheer(wijziging: GebruikerWijzigingActie): boolean {
-  return (wijziging.actie === 'rol' && wijziging.rol === 'invuller') || wijziging.actie === 'intrekken';
+  if (wijziging.actie === 'rol') return wijziging.rol === 'invuller';
+  return wijziging.actie === 'intrekken' || wijziging.actie === 'ontkoppelAccount';
 }
 
 async function controleerBescherming(
@@ -67,7 +69,8 @@ async function herstel(actor: GebruikerRecord, doel: GebruikerRecord): Promise<G
 async function ontkoppel(actor: GebruikerRecord, doel: GebruikerRecord): Promise<GebruikerRecord> {
   const status = doel.status === 'ingetrokken' ? 'ingetrokken' : 'uitgenodigd';
   const gewijzigd = await wijzigGebruiker(doel.id, { keycloakSub: null, status });
-  await audit(actor, doel, 'account_ontkoppeld', `email=${doel.email};sub=${doel.keycloakSub ?? ''}`);
+  // The Keycloak subject is never written to the audit detail: it is readable via GET /api/audit.
+  await audit(actor, doel, 'account_ontkoppeld', `email=${doel.email}`);
   return gewijzigd;
 }
 
@@ -86,7 +89,7 @@ function voerUit(actor: GebruikerRecord, doel: GebruikerRecord, wijziging: Gebru
 
 /**
  * Applies an administrator's change to a user, with self-protection (an administrator cannot
- * demote or revoke themselves) and last-administrator protection. Each effective change is audited;
+ * demote, revoke or unlink themselves) and last-administrator protection. Each effective change is audited;
  * a no-op (e.g. revoking an already revoked user) writes nothing.
  * @param actor - The acting administrator
  * @param doelId - Id of the user to change

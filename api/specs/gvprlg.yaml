@@ -297,8 +297,9 @@ paths:
       summary: Wijzig rol, trek toegang in, herstel toegang of ontkoppel het Keycloak-account; alleen beheerder
       description: >-
         Wordt geaudit als rol_gewijzigd, toegang_ingetrokken, toegang_hersteld of account_ontkoppeld.
-        Een beheerder kan zichzelf niet degraderen of intrekken, en de laatste actieve beheerder kan
-        niet worden gedegradeerd of ingetrokken.
+        Een beheerder kan zichzelf niet degraderen, intrekken of ontkoppelen, en de laatste actieve
+        beheerder kan niet worden gedegradeerd, ingetrokken of ontkoppeld. Het Keycloak-subject wordt
+        niet in de auditregel opgenomen.
       security:
         - cookieAuth: []
       parameters:
