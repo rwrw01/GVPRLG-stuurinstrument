@@ -13,10 +13,21 @@ export default function HomePage() {
   const [metingen, setMetingen] = useState<Meting[]>([]);
   const [nieuwJaar, setNieuwJaar] = useState('');
   const [fout, setFout] = useState<string | null>(null);
+  const [laadFout, setLaadFout] = useState<string | null>(null);
   const { ik } = useIk();
 
   function laadMetingen() {
-    fetch('/api/metingen').then((r) => r.json()).then((data) => setMetingen(data.metingen));
+    fetch('/api/metingen')
+      .then(async (response) => {
+        const body = await response.json().catch(() => null);
+        if (!response.ok) {
+          setLaadFout(body?.detail ?? 'Kon de metingen niet laden.');
+          return;
+        }
+        setLaadFout(null);
+        setMetingen(body.metingen);
+      })
+      .catch(() => setLaadFout('Kon de metingen niet laden.'));
   }
 
   useEffect(laadMetingen, []);
@@ -51,7 +62,8 @@ export default function HomePage() {
           {fout && <div className="alert alert-warning" role="alert">{fout}</div>}
         </div>
       )}
-      {metingen.length === 0 && <p>Nog geen metingen.</p>}
+      {laadFout && <div className="alert alert-warning" role="alert">{laadFout}</div>}
+      {!laadFout && metingen.length === 0 && <p>Nog geen metingen.</p>}
       <div className="dashboard-grid">
         {metingen.map((m) => (
           <div className="card" key={m.id}>

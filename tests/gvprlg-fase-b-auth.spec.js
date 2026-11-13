@@ -142,6 +142,14 @@ test.describe('GVPRLG fase B — beheer', () => {
       await expect(invullerPagina.getByRole('alert').filter({ hasText: INGETROKKEN })).toBeVisible();
       const opgeslagen = await (await page.request.get(`/api/metingen/${FASE_B_JAAR}/platformen/${PLATFORM_INVULLER}`)).json();
       expect(opgeslagen.platform?.algemeneToelichting ?? '').not.toBe(marker);
+
+      // The revoked user's cookie is still valid: the home page must not crash but leave for /geen-toegang.
+      const paginaFouten = [];
+      invullerPagina.on('pageerror', (fout) => paginaFouten.push(fout.message));
+      await invullerPagina.goto('/');
+      await expect(invullerPagina).toHaveURL(/\/geen-toegang$/);
+      await expect(invullerPagina.getByRole('heading', { name: 'Geen toegang' })).toBeVisible();
+      expect(paginaFouten).toEqual([]);
     } finally {
       const hersteld = await page.request.patch(`/api/beheer/gebruikers/${id}`, { data: { actie: 'herstellen' } });
       expect(hersteld.ok()).toBeTruthy();

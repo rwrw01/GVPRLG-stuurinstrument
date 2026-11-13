@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
+import { bepaalRedirect } from './_ikRedirect';
+
 /** The logged-in user as returned by `GET /api/ik`. */
 export interface Ik {
   id: string;
@@ -12,6 +14,7 @@ export interface Ik {
 
 /**
  * Fetches the logged-in user once. Only used to show or hide UI; the server enforces access.
+ * On 401 it navigates to the login page and on 403 to `/geen-toegang` (not from those pages).
  * @returns `ik` (null when not logged in or on error) and `laden` while the request runs
  */
 export function useIk(): { ik: Ik | null; laden: boolean } {
@@ -21,7 +24,12 @@ export function useIk(): { ik: Ik | null; laden: boolean } {
   useEffect(() => {
     let actief = true;
     fetch('/api/ik')
-      .then(async (response) => (response.ok ? ((await response.json()) as Ik) : null))
+      .then(async (response) => {
+        // A cookie that no longer grants access (revoked user, rotated secret): leave the page.
+        const doel = bepaalRedirect(response.status, window.location.pathname, window.location.search);
+        if (doel !== null) window.location.assign(doel);
+        return response.ok ? ((await response.json()) as Ik) : null;
+      })
       .catch(() => null)
       .then((data) => {
         if (!actief) return;
