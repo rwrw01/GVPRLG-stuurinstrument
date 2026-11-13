@@ -22,3 +22,7 @@ prisma/dev.db
 
 # Production secrets (nooit committen)
 /secrets/
+
+# Claude Code worktrees en SDD-werkruimte
+/.claude/worktrees/
+/.superpowers/
