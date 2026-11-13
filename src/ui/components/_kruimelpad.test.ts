@@ -30,4 +30,19 @@ describe('bouwKruimelpad', () => {
   it('should fall back to the raw segment when the platform id is unknown', () => {
     expect(bouwKruimelpad('/metingen/2026/onbekend')[2]?.label).toBe('onbekend');
   });
+
+  it('should add the beheer crumb when on the administration page', () => {
+    expect(bouwKruimelpad('/beheer')).toEqual([
+      { label: 'Metingen', href: '/' },
+      { label: 'Beheer', href: '/beheer' },
+    ]);
+  });
+
+  it('should end with the audit crumb when on the audit page', () => {
+    expect(bouwKruimelpad('/beheer/audit')).toEqual([
+      { label: 'Metingen', href: '/' },
+      { label: 'Beheer', href: '/beheer' },
+      { label: 'Audit', href: '/beheer/audit' },
+    ]);
+  });
 });

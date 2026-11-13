@@ -5,6 +5,13 @@ export interface Kruimel {
   href: string;
 }
 
+// Under /beheer the second segment is a sub page (only "audit" exists), not a year.
+function beheerKruimels(sub: string | undefined): Kruimel[] {
+  const crumbs: Kruimel[] = [{ label: 'Beheer', href: '/beheer' }];
+  if (sub === 'audit') crumbs.push({ label: 'Audit', href: '/beheer/audit' });
+  return crumbs;
+}
+
 /**
  * Builds the breadcrumb trail for an app path such as /metingen/2026/ro/resultaat.
  * @param pathname current URL path
@@ -13,6 +20,7 @@ export interface Kruimel {
 export function bouwKruimelpad(pathname: string): Kruimel[] {
   const crumbs: Kruimel[] = [{ label: 'Metingen', href: '/' }];
   const [eerste, jaar, platformId, sub] = pathname.split('/').filter(Boolean);
+  if (eerste === 'beheer') return [...crumbs, ...beheerKruimels(jaar)];
   if (eerste !== 'metingen' || !jaar) return crumbs;
 
   crumbs.push({ label: `Meting ${jaar}`, href: `/metingen/${jaar}` });

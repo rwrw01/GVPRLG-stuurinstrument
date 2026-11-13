@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { CONFIG } from '@/src/service/config';
 import { berekenGemiddeldePerAs, berekenGemiddeldePerVraag, berekenTotaalGemiddelde, type PlatformScoresByAs } from '@/src/service/scores';
+import { HeropenenKnop } from '@/src/ui/components/HeropenenKnop';
 import { Spinnenweb } from '@/src/ui/components/Spinnenweb';
 import { VraagDetail } from '@/src/ui/components/VraagDetail';
 import { AS_GROEPEN, VRAAG_SPAKEN, naarSpaakWaarden } from '@/src/ui/components/_spinnenwebSpaken';
+import { useIk } from '@/src/ui/hooks/useIk';
 
 interface PlatformData {
   status: string;
@@ -24,6 +26,9 @@ type PageState =
 export default function ResultaatPage() {
   const params = useParams<{ jaar: string; platformId: string }>();
   const [state, setState] = useState<PageState>({ status: 'laden' });
+  // Bumped after a reopen to re-fetch the platform.
+  const [versie, setVersie] = useState(0);
+  const { ik } = useIk();
 
   useEffect(() => {
     let actief = true;
@@ -48,7 +53,7 @@ export default function ResultaatPage() {
     return () => {
       actief = false;
     };
-  }, [params.jaar, params.platformId]);
+  }, [params.jaar, params.platformId, versie]);
 
   const platform = CONFIG.platformen.find((p) => p.id === params.platformId);
 
@@ -80,6 +85,9 @@ export default function ResultaatPage() {
     <div>
       <h2>{platform?.naam} — Resultaat {params.jaar}</h2>
       <span className={`badge badge-${data.status}`}>{data.status}</span>
+      {ik?.rol === 'beheerder' && data.status === 'definitief' && (
+        <HeropenenKnop jaar={params.jaar} platformId={params.platformId} onHeropend={() => setVersie((v) => v + 1)} />
+      )}
       <div style={{ marginTop: '1rem' }}>
         <div className="card">
           <h3>Spinnenweb</h3>
