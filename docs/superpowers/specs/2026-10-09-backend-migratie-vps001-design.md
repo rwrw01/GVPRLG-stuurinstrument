@@ -72,6 +72,10 @@ proberen vóór zijn echte platform.
 
 ## 4. Authenticatie: Keycloak-realm `gvprlg`, passwordless OTP
 
+> **Vervangen** door `docs/superpowers/specs/2026-11-13-fase-b-authenticatie-design.md`
+> (route A, rollen in de app-DB, mail via mox, geen intercontainerverkeer). Onderstaande tekst
+> is historisch.
+
 - Nieuwe, losstaande Keycloak-realm `gvprlg` op de bestaande Keycloak-instance van VPS-001 —
   geen vermenging met de admin-realm `athide`.
 - Uitnodigen (beheerder, via Keycloak Admin Console, VPN-only): gebruiker aanmaken met verplichte
