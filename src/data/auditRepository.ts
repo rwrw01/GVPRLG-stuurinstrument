@@ -2,22 +2,26 @@ import type { AuditLogEntry, Prisma } from '@prisma/client';
 
 import { prisma } from './prismaClient';
 
-/** All audit actions the application records. */
-export type AuditActie =
-  | 'gebruiker_toegevoegd'
-  | 'eerste_login'
-  | 'ingelogd'
-  | 'uitgelogd'
-  | 'koppeling_toegevoegd'
-  | 'koppeling_verwijderd'
-  | 'rol_gewijzigd'
-  | 'toegang_ingetrokken'
-  | 'toegang_hersteld'
-  | 'toegang_geweigerd'
-  | 'platform_heropend'
-  | 'account_ontkoppeld'
-  | 'platform_opgeslagen_concept'
-  | 'platform_afgerond';
+/** All audit actions the application records (also used to validate the audit query filter). */
+export const AUDIT_ACTIES = [
+  'gebruiker_toegevoegd',
+  'eerste_login',
+  'ingelogd',
+  'uitgelogd',
+  'koppeling_toegevoegd',
+  'koppeling_verwijderd',
+  'rol_gewijzigd',
+  'toegang_ingetrokken',
+  'toegang_hersteld',
+  'toegang_geweigerd',
+  'platform_heropend',
+  'account_ontkoppeld',
+  'platform_opgeslagen_concept',
+  'platform_afgerond',
+] as const;
+
+/** One of the audit actions in `AUDIT_ACTIES`. */
+export type AuditActie = (typeof AUDIT_ACTIES)[number];
 
 export interface AuditEntryInput {
   actor: string;
@@ -66,10 +70,12 @@ export async function schrijfAudit(entry: AuditEntryInput, tx?: Prisma.Transacti
 
 /**
  * Searches the audit log, newest first. Year and platform filters match the `detail` string.
- * @param filter - Optional year, platforms, actor and action; `limiet` caps the result size
+ * @param filter - Optional year, platforms, actor and action; `limiet` caps the result size.
+ *   An empty `platformIds` list matches nothing (a nested `OR: []` would match every row).
  * @returns Matching audit rows ordered by `tijdstip` descending
  */
 export async function zoekAudit(filter: AuditFilter): Promise<AuditLogEntry[]> {
+  if (filter.platformIds?.length === 0) return [];
   const and: Prisma.AuditLogEntryWhereInput[] = [];
   if (filter.jaar !== undefined) and.push({ detail: { contains: `;jaar=${filter.jaar}` } });
   if (filter.platformIds !== undefined) {

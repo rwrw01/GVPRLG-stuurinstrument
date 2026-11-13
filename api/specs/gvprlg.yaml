@@ -174,6 +174,201 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+  /api/ik:
+    get:
+      summary: Gegevens van de ingelogde, actieve gebruiker
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, naam, email, rol]
+                properties:
+                  id: { type: string }
+                  naam: { type: string }
+                  email: { type: string, format: email }
+                  rol: { $ref: '#/components/schemas/Rol' }
+        '401':
+          $ref: '#/components/responses/NietIngelogd'
+        '403':
+          $ref: '#/components/responses/GeenToegang'
+  /api/audit:
+    get:
+      summary: Doorzoek de auditlog (nieuwste eerst)
+      description: >-
+        Een beheerder ziet alle regels. Een invuller ziet alleen regels van platformen waaraan hij
+        in enig meetjaar gekoppeld is; een platformId buiten die set en het actor-filter worden genegeerd.
+      security:
+        - cookieAuth: []
+      parameters:
+        - { name: jaar, in: query, required: false, schema: { type: integer, minimum: 2020, maximum: 2100 } }
+        - { name: platformId, in: query, required: false, schema: { type: string } }
+        - { name: actor, in: query, required: false, schema: { type: string, maxLength: 64 } }
+        - { name: actie, in: query, required: false, schema: { $ref: '#/components/schemas/AuditActie' } }
+        - { name: limiet, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 500, default: 200 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [regels]
+                properties:
+                  regels:
+                    type: array
+                    items: { $ref: '#/components/schemas/AuditRegel' }
+        '400':
+          $ref: '#/components/responses/OngeldigeInvoer'
+        '401':
+          $ref: '#/components/responses/NietIngelogd'
+        '403':
+          $ref: '#/components/responses/GeenToegang'
+  /api/beheer/gebruikers:
+    get:
+      summary: Lijst alle gebruikers met hun platformkoppelingen voor een jaar; alleen beheerder
+      security:
+        - cookieAuth: []
+      parameters:
+        - { name: jaar, in: query, required: true, schema: { type: integer, minimum: 2020, maximum: 2100 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [gebruikers]
+                properties:
+                  gebruikers:
+                    type: array
+                    items: { $ref: '#/components/schemas/GebruikerMetKoppelingen' }
+        '400':
+          $ref: '#/components/responses/OngeldigeInvoer'
+        '401':
+          $ref: '#/components/responses/NietIngelogd'
+        '403':
+          $ref: '#/components/responses/GeenToegang'
+    post:
+      summary: Registreer een voorzitter met platformkoppelingen; alleen beheerder
+      description: >-
+        Maakt alleen de gebruiker in de applicatie aan (status uitgenodigd). Het Keycloak-account
+        wordt door de beheerder in de Keycloak-console aangemaakt; de eerste login koppelt op e-mail.
+        Wordt geaudit als gebruiker_toegevoegd plus koppeling_toegevoegd per platform.
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VoorzitterToevoegen' }
+      responses:
+        '201':
+          description: Aangemaakt
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [gebruiker]
+                properties:
+                  gebruiker: { $ref: '#/components/schemas/GebruikerMetKoppelingen' }
+        '400':
+          $ref: '#/components/responses/OngeldigeInvoer'
+        '401':
+          $ref: '#/components/responses/NietIngelogd'
+        '403':
+          $ref: '#/components/responses/GeenToegang'
+        '404':
+          description: Geen meting voor dit jaar (problem+json)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: Er bestaat al een gebruiker met dit e-mailadres (problem+json)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+  /api/beheer/gebruikers/{id}:
+    patch:
+      summary: Wijzig rol, trek toegang in, herstel toegang of ontkoppel het Keycloak-account; alleen beheerder
+      description: >-
+        Wordt geaudit als rol_gewijzigd, toegang_ingetrokken, toegang_hersteld of account_ontkoppeld.
+        Een beheerder kan zichzelf niet degraderen of intrekken, en de laatste actieve beheerder kan
+        niet worden gedegradeerd of ingetrokken.
+      security:
+        - cookieAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GebruikerWijzigen' }
+      responses:
+        '200':
+          description: Gewijzigd
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [gebruiker]
+                properties:
+                  gebruiker: { $ref: '#/components/schemas/Gebruiker' }
+        '400':
+          $ref: '#/components/responses/OngeldigeInvoer'
+        '401':
+          $ref: '#/components/responses/NietIngelogd'
+        '403':
+          $ref: '#/components/responses/GeenToegang'
+        '404':
+          description: Gebruiker niet gevonden (problem+json)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: Zelfbescherming of laatste actieve beheerder (problem+json)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+  /api/beheer/gebruikers/{id}/koppelingen:
+    put:
+      summary: Vervang de platformkoppelingen van een gebruiker voor een jaar; alleen beheerder
+      description: Wordt geaudit als koppeling_toegevoegd / koppeling_verwijderd per platform.
+      security:
+        - cookieAuth: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Koppelingen' }
+      responses:
+        '200':
+          description: Koppelingen gezet
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [toegevoegd, verwijderd]
+                properties:
+                  toegevoegd: { type: array, items: { type: string } }
+                  verwijderd: { type: array, items: { type: string } }
+        '400':
+          $ref: '#/components/responses/OngeldigeInvoer'
+        '401':
+          $ref: '#/components/responses/NietIngelogd'
+        '403':
+          $ref: '#/components/responses/GeenToegang'
+        '404':
+          description: Gebruiker of meting niet gevonden (problem+json)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
 components:
   securitySchemes:
     cookieAuth:
@@ -192,8 +387,14 @@ components:
           schema: { $ref: '#/components/schemas/Problem' }
     GeenToegang:
       description: >-
-        Ingelogd maar geen toegang: account niet actief, onvoldoende rol (POST /api/metingen
-        en POST .../heropenen vereisen beheerder) of geen platformkoppeling (PUT). Wordt geaudit als toegang_geweigerd.
+        Ingelogd maar geen toegang: account niet actief, onvoldoende rol (POST /api/metingen,
+        POST .../heropenen en /api/beheer/* vereisen beheerder) of geen platformkoppeling (PUT).
+        Wordt geaudit als toegang_geweigerd.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    OngeldigeInvoer:
+      description: Ongeldige invoer in body, query of pad (problem+json)
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
@@ -205,4 +406,87 @@ components:
         type: { type: string }
         title: { type: string }
         status: { type: integer }
+        detail: { type: string }
+    Rol:
+      type: string
+      enum: [invuller, beheerder]
+    Gebruiker:
+      type: object
+      description: Gebruiker zoals de beheer-API die toont; het Keycloak-subject zelf wordt nooit getoond.
+      required: [id, email, naam, rol, status, gekoppeld, laatsteLogin]
+      properties:
+        id: { type: string }
+        email: { type: string, format: email }
+        naam: { type: string }
+        rol: { $ref: '#/components/schemas/Rol' }
+        status: { type: string, enum: [uitgenodigd, actief, ingetrokken] }
+        gekoppeld: { type: boolean, description: Er is een Keycloak-account aan deze gebruiker gebonden }
+        laatsteLogin: { type: [string, 'null'], format: date-time }
+    GebruikerMetKoppelingen:
+      allOf:
+        - $ref: '#/components/schemas/Gebruiker'
+        - type: object
+          required: [platformIds]
+          properties:
+            platformIds: { type: array, items: { type: string } }
+    VoorzitterToevoegen:
+      type: object
+      required: [email, naam, rol, jaar, platformIds]
+      properties:
+        email: { type: string, format: email, maxLength: 254, description: Wordt getrimd en lowercase opgeslagen }
+        naam: { type: string, minLength: 1, maxLength: 200 }
+        rol: { $ref: '#/components/schemas/Rol' }
+        jaar: { type: integer, minimum: 2020, maximum: 2100 }
+        platformIds:
+          type: array
+          maxItems: 5
+          description: Bekende platform-id's; mag leeg zijn
+          items: { type: string }
+    GebruikerWijzigen:
+      oneOf:
+        - type: object
+          required: [actie, rol]
+          properties:
+            actie: { const: rol }
+            rol: { $ref: '#/components/schemas/Rol' }
+        - type: object
+          required: [actie]
+          properties:
+            actie: { type: string, enum: [intrekken, herstellen, ontkoppelAccount] }
+    Koppelingen:
+      type: object
+      required: [jaar, platformIds]
+      properties:
+        jaar: { type: integer, minimum: 2020, maximum: 2100 }
+        platformIds:
+          type: array
+          maxItems: 5
+          items: { type: string }
+    AuditActie:
+      type: string
+      enum:
+        - gebruiker_toegevoegd
+        - eerste_login
+        - ingelogd
+        - uitgelogd
+        - koppeling_toegevoegd
+        - koppeling_verwijderd
+        - rol_gewijzigd
+        - toegang_ingetrokken
+        - toegang_hersteld
+        - toegang_geweigerd
+        - platform_heropend
+        - account_ontkoppeld
+        - platform_opgeslagen_concept
+        - platform_afgerond
+    AuditRegel:
+      type: object
+      required: [id, tijdstip, actor, actie, doelType, doelId, detail]
+      properties:
+        id: { type: string }
+        tijdstip: { type: string, format: date-time }
+        actor: { type: string }
+        actie: { $ref: '#/components/schemas/AuditActie' }
+        doelType: { type: string }
+        doelId: { type: string }
         detail: { type: string }

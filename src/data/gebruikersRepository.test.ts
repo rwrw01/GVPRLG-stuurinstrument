@@ -3,6 +3,7 @@ import { prisma } from './prismaClient';
 import {
   bindKeycloakSub,
   maakGebruiker,
+  platformIdsVanGebruiker,
   telActieveBeheerders,
   vindGebruikerOpEmail,
   zetKoppelingen,
@@ -61,6 +62,19 @@ describe('gebruikersRepository', () => {
     expect(rijen2027.map((r) => r.platformId).sort()).toEqual(['belastingen', 'sociaal']);
     const rijen2028 = await prisma.platformInvuller.findMany({ where: { metingId: m2028.id, gebruiker: g.id } });
     expect(rijen2028.map((r) => r.platformId)).toEqual(['ro']);
+  });
+
+  it('platformIdsVanGebruiker geeft de unieke platformen over alle jaren', async () => {
+    const m2027 = await prisma.meting.create({ data: { jaar: 2027 } });
+    const m2028 = await prisma.meting.create({ data: { jaar: 2028 } });
+    const g = await maakGebruiker({ email: 'p@test.local', naam: 'P', rol: 'invuller' });
+    const ander = await maakGebruiker({ email: 'q@test.local', naam: 'Q', rol: 'invuller' });
+    await zetKoppelingen(g.id, m2027.id, ['ro', 'belastingen']);
+    await zetKoppelingen(g.id, m2028.id, ['ro']);
+    await zetKoppelingen(ander.id, m2028.id, ['burgerzaken']);
+
+    expect((await platformIdsVanGebruiker(g.id)).sort()).toEqual(['belastingen', 'ro']);
+    expect(await platformIdsVanGebruiker('onbekend')).toEqual([]);
   });
 
   it('telActieveBeheerders telt alleen status actief', async () => {

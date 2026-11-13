@@ -150,6 +150,20 @@ export async function heeftKoppeling(gebruikerId: string, metingId: string, plat
 }
 
 /**
+ * Lists the distinct platforms the user is assigned to in any meting.
+ * @param gebruikerId - User id
+ * @returns Platform ids (distinct, unordered); empty when the user has no assignment
+ */
+export async function platformIdsVanGebruiker(gebruikerId: string): Promise<string[]> {
+  const rijen = await prisma.platformInvuller.findMany({
+    where: { gebruiker: gebruikerId },
+    select: { platformId: true },
+    distinct: ['platformId'],
+  });
+  return rijen.map((r) => r.platformId);
+}
+
+/**
  * Replaces the user's platform assignments for one meting with the requested set (one transaction).
  * Assignments for other metingen are untouched. Writes no audit rows.
  * @param gebruikerId - User id

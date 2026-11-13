@@ -34,4 +34,11 @@ describe('auditRepository', () => {
     const beperkt = await zoekAudit({ limiet: 2 });
     expect(beperkt).toHaveLength(2);
   });
+
+  it('zoekAudit geeft geen regels bij een lege platformlijst', async () => {
+    await schrijfAudit({ actor: 'tester', actie: 'platform_heropend', doelType: 'platform_score', doelId: 'x', detail: 'platform=ro;jaar=2027' });
+    await schrijfAudit({ actor: 'ander', actie: 'ingelogd', doelType: 'gebruiker', doelId: 'g1' });
+
+    expect(await zoekAudit({ platformIds: [], limiet: 50 })).toEqual([]);
+  });
 });
