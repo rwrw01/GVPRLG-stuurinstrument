@@ -27,7 +27,8 @@ export function proxy(request: NextRequest): NextResponse {
       { status: 401, headers: { 'Content-Type': 'application/problem+json' } },
     );
   }
-  const inloggen = new URL('/inloggen', request.url);
+  // Behind a TLS-terminating proxy request.url carries the internal scheme; prefer the public URL.
+  const inloggen = new URL('/inloggen', process.env.NEXTAUTH_URL ?? request.url);
   inloggen.searchParams.set('callbackUrl', `${pathname}${search}`);
   return NextResponse.redirect(inloggen);
 }

@@ -3,7 +3,7 @@
 import { Suspense, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-import { veiligDoorstuurPad } from '@/src/integration/auth/_doorstuurPad';
+import { veiligDoorstuurPad } from '@/src/service/doorstuurPad';
 
 // A same-site navigation from this page sends the strict session cookie, which the first
 // request after the cross-site redirect from Keycloak does not.

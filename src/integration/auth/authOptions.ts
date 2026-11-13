@@ -3,9 +3,8 @@ import KeycloakProvider from 'next-auth/providers/keycloak';
 
 import { vindGebruikerOpSub } from '@/src/data/gebruikersRepository';
 import { koppelLogin } from '@/src/process/loginKoppeling';
+import { veiligDoorstuurPad } from '@/src/service/doorstuurPad';
 import { authEnv, type AuthEnv } from '@/src/service/env';
-
-import { veiligDoorstuurPad } from './_doorstuurPad';
 
 const ACHT_UUR = 8 * 60 * 60;
 const DOORSTUREN = '/inloggen/doorsturen';

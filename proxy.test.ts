@@ -1,17 +1,30 @@
 import { unstable_doesMiddlewareMatch } from 'next/experimental/testing/server';
 import { NextRequest } from 'next/server';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { config, proxy } from './proxy';
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 describe('proxy', () => {
   it('stuurt een pagina zonder cookie naar /inloggen met callbackUrl', () => {
+    vi.stubEnv('NEXTAUTH_URL', undefined);
     const response = proxy(new NextRequest('http://localhost:3000/metingen/2026?tab=2'));
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
       'http://localhost:3000/inloggen?callbackUrl=%2Fmetingen%2F2026%3Ftab%3D2',
     );
+  });
+
+  it('bouwt de login-redirect op NEXTAUTH_URL achter een TLS-terminerende proxy', () => {
+    vi.stubEnv('NEXTAUTH_URL', 'https://example.test');
+
+    const response = proxy(new NextRequest('http://intern:3000/metingen/2026'));
+
+    expect(new URL(response.headers.get('location') ?? '').origin).toBe('https://example.test');
   });
 
   it('geeft 401 problem+json op /api zonder cookie', async () => {

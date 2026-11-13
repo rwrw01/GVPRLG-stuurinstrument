@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { veiligDoorstuurPad } from './_doorstuurPad';
+import { veiligDoorstuurPad } from './doorstuurPad';
 
 const ORIGIN = 'http://localhost:3000';
 
