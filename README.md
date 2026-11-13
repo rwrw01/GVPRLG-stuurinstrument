@@ -261,20 +261,20 @@ volgende login koppelt de app het nieuwe account opnieuw op e-mailadres.
 
 | Package | Versie | Licentie |
 |---|---|---|
-| next | 16.4.0 | MIT |
+| next | 16.4.6 | MIT |
 | next-auth | 4.24.15 | ISC |
 | react | 19.0.0 | MIT |
 | react-dom | 19.0.0 | MIT |
-| zod | 4.6.5 | MIT |
-| @prisma/client | 7.10.0 | Apache-2.0 |
-| @prisma/adapter-pg | 7.10.0 | Apache-2.0 |
+| zod | 4.6.7 | MIT |
+| @prisma/client | 7.10.1 | Apache-2.0 |
+| @prisma/adapter-pg | 7.10.1 | Apache-2.0 |
 | xlsx | 0.18.5 | Apache-2.0 |
 | dotenv | 17.4.2 | BSD-2-Clause |
-| prisma (CLI) | 7.10.0 | Apache-2.0 |
+| prisma (CLI) | 7.10.1 | Apache-2.0 |
 | typescript | 7.0.2 | Apache-2.0 |
 | vitest | 5.0.3 | MIT |
 | @playwright/test | 1.58.2 | Apache-2.0 |
-| serve | 14.2.6 | MIT |
+| serve | 14.2.8 | MIT |
 | otpauth (dev, E2E) | 9.6.0 | MIT |
 | tsx (dev, seed-script) | 4.23.15 | MIT |
 | Keycloak (container; dev en productie) | 26.6.4 | Apache-2.0 |
