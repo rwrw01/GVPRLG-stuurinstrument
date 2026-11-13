@@ -1,18 +1,98 @@
 import { config as loadEnv } from 'dotenv';
 
-/** Years 2030-2099 are reserved for E2E runs; real and seeded measurements stay below 2030. */
-const E2E_JAAR_VAN = 2030;
-const E2E_JAAR_TOT = 2099;
+import {
+  E2E_JAAR_TOT,
+  E2E_JAAR_VAN,
+  FASE_B_JAAR,
+  GEBRUIKERS,
+  PLATFORM_CONCEPT,
+  PLATFORM_DEFINITIEF,
+  PLATFORM_INVULLER,
+} from './e2e-data';
+import { keycloakId, resetNaarTotpInstellen, zorgVoorGebruikerMetTotp } from './keycloak-admin';
+
+const MAILPIT_URL = process.env.E2E_MAILPIT_URL ?? 'http://127.0.0.1:8025';
+
+type Repos = typeof import('../src/data/gebruikersRepository') & typeof import('../src/data/metingenRepository');
+type Prisma = (typeof import('../src/data/prismaClient'))['prisma'];
+
+// Removes the reserved E2E years; platform links have no foreign key, so drop those explicitly.
+async function _ruimJarenOp(prisma: Prisma): Promise<void> {
+  const where = { jaar: { gte: E2E_JAAR_VAN, lte: E2E_JAAR_TOT } };
+  const ids = (await prisma.meting.findMany({ where, select: { id: true } })).map((m) => m.id);
+  await prisma.platformInvuller.deleteMany({ where: { metingId: { in: ids } } });
+  const { count } = await prisma.meting.deleteMany({ where });
+  console.log(`E2E setup: removed ${count} leftover test measurement(s)`);
+}
+
+// Ensures an active app user with the given role, bound to its current Keycloak subject.
+async function _zorgVoorActief(repos: Repos, gebruiker: { email: string; naam: string }, rol: 'beheerder' | 'invuller'): Promise<string> {
+  const bestaand = await repos.vindGebruikerOpEmail(gebruiker.email);
+  const record = bestaand ?? (await repos.maakGebruiker({ email: gebruiker.email, naam: gebruiker.naam, rol }));
+  await repos.wijzigGebruiker(record.id, { rol, status: 'actief' });
+  // A re-imported realm gets new user ids; rebinding avoids a "sub-conflict" refusal.
+  await repos.bindKeycloakSub(record.id, await keycloakId(gebruiker.email));
+  return record.id;
+}
+
+async function _verwijderAppGebruiker(prisma: Prisma, email: string): Promise<void> {
+  const rij = await prisma.gebruiker.findUnique({ where: { email } });
+  if (!rij) return;
+  await prisma.platformInvuller.deleteMany({ where: { gebruiker: rij.id } });
+  await prisma.gebruiker.delete({ where: { id: rij.id } });
+}
+
+function _vraagScores(score: number): Array<{ vraagId: string; score: number; toelichting: string }> {
+  const vraagIds = [
+    'common-ground-standaarden', 'cloud-data', 'ai-integratie', 'digitale-weerbaarheid',
+    'capaciteit-kennis', 'digitaal-vakmanschap', 'klantbetrokkenheid', 'opleiding-continuiteit',
+    'dienstverlening-nps', 'release-incident', 'roadmap-transparantie', 'burgers-ondernemers-centraal',
+    'prijsbeleid', 'lifecyclemanagement', 'partner-productontwikkeling', 'partner-dienstverlening',
+  ];
+  return vraagIds.map((vraagId) => ({ vraagId, score, toelichting: '' }));
+}
+
+// The fase-B year: invuller linked to one platform, one concept and one definitief platform by the beheerder.
+async function _maakFaseBJaar(repos: Repos, beheerderId: string, invullerId: string): Promise<void> {
+  const meting = await repos.createMeting(FASE_B_JAAR);
+  await repos.zetKoppelingen(invullerId, meting.id, [PLATFORM_INVULLER]);
+  const basis = { metingId: meting.id, jaar: FASE_B_JAAR, algemeneToelichting: '', laatstGewijzigdDoor: beheerderId };
+  await repos.savePlatformScore({ ...basis, platformId: PLATFORM_CONCEPT, status: 'concept', vraagScores: _vraagScores(2) });
+  await repos.savePlatformScore({ ...basis, platformId: PLATFORM_DEFINITIEF, status: 'definitief', vraagScores: _vraagScores(4) });
+}
+
+async function _leegMailpit(): Promise<void> {
+  const query = new URLSearchParams({ query: `to:${GEBRUIKERS.nieuweVoorzitter.email}` });
+  const response = await fetch(`${MAILPIT_URL}/api/v1/search?${query.toString()}`, { method: 'DELETE' });
+  if (!response.ok) throw new Error(`Mailpit cleanup failed: ${response.status}`);
+}
 
 /**
- * Removes the measurement years left behind by earlier E2E runs from the dev database,
- * so randomly chosen test years never collide (409) with a previous run.
- * @returns Promise that resolves once the reserved years are gone
+ * Resets everything the E2E suite depends on in the dev stack (app DB, dev Keycloak, Mailpit):
+ * removes leftover test years, ensures the beheerder and invuller users, creates the fase-B year,
+ * and puts invuller2 and geen-app back in their "not yet in the app" state.
+ * @returns Promise that resolves once the dev stack is ready for a run
  */
 export default async function globalSetup(): Promise<void> {
   loadEnv({ path: '.env', quiet: true });
   const { prisma } = await import('../src/data/prismaClient');
-  const { count } = await prisma.meting.deleteMany({ where: { jaar: { gte: E2E_JAAR_VAN, lte: E2E_JAAR_TOT } } });
-  console.log(`E2E setup: removed ${count} leftover test measurement(s)`);
-  await prisma.$disconnect();
+  const repos: Repos = {
+    ...(await import('../src/data/gebruikersRepository')),
+    ...(await import('../src/data/metingenRepository')),
+  };
+  try {
+    await _ruimJarenOp(prisma);
+    const beheerderId = await _zorgVoorActief(repos, GEBRUIKERS.beheerder, 'beheerder');
+    const invullerId = await _zorgVoorActief(repos, GEBRUIKERS.invuller, 'invuller');
+    await _maakFaseBJaar(repos, beheerderId, invullerId);
+
+    await _verwijderAppGebruiker(prisma, GEBRUIKERS.nieuweVoorzitter.email);
+    await resetNaarTotpInstellen(GEBRUIKERS.nieuweVoorzitter.email);
+    await _verwijderAppGebruiker(prisma, GEBRUIKERS.zonderAppGebruiker.email);
+    await zorgVoorGebruikerMetTotp(GEBRUIKERS.zonderAppGebruiker.email, { voornaam: 'Geen', achternaam: 'App' });
+    await _leegMailpit();
+    console.log(`E2E setup: users reset, meting ${FASE_B_JAAR} prepared`);
+  } finally {
+    await prisma.$disconnect();
+  }
 }

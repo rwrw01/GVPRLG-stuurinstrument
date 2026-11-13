@@ -1,6 +1,10 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
 
+import { willekeurigJaar } from './e2e-data';
+
+// Runs with the beheerder session from auth.setup.js; API calls go through page.request to carry its cookie.
+
 // Fills one platform via the API so the UI has a finished BU to show.
 async function vulPlatformIn(request, jaar, platformId) {
   const vraagIds = [
@@ -16,8 +20,9 @@ async function vulPlatformIn(request, jaar, platformId) {
 }
 
 test.describe('Spinnenweb, kruimelpad en status per BU', () => {
-  test('should show status per BU, the spinnenweb and a working breadcrumb', async ({ page, request }) => {
-    const jaar = 2030 + Math.floor(Math.random() * 70);
+  test('should show status per BU, the spinnenweb and a working breadcrumb', async ({ page }) => {
+    const request = page.request;
+    const jaar = willekeurigJaar();
     expect((await request.post('/api/metingen', { data: { jaar } })).status()).toBe(201);
     await vulPlatformIn(request, jaar, 'burgerzaken');
 

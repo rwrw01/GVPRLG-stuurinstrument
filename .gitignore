@@ -27,3 +27,6 @@ prisma/dev.db
 # Claude Code worktrees en SDD-werkruimte
 /.claude/worktrees/
 /.superpowers/
+
+# Playwright session files (E2E auth setup)
+/playwright/.auth/

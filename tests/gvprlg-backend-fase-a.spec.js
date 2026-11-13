@@ -1,9 +1,13 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
 
+import { willekeurigJaar } from './e2e-data';
+
+// Runs with the beheerder session from auth.setup.js (real Keycloak TOTP login): creating a meting needs that role.
+
 test.describe('GVPRLG backend fase A — happy flow', () => {
-  test('maakt een meting aan, vult een platform in met opmerkingen, rondt af, toont resultaat', async ({ page, request }) => {
-    const jaar = 2030 + Math.floor(Math.random() * 70); // uniek per testrun: 2030-2099, buiten de door de migratie geseede jaren 2026-2028
+  test('maakt een meting aan, vult een platform in met opmerkingen, rondt af, toont resultaat', async ({ page }) => {
+    const jaar = willekeurigJaar(); // uniek per testrun: 2050-2099, buiten de geseede jaren en het vaste fase-B-jaar
 
     await page.goto('/');
     await page.fill('#nieuw-jaar', String(jaar));
@@ -40,13 +44,13 @@ test.describe('GVPRLG backend fase A — happy flow', () => {
     const xssTriggered = await page.evaluate(() => window.__xss);
     expect(xssTriggered).toBeUndefined();
 
-    const apiResponse = await request.get(`/api/metingen/${jaar}/platformen/belastingen`);
+    const apiResponse = await page.request.get(`/api/metingen/${jaar}/platformen/belastingen`);
     const body = await apiResponse.json();
     expect(body.platform.status).toBe('definitief');
   });
 
   test('weigert afronden met ontbrekende scores', async ({ page }) => {
-    const jaar = 2030 + Math.floor(Math.random() * 70); // buiten de geseede jaren 2026-2028
+    const jaar = willekeurigJaar();
     await page.goto('/');
     await page.fill('#nieuw-jaar', String(jaar));
     await page.click('text=Meting aanmaken');
@@ -61,7 +65,7 @@ test.describe('GVPRLG backend fase A — happy flow', () => {
   });
 
   test('resultaatpagina toont een duidelijke melding voor een platform dat nog niet is ingevuld', async ({ page }) => {
-    const jaar = 2030 + Math.floor(Math.random() * 70); // buiten de geseede jaren 2026-2028
+    const jaar = willekeurigJaar();
     await page.goto('/');
     await page.fill('#nieuw-jaar', String(jaar));
     await page.click('text=Meting aanmaken');
@@ -73,7 +77,7 @@ test.describe('GVPRLG backend fase A — happy flow', () => {
 
   test('invulformulier toont een foutmelding voor een niet-bestaand meetjaar', async ({ page }) => {
     // 2100 is het maximum uit CreateMetingSchema maar wordt nooit door de random
-    // jaargenerator hierboven (2020 t/m 2099) gekozen, dus botst nooit met andere tests.
+    // jaargenerator hierboven (2050 t/m 2099) gekozen, dus botst nooit met andere tests.
     await page.goto('/metingen/2100/belastingen');
     await expect(page.locator('text=Laden...')).not.toBeVisible({ timeout: 5000 });
     await expect(page.locator('.alert-warning')).toContainText('Geen meting');
