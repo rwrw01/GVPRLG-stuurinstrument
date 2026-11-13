@@ -93,6 +93,7 @@ een gecommit bestand.
 | Package | Versie | Licentie |
 |---|---|---|
 | next | 16.4.0 | MIT |
+| next-auth | 4.24.15 | ISC |
 | react | 19.0.0 | MIT |
 | react-dom | 19.0.0 | MIT |
 | zod | 4.6.5 | MIT |
