@@ -93,6 +93,8 @@ describe('realm-gvprlg', () => {
       internationalizationEnabled: true, supportedLocales: ['nl'], defaultLocale: 'nl',
     });
     expect(prod.browserFlow).toBe('gvprlg-browser-otp');
+    const app = prod.clients.find((c) => c.clientId === 'gvprlg-app');
+    expect(app?.attributes?.['post.logout.redirect.uris']).toBe('https://spinnenweb.gvprlg.nl/');
   });
   it('browserflow heeft Username Form en OTP Form, geen wachtwoordstap', () => {
     const providers = alleAuthenticators(prod, 'gvprlg-browser-otp');

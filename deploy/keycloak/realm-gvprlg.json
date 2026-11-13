@@ -41,7 +41,7 @@
       "webOrigins": ["https://spinnenweb.gvprlg.nl"],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "https://spinnenweb.gvprlg.nl/*"
+        "post.logout.redirect.uris": "https://spinnenweb.gvprlg.nl/"
       }
     }
   ],
