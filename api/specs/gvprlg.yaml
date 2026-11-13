@@ -130,6 +130,50 @@ paths:
           description: Platform is al definitief; een beheerder moet het eerst heropenen (problem+json)
         '422':
           description: Niet alle vragen ingevuld bij afronden (problem+json)
+  /api/metingen/{jaar}/platformen/{platformId}/heropenen:
+    post:
+      summary: Heropen een definitief platform (terug naar concept); alleen beheerder
+      description: Wordt geaudit als platform_heropend.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: jaar
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: platformId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Heropend
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok]
+                properties:
+                  ok: { type: boolean, const: true }
+        '400':
+          description: Ongeldig jaar of platform-id (problem+json)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '401':
+          $ref: '#/components/responses/NietIngelogd'
+        '403':
+          $ref: '#/components/responses/GeenToegang'
+        '404':
+          description: Onbekend platform, meting niet gevonden of platform nog niet ingevuld (problem+json)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: Platform is niet definitief (problem+json)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
 components:
   securitySchemes:
     cookieAuth:
@@ -149,7 +193,7 @@ components:
     GeenToegang:
       description: >-
         Ingelogd maar geen toegang: account niet actief, onvoldoende rol (POST /api/metingen
-        vereist beheerder) of geen platformkoppeling (PUT). Wordt geaudit als toegang_geweigerd.
+        en POST .../heropenen vereisen beheerder) of geen platformkoppeling (PUT). Wordt geaudit als toegang_geweigerd.
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }

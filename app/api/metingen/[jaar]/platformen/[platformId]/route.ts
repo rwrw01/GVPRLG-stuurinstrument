@@ -1,43 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { RouteParamsSchema, SavePlatformScoreSchema } from '@/src/integration/schemas';
+import { SavePlatformScoreSchema } from '@/src/integration/schemas';
 import { problemResponse } from '@/src/integration/problemResponse';
-import { vereisGebruiker, weigerPlatformSchrijfrecht } from '@/src/integration/auth/sessie';
-import type { GebruikerRecord } from '@/src/data/gebruikersRepository';
-import { getMetingByJaar, savePlatformScore, type MetingWithPlatformen } from '@/src/data/metingenRepository';
-import { CONFIG } from '@/src/service/config';
+import { weigerPlatformSchrijfrecht } from '@/src/integration/auth/sessie';
+import { savePlatformScore } from '@/src/data/metingenRepository';
 import { valideerVoorAfronden } from '@/src/process/platformWorkflow';
 
-interface RouteParams {
-  params: Promise<{ jaar: string; platformId: string }>;
-}
-
-type PlatformContext =
-  | { ok: true; gebruiker: GebruikerRecord; meting: MetingWithPlatformen; platformId: string }
-  | { ok: false; response: NextResponse };
-
-/**
- * Shared checks for both methods, in a fixed order: params (400) -> session (401/403) ->
- * known platform (404) -> existing meting (404).
- * @param params - Raw route params
- * @returns The user, meting and platform id, or the problem+json response to return
- */
-async function laadContext(params: RouteParams['params']): Promise<PlatformContext> {
-  const parsedParams = RouteParamsSchema.safeParse(await params);
-  if (!parsedParams.success) {
-    return { ok: false, response: problemResponse(400, 'Ongeldige invoer', parsedParams.error.message) };
-  }
-  const sessie = await vereisGebruiker();
-  if (!sessie.ok) return sessie;
-  const { jaar, platformId } = parsedParams.data;
-  if (!CONFIG.platformen.some((p) => p.id === platformId)) {
-    return { ok: false, response: problemResponse(404, 'Onbekend platform', `Platform "${platformId}" bestaat niet.`) };
-  }
-  const meting = await getMetingByJaar(jaar);
-  if (!meting) {
-    return { ok: false, response: problemResponse(404, 'Meting niet gevonden', `Geen meting voor jaar ${jaar}.`) };
-  }
-  return { ok: true, gebruiker: sessie.gebruiker, meting, platformId };
-}
+import { laadContext, type PlatformRouteParams } from './_context';
 
 /**
  * Returns the scores of one platform within a meting for any active user.
@@ -45,7 +13,7 @@ async function laadContext(params: RouteParams['params']): Promise<PlatformConte
  * @param context - Route params with year and platform id
  * @returns 200 with the platform (or null when not filled in yet); 400/401/403/404 problem+json
  */
-export async function GET(_request: NextRequest, { params }: RouteParams) {
+export async function GET(_request: NextRequest, { params }: PlatformRouteParams) {
   const context = await laadContext(params);
   if (!context.ok) return context.response;
   const platform = context.meting.platformen[context.platformId] ?? null;
@@ -58,7 +26,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
  * @param context - Route params with year and platform id
  * @returns 200 when saved; 400/401/403/404/409/422 problem+json otherwise
  */
-export async function PUT(request: NextRequest, { params }: RouteParams) {
+export async function PUT(request: NextRequest, { params }: PlatformRouteParams) {
   const context = await laadContext(params);
   if (!context.ok) return context.response;
   const { gebruiker, meting, platformId } = context;
