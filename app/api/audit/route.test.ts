@@ -78,6 +78,19 @@ describe('GET /api/audit', () => {
     expect(await regels()).toEqual([]);
   });
 
+  it('geeft naam en e-mail van een bekende actor en null voor een onbekende', async () => {
+    await schrijfAudit({ actor: 'onbekend', actie: 'toegang_geweigerd', doelType: 'sessie', doelId: '-', detail: 'x' });
+
+    const response = await GET(new NextRequest('http://localhost/api/audit'));
+    const body: { regels: Array<Record<string, unknown>> } = await response.json();
+    const bekend = body.regels.find((r) => r.actie === 'gebruiker_toegevoegd');
+    const onbekend = body.regels.find((r) => r.actor === 'onbekend');
+
+    expect(bekend).toMatchObject({ actor: beheerder.id, actorNaam: 'Bea', actorEmail: 'bea@test.local' });
+    expect(onbekend).toMatchObject({ actorNaam: null, actorEmail: null });
+    expect(body.regels.every((r) => !('keycloakSub' in r))).toBe(true);
+  });
+
   it('400 bij limiet 0', async () => {
     const response = await GET(new NextRequest('http://localhost/api/audit?limiet=0'));
 

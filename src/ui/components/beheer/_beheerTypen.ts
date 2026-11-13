@@ -40,6 +40,8 @@ export interface AuditRegel {
   id: string;
   tijdstip: string;
   actor: string;
+  actorNaam: string | null;
+  actorEmail: string | null;
   actie: (typeof AUDIT_ACTIES)[number];
   doelType: string;
   doelId: string;

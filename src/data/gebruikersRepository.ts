@@ -37,6 +37,17 @@ export async function vindGebruikerOpId(id: string): Promise<GebruikerRecord | n
 }
 
 /**
+ * Finds the users with the given primary keys in one query; unknown ids are skipped.
+ * @param ids - User ids (duplicates allowed)
+ * @returns The users found, in no particular order; empty for an empty input
+ */
+export async function vindGebruikersOpIds(ids: string[]): Promise<GebruikerRecord[]> {
+  if (ids.length === 0) return [];
+  const rijen = await prisma.gebruiker.findMany({ where: { id: { in: [...new Set(ids)] } } });
+  return rijen.map(naarRecord);
+}
+
+/**
  * Finds a user by the bound Keycloak subject.
  * @param sub - Keycloak `sub` claim
  * @returns The user, or null when no user is bound to this subject

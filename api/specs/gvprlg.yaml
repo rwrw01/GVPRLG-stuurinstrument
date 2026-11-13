@@ -482,11 +482,19 @@ components:
         - platform_afgerond
     AuditRegel:
       type: object
-      required: [id, tijdstip, actor, actie, doelType, doelId, detail]
+      required: [id, tijdstip, actor, actorNaam, actorEmail, actie, doelType, doelId, detail]
       properties:
         id: { type: string }
         tijdstip: { type: string, format: date-time }
-        actor: { type: string }
+        actor:
+          type: string
+          description: Gebruiker.id of the actor, or a non-user value (seed script, `onbekend`, Keycloak sub of a refused login)
+        actorNaam:
+          type: [string, 'null']
+          description: Name of the user behind `actor`; null when `actor` is not a known user
+        actorEmail:
+          type: [string, 'null']
+          description: E-mail of the user behind `actor`; null when `actor` is not a known user
         actie: { $ref: '#/components/schemas/AuditActie' }
         doelType: { type: string }
         doelId: { type: string }

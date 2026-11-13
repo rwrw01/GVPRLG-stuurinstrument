@@ -1,29 +1,30 @@
+import type { AuditLogEntry } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 
-import { zoekAudit, type AuditFilter } from '@/src/data/auditRepository';
-import { platformIdsVanGebruiker, type GebruikerRecord } from '@/src/data/gebruikersRepository';
+import { zoekAudit } from '@/src/data/auditRepository';
+import { vindGebruikersOpIds } from '@/src/data/gebruikersRepository';
 import { vereisGebruiker } from '@/src/integration/auth/sessie';
 import { AuditFilterSchema } from '@/src/integration/beheerSchemas';
 import { problemResponse } from '@/src/integration/problemResponse';
+import { beperkAuditFilterTotGebruiker } from '@/src/process/auditToegang';
 
-type AuditQuery = ReturnType<typeof AuditFilterSchema.parse>;
+type AuditRegelMetActor = AuditLogEntry & { actorNaam: string | null; actorEmail: string | null };
 
-// A beheerder sees everything. An invuller only sees rows of platforms he is assigned to in any
-// year (an empty set yields no rows) and cannot filter on actor.
-async function filterVoor(gebruiker: GebruikerRecord, query: AuditQuery): Promise<AuditFilter> {
-  const { platformId, actor, ...rest } = query;
-  if (gebruiker.rol === 'beheerder') {
-    return { ...rest, actor, platformIds: platformId ? [platformId] : undefined };
-  }
-  const eigen = await platformIdsVanGebruiker(gebruiker.id);
-  const platformIds = platformId && eigen.includes(platformId) ? [platformId] : eigen;
-  return { ...rest, platformIds };
+// Resolves the actor ids (Gebruiker.id) to a readable identity in one query. Unknown actors
+// (seed scripts, `onbekend`, a raw Keycloak sub of a refused login) get null; keycloakSub never leaves.
+async function _metActorIdentiteit(regels: AuditLogEntry[]): Promise<AuditRegelMetActor[]> {
+  const gebruikers = await vindGebruikersOpIds(regels.map((r) => r.actor));
+  const perId = new Map(gebruikers.map((g) => [g.id, g]));
+  return regels.map((r) => {
+    const g = perId.get(r.actor);
+    return { ...r, actorNaam: g?.naam ?? null, actorEmail: g?.email ?? null };
+  });
 }
 
 /**
  * Searches the audit log, newest first, scoped to what the logged-in user may see.
  * @param request - Request with optional query `jaar`, `platformId`, `actor`, `actie`, `limiet` (1-500, default 200)
- * @returns 200 `{ regels }`; 400/401/403 problem+json otherwise
+ * @returns 200 `{ regels }` with `actorNaam`/`actorEmail` per row; 400/401/403 problem+json otherwise
  */
 export async function GET(request: NextRequest) {
   const sessie = await vereisGebruiker();
@@ -31,6 +32,6 @@ export async function GET(request: NextRequest) {
 
   const query = AuditFilterSchema.safeParse(Object.fromEntries(request.nextUrl.searchParams));
   if (!query.success) return problemResponse(400, 'Ongeldige invoer', query.error.message);
-  const regels = await zoekAudit(await filterVoor(sessie.gebruiker, query.data));
-  return NextResponse.json({ regels });
+  const regels = await zoekAudit(await beperkAuditFilterTotGebruiker(sessie.gebruiker, query.data));
+  return NextResponse.json({ regels: await _metActorIdentiteit(regels) });
 }
