@@ -86,6 +86,22 @@ describe('metingenRepository', () => {
     expect(logs[0]!.detail).toBe('platform=belastingen;jaar=2027');
   });
 
+  it('should append the actor e-mail to the audit detail when actorEmail is given', async () => {
+    const meting = await createMeting(2027);
+    await savePlatformScore({
+      metingId: meting.id,
+      jaar: 2027,
+      platformId: 'belastingen',
+      status: 'concept',
+      algemeneToelichting: '',
+      laatstGewijzigdDoor: 'g-1',
+      actorEmail: 'jan@test.local',
+      vraagScores: [],
+    });
+    const logs = await prisma.auditLogEntry.findMany();
+    expect(logs[0]!.detail).toBe('platform=belastingen;jaar=2027;email=jan@test.local');
+  });
+
   it('heropenPlatform zet definitief terug naar concept en schrijft audit', async () => {
     const meting = await createMeting(2027);
     await savePlatformScore({

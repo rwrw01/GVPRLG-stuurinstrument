@@ -1,13 +1,25 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { prisma } from '@/src/data/prismaClient';
+import { maakGebruiker } from '@/src/data/gebruikersRepository';
 import { createMeting, savePlatformScore } from '@/src/data/metingenRepository';
+import { mockSessie } from '@/src/integration/auth/_testSessie';
 import { GET } from './route';
+
+vi.mock('@/src/integration/auth/sessie', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/src/integration/auth/sessie')>()),
+  vereisGebruiker: vi.fn(),
+}));
+
+beforeEach(async () => {
+  mockSessie(await maakGebruiker({ email: 'bea@test.local', naam: 'Bea', rol: 'beheerder', status: 'actief' }));
+});
 
 afterEach(async () => {
   await prisma.vraagScore.deleteMany();
   await prisma.platformScore.deleteMany();
   await prisma.auditLogEntry.deleteMany();
   await prisma.meting.deleteMany();
+  await prisma.gebruiker.deleteMany();
 });
 
 function call(jaar: string) {
@@ -39,5 +51,13 @@ describe('GET /api/metingen/{jaar}', () => {
   it('should return 400 when the year is not a four-digit number', async () => {
     const response = await call('abc');
     expect(response.status).toBe(400);
+  });
+
+  it('geeft 401 zonder sessie', async () => {
+    await createMeting(2027);
+    mockSessie(null);
+    const response = await call('2027');
+    expect(response.status).toBe(401);
+    expect(response.headers.get('Content-Type')).toContain('application/problem+json');
   });
 });

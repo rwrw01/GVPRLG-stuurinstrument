@@ -63,6 +63,12 @@ export async function getMetingByJaar(jaar: number): Promise<MetingWithPlatforme
   return { id: meting.id, jaar: meting.jaar, aangemaakt: meting.aangemaakt, platformen };
 }
 
+/**
+ * Upserts a platform score with its question scores and writes the audit row in one transaction.
+ * @param input - Score data; `laatstGewijzigdDoor` is the acting user id, `actorEmail` (optional)
+ *   is appended to the audit detail as `;email=<email>`
+ * @returns Promise that resolves once committed
+ */
 export async function savePlatformScore(input: {
   metingId: string;
   jaar: number;
@@ -70,6 +76,7 @@ export async function savePlatformScore(input: {
   status: string;
   algemeneToelichting: string;
   laatstGewijzigdDoor: string;
+  actorEmail?: string;
   vraagScores: Array<{ vraagId: string; score: number | null; toelichting: string }>;
 }): Promise<void> {
   await prisma.$transaction(async (tx) => {
@@ -104,7 +111,7 @@ export async function savePlatformScore(input: {
         actie: input.status === 'definitief' ? 'platform_afgerond' : 'platform_opgeslagen_concept',
         doelType: 'platform_score',
         doelId: platformScore.id,
-        detail: platformDetail(input.platformId, input.jaar),
+        detail: platformDetail(input.platformId, input.jaar) + (input.actorEmail ? `;email=${input.actorEmail}` : ''),
       },
       tx,
     );

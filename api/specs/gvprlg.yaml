@@ -1,7 +1,9 @@
 openapi: 3.1.0
 info:
   title: GVPRLG Volwassenheidsmeting API
-  version: 1.0.0-fase-a
+  version: 1.0.0-fase-b
+security:
+  - cookieAuth: []
 paths:
   /api/metingen:
     get:
@@ -9,6 +11,10 @@ paths:
       responses:
         '200':
           description: OK
+        '401':
+          $ref: '#/components/responses/NietIngelogd'
+        '403':
+          $ref: '#/components/responses/GeenToegang'
     post:
       summary: Maak een nieuwe meting aan voor een jaar
       requestBody:
@@ -26,6 +32,10 @@ paths:
       responses:
         '201':
           description: Aangemaakt
+        '401':
+          $ref: '#/components/responses/NietIngelogd'
+        '403':
+          $ref: '#/components/responses/GeenToegang'
         '400':
           description: Ongeldige invoer (problem+json)
         '409':
@@ -41,6 +51,10 @@ paths:
       responses:
         '200':
           description: OK
+        '401':
+          $ref: '#/components/responses/NietIngelogd'
+        '403':
+          $ref: '#/components/responses/GeenToegang'
         '400':
           description: Ongeldig jaar (problem+json)
         '404':
@@ -60,6 +74,12 @@ paths:
       responses:
         '200':
           description: OK
+        '401':
+          $ref: '#/components/responses/NietIngelogd'
+        '403':
+          $ref: '#/components/responses/GeenToegang'
+        '400':
+          description: Ongeldig jaar of platform-id (problem+json)
         '404':
           description: Meting of platform niet gevonden (problem+json)
     put:
@@ -98,9 +118,47 @@ paths:
       responses:
         '200':
           description: Opgeslagen
+        '401':
+          $ref: '#/components/responses/NietIngelogd'
+        '403':
+          $ref: '#/components/responses/GeenToegang'
         '400':
           description: Ongeldige invoer (problem+json)
         '404':
           description: Meting of platform niet gevonden (problem+json)
+        '409':
+          description: Platform is al definitief; een beheerder moet het eerst heropenen (problem+json)
         '422':
           description: Niet alle vragen ingevuld bij afronden (problem+json)
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+      description: >-
+        next-auth sessiecookie (HttpOnly, SameSite=Strict), gezet na inloggen via Keycloak.
+        Op https heet de cookie `__Secure-next-auth.session-token`. Status, rol en
+        platformkoppeling worden per verzoek uit de database gecontroleerd.
+  responses:
+    NietIngelogd:
+      description: Geen geldige sessie (problem+json)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    GeenToegang:
+      description: >-
+        Ingelogd maar geen toegang: account niet actief, onvoldoende rol (POST /api/metingen
+        vereist beheerder) of geen platformkoppeling (PUT). Wordt geaudit als toegang_geweigerd.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+  schemas:
+    Problem:
+      type: object
+      description: RFC 9457 problem details
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
