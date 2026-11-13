@@ -135,12 +135,12 @@ naar Keycloak of mox bij; de `app`-service houdt precies `gvprlg-internal` en `n
 
    ```bash
    cd /opt/gvprlg
-   sudo sh -c 'cat > secrets/keycloak_client_secret'   # plakken, Enter, Ctrl-D
+   sudo sh -c 'umask 077; cat > secrets/keycloak_client_secret'   # plakken, Enter, Ctrl-D
    ```
 4. **NextAuth-secret** aanmaken:
 
    ```bash
-   sudo sh -c 'openssl rand -hex 32 > secrets/nextauth_secret'
+   sudo sh -c 'umask 077; openssl rand -hex 32 > secrets/nextauth_secret'
    ```
 5. **Rechten.** De map blijft root-only; de twee app-secrets zijn alleen leesbaar voor de
    app-containergebruiker (uid 1001). `db_password` houdt `0444` (zie hierboven: ook Postgres
@@ -171,7 +171,8 @@ naar Keycloak of mox bij; de `app`-service houdt precies `gvprlg-internal` en `n
 De overige app-configuratie (`KEYCLOAK_ISSUER=https://auth.athide.nl/realms/gvprlg`,
 `KEYCLOAK_CLIENT_ID=gvprlg-app`, `NEXTAUTH_URL=https://spinnenweb.gvprlg.nl` en de
 `*_FILE`-paden onder `/run/secrets/`) staat vast in `docker-compose.yml`. Ontbreekt een
-secret-bestand of is het leeg, dan stopt de app direct bij het starten.
+secret-bestand, is het leeg of niet leesbaar voor uid 1001, dan stopt de container direct bij
+het starten (`app-entrypoint.sh`, met een `FATAL`-melding in `docker compose logs app`).
 
 Let op bij het wachtwoord: gebruik `openssl rand -hex 32` (alleen `[A-Za-z0-9]`), niet
 `-base64` — base64 kan `/` en `+` bevatten, en die breken de `DATABASE_URL` die de
