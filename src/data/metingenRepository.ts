@@ -1,4 +1,5 @@
 import { prisma } from './prismaClient';
+import { platformDetail, schrijfAudit } from './auditRepository';
 import { CONFIG } from '../service/config';
 
 export interface PlatformSnapshot {
@@ -64,6 +65,7 @@ export async function getMetingByJaar(jaar: number): Promise<MetingWithPlatforme
 
 export async function savePlatformScore(input: {
   metingId: string;
+  jaar: number;
   platformId: string;
   status: string;
   algemeneToelichting: string;
@@ -96,14 +98,51 @@ export async function savePlatformScore(input: {
       });
     }
 
-    await tx.auditLogEntry.create({
-      data: {
+    await schrijfAudit(
+      {
         actor: input.laatstGewijzigdDoor,
         actie: input.status === 'definitief' ? 'platform_afgerond' : 'platform_opgeslagen_concept',
         doelType: 'platform_score',
         doelId: platformScore.id,
-        detail: `platform=${input.platformId}`,
+        detail: platformDetail(input.platformId, input.jaar),
       },
+      tx,
+    );
+  });
+}
+
+/**
+ * Reopens a finalised platform score: status back to `concept`, audited in the same transaction.
+ * @param input - Meting id, platform id and the acting administrator
+ * @returns `heropend`, `niet-definitief` when the score is not final, or `niet-gevonden` when absent
+ */
+export async function heropenPlatform(input: {
+  metingId: string;
+  platformId: string;
+  actor: string;
+}): Promise<'heropend' | 'niet-definitief' | 'niet-gevonden'> {
+  return prisma.$transaction(async (tx) => {
+    const score = await tx.platformScore.findUnique({
+      where: { metingId_platformId: { metingId: input.metingId, platformId: input.platformId } },
+      include: { meting: { select: { jaar: true } } },
     });
+    if (!score) return 'niet-gevonden';
+    if (score.status !== 'definitief') return 'niet-definitief';
+
+    await tx.platformScore.update({
+      where: { id: score.id },
+      data: { status: 'concept', laatstGewijzigdDoor: input.actor, laatstGewijzigdOp: new Date() },
+    });
+    await schrijfAudit(
+      {
+        actor: input.actor,
+        actie: 'platform_heropend',
+        doelType: 'platform_score',
+        doelId: score.id,
+        detail: platformDetail(input.platformId, score.meting.jaar),
+      },
+      tx,
+    );
+    return 'heropend';
   });
 }

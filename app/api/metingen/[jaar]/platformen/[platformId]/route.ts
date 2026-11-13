@@ -61,6 +61,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
   await savePlatformScore({
     metingId: meting.id,
+    jaar: meting.jaar,
     platformId,
     status: parsed.data.status,
     algemeneToelichting: parsed.data.algemeneToelichting,

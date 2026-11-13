@@ -18,5 +18,6 @@ export async function setup(): Promise<void> {
   await prisma.platformInvuller.deleteMany();
   await prisma.auditLogEntry.deleteMany();
   await prisma.meting.deleteMany();
+  await prisma.gebruiker.deleteMany();
   await prisma.$disconnect();
 }

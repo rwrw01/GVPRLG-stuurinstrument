@@ -19,7 +19,7 @@ describe('GET /api/metingen/{jaar}', () => {
   it('should return the status of every filled-in platform when the meting exists', async () => {
     const meting = await createMeting(2027);
     await savePlatformScore({
-      metingId: meting.id, platformId: 'ro', status: 'concept', algemeneToelichting: '',
+      metingId: meting.id, jaar: 2027, platformId: 'ro', status: 'concept', algemeneToelichting: '',
       laatstGewijzigdDoor: 'test', vraagScores: [{ vraagId: 'cloud-data', score: 3, toelichting: '' }],
     });
     const response = await call('2027');

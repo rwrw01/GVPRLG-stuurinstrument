@@ -64,3 +64,16 @@ model AuditLogEntry {
 
   @@map("audit_log")
 }
+
+model Gebruiker {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  naam         String
+  rol          String // 'invuller' | 'beheerder'
+  status       String    @default("uitgenodigd") // 'uitgenodigd' | 'actief' | 'ingetrokken'
+  keycloakSub  String?   @unique
+  aangemaakt   DateTime  @default(now())
+  laatsteLogin DateTime?
+
+  @@map("gebruikers")
+}
