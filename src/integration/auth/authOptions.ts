@@ -5,6 +5,8 @@ import { vindGebruikerOpSub } from '@/src/data/gebruikersRepository';
 import { koppelLogin } from '@/src/process/loginKoppeling';
 import { authEnv, type AuthEnv } from '@/src/service/env';
 
+import { veiligDoorstuurPad } from './_doorstuurPad';
+
 const ACHT_UUR = 8 * 60 * 60;
 const DOORSTUREN = '/inloggen/doorsturen';
 // Paths that must never be a post-login target: they would restart or dead-end the login flow.
@@ -19,10 +21,6 @@ export function sessieCookieNaam(nextauthUrl: string): string {
   return nextauthUrl.startsWith('https://') ? '__Secure-next-auth.session-token' : 'next-auth.session-token';
 }
 
-function _isVeiligPad(pad: string | null): pad is string {
-  return pad !== null && pad.startsWith('/') && !pad.startsWith('//');
-}
-
 /**
  * Reduces any redirect URL to a safe same-origin path, unwrapping an earlier doorsturen wrapper.
  * @param url - Absolute or relative URL supplied to next-auth
@@ -30,19 +28,11 @@ function _isVeiligPad(pad: string | null): pad is string {
  * @returns A relative path that is safe to send the user to after login
  */
 function _doelPad(url: string, baseUrl: string): string {
-  let doel: URL;
-  try {
-    doel = new URL(url, baseUrl);
-  } catch {
-    return '/';
-  }
-  if (doel.origin !== new URL(baseUrl).origin || url.startsWith('//')) return '/';
-  if (doel.pathname === DOORSTUREN) {
-    const naar = doel.searchParams.get('naar');
-    return _isVeiligPad(naar) ? _doelPad(naar, baseUrl) : '/';
-  }
+  const pad = veiligDoorstuurPad(url, baseUrl);
+  const doel = new URL(pad, baseUrl);
+  if (doel.pathname === DOORSTUREN) return _doelPad(doel.searchParams.get('naar') ?? '/', baseUrl);
   if (GEEN_DOEL.some((p) => doel.pathname === p || doel.pathname.startsWith(`${p}/`))) return '/';
-  return `${doel.pathname}${doel.search}${doel.hash}`;
+  return pad;
 }
 
 /**
@@ -87,7 +77,9 @@ export function maakAuthOptions(env: AuthEnv): NextAuthOptions {
       async jwt({ token, account, profile }) {
         if (!account) return token;
         const gebruiker = profile?.sub ? await vindGebruikerOpSub(profile.sub) : null;
-        return { ...token, gebruikerId: gebruiker?.id ?? '', idToken: account.id_token };
+        // Fail closed: next-auth turns this into a redirect to the error page (/geen-toegang).
+        if (!gebruiker) throw new Error('User not found after sign-in');
+        return { ...token, gebruikerId: gebruiker.id, idToken: account.id_token };
       },
       async session({ session, token }) {
         return {

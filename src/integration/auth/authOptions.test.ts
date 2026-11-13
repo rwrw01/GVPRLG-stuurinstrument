@@ -1,7 +1,9 @@
 import type { Session } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { bindKeycloakSub, maakGebruiker } from '@/src/data/gebruikersRepository';
+import { prisma } from '@/src/data/prismaClient';
 import { koppelLogin } from '@/src/process/loginKoppeling';
 import type { AuthEnv } from '@/src/service/env';
 import { fail, ok } from '@/src/service/result';
@@ -34,8 +36,22 @@ async function signIn(): Promise<string | boolean> {
   });
 }
 
+async function jwt(sub: string): Promise<JWT> {
+  return maakAuthOptions(fakeEnv).callbacks!.jwt!({
+    token: { gebruikerId: '', name: 'Jan', email: 'jan@test.local' },
+    user: { id: sub },
+    account: { provider: 'keycloak', type: 'oauth', providerAccountId: sub, id_token: 'het-id-token' },
+    profile: { sub },
+    trigger: 'signIn',
+  });
+}
+
 beforeEach(() => {
   vi.mocked(koppelLogin).mockReset();
+});
+
+afterEach(async () => {
+  await prisma.gebruiker.deleteMany();
 });
 
 describe('maakAuthOptions', () => {
@@ -113,5 +129,19 @@ describe('maakAuthOptions', () => {
       user: { gebruikerId: 'g-1', name: 'Jan', email: 'jan@test.local' },
     });
     expect(JSON.stringify(resultaat)).not.toContain('geheim-id-token');
+  });
+
+  it('jwt-callback zet gebruikerId en idToken bij inloggen', async () => {
+    const gebruiker = await maakGebruiker({ email: 'jan@test.local', naam: 'Jan', rol: 'invuller' });
+    await bindKeycloakSub(gebruiker.id, 'sub-jwt-1');
+
+    const token = await jwt('sub-jwt-1');
+
+    expect(token.gebruikerId).toBe(gebruiker.id);
+    expect(token.idToken).toBe('het-id-token');
+  });
+
+  it('jwt-callback weigert een onbekende sub', async () => {
+    await expect(jwt('sub-onbekend')).rejects.toThrow('User not found after sign-in');
   });
 });

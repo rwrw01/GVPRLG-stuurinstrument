@@ -12,7 +12,10 @@ import { authEnv, type AuthEnv } from '@/src/service/env';
  * @returns The end-session URL
  */
 function eindSessieUrl(env: AuthEnv, idToken: string | undefined): string {
-  const params = new URLSearchParams({ client_id: env.keycloakClientId, post_logout_redirect_uri: `${env.nextauthUrl}/` });
+  const params = new URLSearchParams({
+    client_id: env.keycloakClientId,
+    post_logout_redirect_uri: new URL('/', env.nextauthUrl).href,
+  });
   if (idToken) params.set('id_token_hint', idToken);
   return `${env.keycloakIssuer}/protocol/openid-connect/logout?${params.toString()}`;
 }
@@ -20,7 +23,8 @@ function eindSessieUrl(env: AuthEnv, idToken: string | undefined): string {
 /**
  * Logs the user out: audits it, clears the session cookie and ends the Keycloak session.
  * @param request - Incoming request carrying the session cookie
- * @returns A 302 to the Keycloak end-session endpoint, or to the app root without a session
+ * @returns A 302 to the Keycloak end-session endpoint (also without an app session, so a refused
+ *   user can switch accounts)
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const env = authEnv();
@@ -36,14 +40,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
   }
 
-  const doel = token ? eindSessieUrl(env, token.idToken) : new URL('/', env.nextauthUrl).toString();
-  const response = NextResponse.redirect(doel, 302);
-  response.cookies.set(cookieNaam, '', {
-    maxAge: 0,
-    path: '/',
-    httpOnly: true,
-    sameSite: 'strict',
-    secure: env.nextauthUrl.startsWith('https://'),
-  });
+  const response = NextResponse.redirect(eindSessieUrl(env, token?.idToken), 302);
+  // next-auth splits large tokens into "<name>.0", "<name>.1", ...; expire the base name and every chunk.
+  const namen = new Set([cookieNaam]);
+  for (const { name } of request.cookies.getAll()) {
+    if (name.startsWith(`${cookieNaam}.`)) namen.add(name);
+  }
+  const opties = { maxAge: 0, path: '/', httpOnly: true, sameSite: 'strict', secure: env.nextauthUrl.startsWith('https://') } as const;
+  for (const naam of namen) response.cookies.set(naam, '', opties);
   return response;
 }
