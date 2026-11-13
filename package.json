@@ -12,7 +12,8 @@
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:generate": "prisma generate"
+    "prisma:generate": "prisma generate",
+    "seed:voorbeeld": "tsx --env-file=.env scripts/seed-voorbeeldwaardes-2026.ts"
   },
   "license": "EUPL-1.2",
   "devDependencies": {
@@ -24,6 +25,7 @@
     "otpauth": "9.6.0",
     "prisma": "7.10.0",
     "serve": "14.2.6",
+    "tsx": "4.23.15",
     "typescript": "7.0.2",
     "vitest": "5.0.3"
   },

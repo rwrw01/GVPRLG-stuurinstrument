@@ -14,5 +14,6 @@ docs
 .env*
 docker-compose.dev.yml
 secrets
+secrets-dev
 *.xlsx
 *.jpeg

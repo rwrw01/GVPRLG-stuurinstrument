@@ -39,11 +39,21 @@ services:
       PORT: "8080"
       HOSTNAME: "0.0.0.0"
       NODE_ENV: "production"
+      # Keycloak is reached via its public URL only (no extra network, no extra_hosts).
+      KEYCLOAK_ISSUER: "https://auth.athide.nl/realms/gvprlg"
+      KEYCLOAK_CLIENT_ID: "gvprlg-app"
+      KEYCLOAK_CLIENT_SECRET_FILE: /run/secrets/keycloak_client_secret
+      NEXTAUTH_URL: "https://spinnenweb.gvprlg.nl"
+      NEXTAUTH_SECRET_FILE: /run/secrets/nextauth_secret
+      # Value comes from the non-committed .env next to this file on the server.
+      BOOTSTRAP_BEHEERDER_EMAIL: ${BOOTSTRAP_BEHEERDER_EMAIL:?BOOTSTRAP_BEHEERDER_EMAIL ontbreekt in .env}
     volumes:
       - ./app-entrypoint.sh:/usr/local/bin/app-entrypoint.sh:ro
     entrypoint: ["/bin/sh", "/usr/local/bin/app-entrypoint.sh"]
     secrets:
       - db_password
+      - keycloak_client_secret
+      - nextauth_secret
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -141,3 +151,7 @@ volumes:
 secrets:
   db_password:
     file: ./secrets/db_password
+  keycloak_client_secret:
+    file: ./secrets/keycloak_client_secret
+  nextauth_secret:
+    file: ./secrets/nextauth_secret
