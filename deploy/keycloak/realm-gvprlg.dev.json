@@ -1,0 +1,158 @@
+{
+  "realm": "gvprlg",
+  "displayName": "GVPRLG Spinnenweb",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "rememberMe": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "verifyEmail": false,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 28800,
+  "actionTokenGeneratedByAdminLifespan": 259200,
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA1",
+  "otpPolicyDigits": 6,
+  "otpPolicyPeriod": 30,
+  "otpPolicyLookAheadWindow": 1,
+  "internationalizationEnabled": true,
+  "supportedLocales": [
+    "nl"
+  ],
+  "defaultLocale": "nl",
+  "browserFlow": "gvprlg-browser-otp",
+  "clients": [
+    {
+      "clientId": "gvprlg-app",
+      "name": "GVPRLG Spinnenweb",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "dev-gvprlg-app-secret",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "redirectUris": [
+        "http://localhost:3000/api/auth/callback/keycloak"
+      ],
+      "webOrigins": [
+        "http://localhost:3000"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:3000/*"
+      }
+    }
+  ],
+  "authenticatorConfig": [],
+  "authenticationFlows": [
+    {
+      "alias": "gvprlg-browser-otp",
+      "description": "Browser flow: username followed by TOTP, no password step",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-cookie",
+          "authenticatorFlow": false,
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "flowAlias": "gvprlg-browser-otp forms",
+          "authenticatorFlow": true,
+          "requirement": "ALTERNATIVE",
+          "priority": 20,
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "alias": "gvprlg-browser-otp forms",
+      "description": "Username form followed by OTP form",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-username-form",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "auth-otp-form",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false
+        }
+      ]
+    }
+  ],
+  "smtpServer": {
+    "host": "mailpit",
+    "port": "1025",
+    "ssl": "false",
+    "starttls": "false",
+    "auth": "false",
+    "from": "noreply@gvprlg.test",
+    "fromDisplayName": "GVPRLG Spinnenweb"
+  },
+  "users": [
+    {
+      "username": "beheerder@test.local",
+      "email": "beheerder@test.local",
+      "firstName": "Test",
+      "lastName": "Beheerder",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "otp",
+          "userLabel": "Dev TOTP",
+          "secretData": "{\"value\":\"JBSWY3DPEHPK3PXP\"}",
+          "credentialData": "{\"subType\":\"totp\",\"digits\":6,\"counter\":0,\"period\":30,\"algorithm\":\"HmacSHA1\",\"secretEncoding\":\"BASE32\"}"
+        }
+      ]
+    },
+    {
+      "username": "invuller@test.local",
+      "email": "invuller@test.local",
+      "firstName": "Test",
+      "lastName": "Invuller",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "otp",
+          "userLabel": "Dev TOTP",
+          "secretData": "{\"value\":\"JBSWY3DPEHPK3PXP\"}",
+          "credentialData": "{\"subType\":\"totp\",\"digits\":6,\"counter\":0,\"period\":30,\"algorithm\":\"HmacSHA1\",\"secretEncoding\":\"BASE32\"}"
+        }
+      ]
+    },
+    {
+      "username": "invuller2@test.local",
+      "email": "invuller2@test.local",
+      "firstName": "Test",
+      "lastName": "Invuller Twee",
+      "enabled": true,
+      "emailVerified": true,
+      "requiredActions": [
+        "CONFIGURE_TOTP"
+      ]
+    }
+  ]
+}

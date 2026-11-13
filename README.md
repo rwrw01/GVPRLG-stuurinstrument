@@ -105,6 +105,9 @@ een gecommit bestand.
 | vitest | 5.0.3 | MIT |
 | @playwright/test | 1.58.2 | Apache-2.0 |
 | serve | 14.2.6 | MIT |
+| otpauth | 9.6.0 | MIT |
+| Keycloak (dev-container) | 26.6.4 | Apache-2.0 |
+| Mailpit (dev-container) | 1.33.1 | MIT |
 | @types/node | 24.0.0 | MIT |
 | @types/react | 19.0.0 | MIT |
 | @types/react-dom | 19.0.0 | MIT |

@@ -16,5 +16,32 @@ services:
       - gvprlg-dev-pgdata:/var/lib/postgresql/data
       - ./docker/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
 
+  # Dev-only Keycloak with the gvprlg realm imported from deploy/keycloak (realm as code).
+  # Its embedded dev database lives in the container and import skips an existing realm:
+  # after editing the JSON, run `up -d --force-recreate keycloak` to re-import it.
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.6.4@sha256:0aae0de7fca85525f727d3354df17896092de8bb26ae4c12d89c77e5df8cbce4
+    container_name: gvprlg-dev-keycloak
+    command: start-dev --import-realm --http-port=8080
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: devadmin
+      # Same issuer for browser and app: http://localhost:8081/realms/gvprlg
+      KC_HOSTNAME: http://localhost:8081
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./deploy/keycloak/realm-gvprlg.dev.json:/opt/keycloak/data/import/realm-gvprlg.json:ro
+    depends_on:
+      - mailpit
+
+  # Catches all mail sent by the dev Keycloak. SMTP on 1025, web UI and API on 8025.
+  mailpit:
+    image: axllent/mailpit:v1.33.1@sha256:aef2aacc11f075ec0fb6874275ee4a421e688e11a96ebb296134d1735c7761ce
+    container_name: gvprlg-dev-mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
 volumes:
   gvprlg-dev-pgdata:

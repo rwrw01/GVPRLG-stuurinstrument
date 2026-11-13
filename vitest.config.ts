@@ -5,7 +5,7 @@ export default defineConfig({
     tsconfigPaths: true,
   },
   test: {
-    include: ['src/**/*.test.ts', 'app/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'app/**/*.test.ts', 'deploy/**/*.test.ts'],
     environment: 'node',
     setupFiles: ['./vitest.setup.ts'],
     globalSetup: ['./vitest.global-setup.ts'],
