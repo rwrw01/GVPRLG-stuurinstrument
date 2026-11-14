@@ -104,6 +104,7 @@ describe('realm-gvprlg', () => {
       internationalizationEnabled: true, supportedLocales: ['nl'], defaultLocale: 'nl',
     });
     expect(prod.browserFlow).toBe('gvprlg-browser-otp');
+    expect(prod.loginTheme).toBe('gvprlg');
     const app = prod.clients.find((c) => c.clientId === 'gvprlg-app');
     expect(app?.attributes?.['post.logout.redirect.uris']).toBe('https://spinnenweb.gvprlg.nl/');
   });

@@ -1,0 +1,168 @@
+/* ================================================================
+   GVPRLG Spinnenweb — Keycloak login theme (CSS only)
+   Keycloak 26 / PatternFly v5, parent theme keycloak.v2.
+   Colours taken from gvprlg.nl (footer gradient, active navigation).
+   Only styling is overridden: the DOM, ids and texts stay those of
+   keycloak.v2, so the Playwright selectors keep working.
+   ================================================================ */
+
+:root {
+  --gv-primary:       #2c7fa0; /* gvprlg.nl accent; white text on it: 4.5:1 */
+  --gv-primary-dark:  #2a5b70; /* gvprlg.nl gradient end; hover state */
+  --gv-gradient-from: #437e9d; /* gvprlg.nl gradient start */
+  --gv-white:         #ffffff;
+  --gv-text:          #212529;
+  --gv-meta:          #5c636a; /* 6.1:1 on white */
+  --gv-bg:            #f8f9fa;
+  --gv-border:        #dee2e6;
+  --gv-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", "Liberation Sans", sans-serif;
+}
+
+/* Force the light palette: keycloak.v2 adds pf-v5-theme-dark on a dark OS theme. */
+:root,
+.pf-v5-theme-dark {
+  --pf-v5-global--BackgroundColor--100:   #f8f9fa !important;
+  --pf-v5-global--BackgroundColor--200:   #ffffff !important;
+  --pf-v5-global--Color--100:             #212529 !important;
+  --pf-v5-global--Color--200:             #5c636a !important;
+  --pf-v5-global--primary-color--100:     #2c7fa0 !important;
+  --pf-v5-global--primary-color--200:     #2a5b70 !important;
+  --pf-v5-global--link--Color:            #2c7fa0 !important;
+  --pf-v5-global--link--Color--hover:     #2a5b70 !important;
+  --pf-v5-c-login--BackgroundColor:       #f8f9fa !important;
+  --pf-v5-c-login__main--BackgroundColor: #ffffff !important;
+  --pf-v5-c-login__header--Color:         #ffffff !important;
+}
+
+html,
+body,
+#keycloak-bg,
+html.login-pf,
+html.login-pf body {
+  background-color: var(--gv-bg) !important;
+  background-image: none !important;
+  font-family: var(--gv-font) !important;
+  color: var(--gv-text) !important;
+  min-height: 100vh;
+}
+
+/* Header band in the gvprlg.nl footer gradient, realm name in white. */
+.pf-v5-c-login__header {
+  background: var(--gv-primary) linear-gradient(to right, var(--gv-gradient-from), var(--gv-primary-dark) 50%) !important;
+  padding: 1.5rem 1rem !important;
+  margin-bottom: 0 !important;
+}
+
+#kc-header-wrapper,
+.pf-v5-c-brand {
+  font-family: var(--gv-font) !important;
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em !important;
+  color: var(--gv-white) !important;
+  text-align: center !important;
+  background-image: none !important;
+}
+
+div.kc-logo-text {
+  background-image: none !important;
+  height: 0 !important;
+  width: 0 !important;
+  overflow: hidden !important;
+}
+
+.pf-v5-c-login__main {
+  background-color: var(--gv-white) !important;
+  border-radius: 0 !important;
+  border-top: 4px solid var(--gv-primary) !important;
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+.pf-v5-c-login__main-header {
+  border-bottom: 1px solid var(--gv-border) !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.pf-v5-c-title,
+h1.pf-v5-c-title {
+  font-family: var(--gv-font) !important;
+  color: var(--gv-text) !important;
+  font-weight: 700 !important;
+}
+
+.pf-v5-c-form__label-text {
+  font-family: var(--gv-font) !important;
+  font-weight: 600 !important;
+  color: var(--gv-text) !important;
+}
+
+.pf-v5-c-form-control,
+.pf-v5-c-form-control > input {
+  border-radius: 0 !important;
+  font-family: var(--gv-font) !important;
+  background-color: var(--gv-white) !important;
+  color: var(--gv-text) !important;
+  --pf-v5-c-form-control--BorderBottomColor: var(--gv-border) !important;
+}
+
+.pf-v5-c-form-control:focus-within {
+  --pf-v5-c-form-control--focus--BorderBottomColor: var(--gv-primary) !important;
+}
+
+/* Keep a clearly visible keyboard focus ring (WCAG 2.2 focus appearance). */
+:focus-visible {
+  outline: 2px solid var(--gv-primary-dark) !important;
+  outline-offset: 2px !important;
+}
+
+.pf-v5-c-button.pf-m-primary {
+  background-color: var(--gv-primary) !important;
+  border-color: var(--gv-primary) !important;
+  border-radius: 0 !important;
+  font-family: var(--gv-font) !important;
+  font-weight: 600 !important;
+  color: var(--gv-white) !important;
+  --pf-v5-c-button--m-primary--BackgroundColor: var(--gv-primary) !important;
+  --pf-v5-c-button--m-primary--Color: #ffffff !important;
+}
+
+.pf-v5-c-button.pf-m-primary:hover,
+.pf-v5-c-button.pf-m-primary:focus {
+  background-color: var(--gv-primary-dark) !important;
+  border-color: var(--gv-primary-dark) !important;
+  --pf-v5-c-button--m-primary--hover--BackgroundColor: var(--gv-primary-dark) !important;
+}
+
+.pf-v5-c-button.pf-m-control {
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--gv-meta) !important;
+  border-color: var(--gv-border) !important;
+}
+
+.pf-v5-c-login__main-footer-band a,
+.pf-v5-c-login__main-body a,
+a {
+  color: var(--gv-primary) !important;
+}
+
+.pf-v5-c-login__main-footer-band a:hover,
+.pf-v5-c-login__main-body a:hover,
+a:hover {
+  color: var(--gv-primary-dark) !important;
+}
+
+.pf-v5-c-alert {
+  border-radius: 0 !important;
+}
+
+.pf-v5-c-alert.pf-m-success,
+.pf-v5-c-alert.pf-m-info {
+  --pf-v5-c-alert--m-info--BorderTopColor: var(--gv-primary) !important;
+}
+
+.pf-v5-c-login__main-footer-band,
+.pf-v5-c-check__label {
+  color: var(--gv-meta) !important;
+}
