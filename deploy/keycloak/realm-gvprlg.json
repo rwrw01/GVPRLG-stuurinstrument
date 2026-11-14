@@ -24,6 +24,9 @@
   "supportedLocales": ["nl"],
   "defaultLocale": "nl",
   "browserFlow": "gvprlg-browser-otp",
+  "attributes": {
+    "frontendUrl": "https://auth.athide.nl"
+  },
   "clients": [
     {
       "clientId": "gvprlg-app",

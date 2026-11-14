@@ -127,6 +127,13 @@ naar Keycloak of mox bij; de `app`-service houdt precies `gvprlg-internal` en `n
      *Partial import*.
    - CLI in de Keycloak-container: `kc.sh import --file <pad>/realm-gvprlg.json` (bij gestopte
      Keycloak, met dezelfde database-instellingen als de draaiende server).
+
+   Het bestand zet het realm-attribuut `frontendUrl` op `https://auth.athide.nl`. Laat dat
+   staan: zonder dat attribuut neemt Keycloak schema en poort over van het verzoek, en
+   uitnodigingsmails die vanuit de Admin Console op `:444` of via `kcadm` op
+   `http://localhost:8080` worden verstuurd, krijgen dan onbruikbare links. Controleer na de
+   import dat `https://auth.athide.nl/realms/gvprlg/.well-known/openid-configuration` als
+   `issuer` precies `https://auth.athide.nl/realms/gvprlg` geeft.
 2. **SMTP instellen** in realm `gvprlg` → *Realm settings* → *Email*: host (mox, poort 465,
    SSL aan), gebruikersnaam, wachtwoord en from-adres volgens stap 1 van de mailroute
    (zie "Mail" hieronder). *Test connection* gebruiken.

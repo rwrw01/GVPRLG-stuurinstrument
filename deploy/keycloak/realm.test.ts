@@ -28,6 +28,7 @@ interface Realm {
   clients: Client[];
   smtpServer?: Record<string, string>;
   browserFlow?: string;
+  attributes?: Record<string, string>;
   authenticationFlows: Flow[];
   [key: string]: unknown;
 }
@@ -42,17 +43,22 @@ const dev = leesRealm('realm-gvprlg.dev.json');
 /**
  * Removes the parts of a realm that may legitimately differ between dev and prod.
  * @param realm - parsed realm export
- * @returns realm copy without users, smtpServer and per-client redirect/origin/secret settings
+ * @returns realm copy without users, smtpServer, the realm frontendUrl and per-client
+ *   redirect/origin/secret settings
  */
 function zonderToegestaneVerschillen(realm: Realm): Omit<Realm, 'users' | 'smtpServer'> {
-  const { users: _users, smtpServer: _smtpServer, ...rest } = realm;
+  const { users: _users, smtpServer: _smtpServer, attributes: realmAttributes, ...rest } = realm;
+  const { frontendUrl: _f, ...realmAttributesRest } = realmAttributes ?? {};
+  const realmDeel = Object.keys(realmAttributesRest).length > 0
+    ? { ...rest, attributes: realmAttributesRest }
+    : rest;
   const clients = realm.clients.map((client) => {
     const { redirectUris: _r, webOrigins: _w, secret: _s, attributes, ...clientRest } = client;
     if (!attributes) return clientRest;
     const { 'post.logout.redirect.uris': _p, ...attributesRest } = attributes;
     return { ...clientRest, attributes: attributesRest };
   });
-  return { ...rest, clients };
+  return { ...realmDeel, clients };
 }
 
 /**
@@ -78,7 +84,12 @@ describe('realm-gvprlg', () => {
     expect(prod.clients.find((c) => c.clientId === 'gvprlg-app')?.secret).toBeUndefined();
     expect(prod.smtpServer?.password).toBeUndefined();
   });
-  it('dev wijkt alleen af op users, redirectUris, webOrigins, secret, smtpServer', () => {
+  it('zet de publieke basis-URL vast zodat actielinks en issuer niet van het verzoek afhangen', () => {
+    // Without frontendUrl Keycloak copies scheme and port from the request
+    // (kcadm on http://localhost:8080 produced http://auth.athide.nl:8080 links on VPS-001).
+    expect(prod.attributes?.frontendUrl).toBe('https://auth.athide.nl');
+  });
+  it('dev wijkt alleen af op users, redirectUris, webOrigins, secret, smtpServer, frontendUrl', () => {
     expect(zonderToegestaneVerschillen(dev)).toEqual(zonderToegestaneVerschillen(prod));
   });
   it('legt de afgesproken beveiligingswaarden vast', () => {
