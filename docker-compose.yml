@@ -145,6 +145,11 @@ services:
 networks:
   gvprlg-internal:
     internal: true
+    # Explicit subnet: Docker's default address pools are exhausted on VPS-001.
+    # Same /28 convention as the other internal networks in 172.30.0.0/16.
+    ipam:
+      config:
+        - subnet: 172.30.15.0/28
   net-fe-gvprlg:
     external: true
 
