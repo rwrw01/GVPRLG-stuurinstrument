@@ -33,11 +33,14 @@ async function slaEersteVraagOpAlsConcept(page) {
 }
 
 test.describe('GVPRLG fase B — inloggen met Keycloak (TOTP)', () => {
-  test('inlogpagina verwijst wie nog geen uitnodiging heeft naar de gebruikersvereniging', async ({ browser }) => {
+  test('inlogpagina is kort en verbergt de uitleg achter een vraagteken', async ({ browser }) => {
     const page = await schonePagina(browser);
     await page.goto('/inloggen');
-    await expect(page.getByText('Toegang krijg je via een uitnodigingsmail')).toBeVisible();
-    await expect(page.getByText('QR-code te scannen')).toHaveCount(0);
+    await expect(page.getByText('Je logt in met je e-mailadres en daarna een eenmalige code.')).toBeVisible();
+    const uitleg = page.getByText('De code komt uit je authenticator-app');
+    await expect(uitleg).toBeHidden();
+    await page.getByRole('button', { name: 'Hoe werkt inloggen?' }).click();
+    await expect(uitleg).toBeVisible();
     const contact = page.getByRole('link', { name: 'Gebruikersvereniging PinkRoccade Local Government' });
     await expect(contact).toHaveAttribute('href', 'https://gvprlg.nl/contact/');
     await expect(contact).toHaveAttribute('rel', /noopener/);
@@ -59,7 +62,7 @@ test.describe('GVPRLG fase B — inloggen met Keycloak (TOTP)', () => {
     await logout(page);
     expect((await page.request.get('/api/ik')).status()).toBe(401);
 
-    await page.getByRole('button', { name: 'Inloggen' }).click();
+    await page.getByRole('button', { name: 'Inloggen', exact: true }).click();
     // The Keycloak session is gone too: no silent SSO, the username and code are asked again.
     await expect(page.locator('#username')).toBeVisible();
     await page.locator('#username').fill(GEBRUIKERS.beheerder.email);

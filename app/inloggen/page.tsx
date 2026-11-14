@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 
@@ -14,24 +14,43 @@ function InlogKnop() {
 }
 
 export default function InloggenPage() {
+  const [hulpOpen, setHulpOpen] = useState(false);
   return (
-    <div className="card">
+    <div className="card inlog-card">
       <h2>Inloggen</h2>
-      <p>
-        Je logt in met je e-mailadres en een eenmalige code uit je authenticator-app (bijvoorbeeld
-        Microsoft Authenticator of Google Authenticator). Er is geen wachtwoord nodig.
-      </p>
-      <p>
-        Toegang krijg je via een uitnodigingsmail; daarin koppel je eenmalig je authenticator-app.
-        Heb je nog geen uitnodiging ontvangen? Neem dan contact op met de{' '}
-        <a href="https://gvprlg.nl/contact/" target="_blank" rel="noopener noreferrer">
-          Gebruikersvereniging PinkRoccade Local Government
-        </a>
-        .
-      </p>
-      <Suspense fallback={null}>
-        <InlogKnop />
-      </Suspense>
+      <p>Je logt in met je e-mailadres en daarna een eenmalige code. Er is geen wachtwoord nodig.</p>
+      <div className="inlog-acties">
+        <Suspense fallback={null}>
+          <InlogKnop />
+        </Suspense>
+        <button
+          type="button"
+          className="inlog-hulp-knop"
+          aria-label="Hoe werkt inloggen?"
+          title="Hoe werkt inloggen?"
+          aria-expanded={hulpOpen}
+          aria-controls="inlog-hulp"
+          onClick={() => setHulpOpen((open) => !open)}
+        >
+          <span aria-hidden="true">?</span>
+        </button>
+      </div>
+      {hulpOpen && (
+        <div id="inlog-hulp" className="inlog-hulp-tekst">
+          <p>
+            De code komt uit je authenticator-app (bijvoorbeeld Microsoft Authenticator of Google
+            Authenticator). Toegang krijg je via een uitnodigingsmail; daarin koppel je eenmalig je
+            authenticator-app.
+          </p>
+          <p>
+            Nog geen uitnodiging ontvangen? Neem contact op met de{' '}
+            <a href="https://gvprlg.nl/contact/" target="_blank" rel="noopener noreferrer">
+              Gebruikersvereniging PinkRoccade Local Government
+            </a>
+            .
+          </p>
+        </div>
+      )}
     </div>
   );
 }

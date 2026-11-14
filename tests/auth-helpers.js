@@ -66,7 +66,7 @@ export async function vulKeycloakIn(page, email, secret) {
  */
 export async function startLogin(page, email, secret) {
   await page.goto('/inloggen');
-  await page.getByRole('button', { name: 'Inloggen' }).click();
+  await page.getByRole('button', { name: 'Inloggen', exact: true }).click();
   await vulKeycloakIn(page, email, secret);
 }
 

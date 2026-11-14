@@ -379,3 +379,35 @@ th { font-weight: 600; background: var(--color-bg); }
   .btn, .nav-tabs, .alert-warning { display: none; }
   .card { break-inside: avoid; box-shadow: none; border: 1px solid #ccc; }
 }
+
+/* Inlogpagina: één zin, de knop en een uitklapbare uitleg achter een vraagteken. */
+.inlog-card { max-width: 32rem; }
+.inlog-card > p { margin-bottom: 1.25rem; }
+.inlog-acties { display: flex; align-items: center; gap: 0.75rem; }
+.inlog-hulp-knop {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  color: var(--color-muted);
+  background: var(--color-surface);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.inlog-hulp-knop:hover,
+.inlog-hulp-knop[aria-expanded="true"] { color: var(--color-primary); border-color: var(--color-primary); }
+.inlog-hulp-knop:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.inlog-hulp-tekst {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--color-primary);
+  background: var(--color-bg);
+  color: var(--color-muted);
+  font-size: 0.95rem;
+}
+.inlog-hulp-tekst p + p { margin-top: 0.5rem; }
