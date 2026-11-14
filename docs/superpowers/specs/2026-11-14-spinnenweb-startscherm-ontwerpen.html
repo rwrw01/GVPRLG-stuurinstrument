@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spinnenweb — drie ontwerpen</title>
+<style>
+:root{
+  --blauw:#2c7fa0; --blauw-donker:#2a5b70; --blauw-diep:#1c3f4f; --blauw-licht:#437e9d;
+  --vlak:#f3f6f7; --kaart:#ffffff; --inkt:#16242b; --inkt2:#4d5f68; --stil:#7d8c93;
+  --lijn:#dbe3e6; --op:#006300; --neer:#b3261e;
+  --font:"Avenir Next","Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:var(--font);color:var(--inkt);background:var(--vlak);font-size:15px;line-height:1.45}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--blauw-diep);outline-offset:2px}
+h1,h2,h3,p{margin:0}
+.num{font-variant-numeric:tabular-nums}
+
+/* ontwerpkiezer */
+.kiezer{position:sticky;top:0;z-index:20;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;
+  padding:.5rem .9rem;background:#101c22;color:#dfe8eb;font-size:.85rem}
+.kiezer span{margin-right:.25rem}
+.kiezer button{background:transparent;border:1px solid #3c4d55;color:#dfe8eb;border-radius:999px;padding:.25rem .8rem}
+.kiezer button[aria-pressed="true"]{background:#dfe8eb;color:#101c22;border-color:#dfe8eb;font-weight:600}
+
+/* gedeeld */
+.inhoud{padding:1.5rem clamp(1rem,3vw,2.25rem) 3rem;max-width:1180px}
+.kop{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;flex-wrap:wrap;margin-bottom:1.25rem}
+.kop h1{font-size:1.7rem;font-weight:650;letter-spacing:-.01em}
+.kop p{color:var(--inkt2)}
+.kaart{background:var(--kaart);border:1px solid var(--lijn);border-radius:10px;padding:1.1rem 1.25rem}
+.kaart h2{font-size:1rem;font-weight:650;margin-bottom:.15rem}
+.kaart .sub{color:var(--inkt2);font-size:.85rem;margin-bottom:.75rem}
+.raster{display:grid;gap:1rem}
+.r2{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}
+.r-gelijk{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:900px){.r2,.r-gelijk{grid-template-columns:1fr}}
+.delta{white-space:nowrap;font-weight:600}
+.delta.op{color:var(--op)} .delta.neer{color:var(--neer)} .delta.gelijk{color:var(--stil)}
+.status{display:inline-flex;align-items:center;gap:.35rem;font-size:.82rem;color:var(--inkt2)}
+.status i{width:.6rem;height:.6rem;border-radius:50%;display:inline-block;border:2px solid var(--blauw)}
+.status.def i{background:var(--blauw)} .status.geen i{border-color:var(--stil);border-style:dashed}
+.legenda{display:flex;flex-wrap:wrap;gap:.35rem 1rem;font-size:.82rem;color:var(--inkt2);margin-bottom:.4rem}
+.legenda b{display:inline-block;width:.9rem;height:3px;border-radius:2px;vertical-align:middle;margin-right:.35rem}
+svg{display:block;width:100%;height:auto}
+.lijnvak{max-width:720px}
+.inhoud{min-width:0}
+svg text{font-family:var(--font)}
+#tip{position:fixed;z-index:30;pointer-events:none;background:#101c22;color:#fff;font-size:.8rem;padding:.4rem .6rem;border-radius:6px;max-width:16rem;display:none}
+#toast{position:fixed;left:50%;bottom:1.25rem;transform:translateX(-50%);background:#101c22;color:#fff;padding:.6rem 1rem;border-radius:8px;font-size:.88rem;display:none;z-index:30}
+
+/* kerncijfers */
+.cijfers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--lijn);border-radius:10px;background:var(--kaart);margin-bottom:1rem}
+.cijfers div{padding:.9rem 1.1rem;border-left:1px solid var(--lijn)}
+.cijfers div:first-child{border-left:0}
+.cijfers dt{color:var(--inkt2);font-size:.82rem}
+.cijfers dd{margin:.1rem 0 0;font-size:1.45rem;font-weight:650}
+.cijfers small{display:block;font-size:.8rem;font-weight:500;color:var(--inkt2)}
+@media(max-width:760px){.cijfers{grid-template-columns:repeat(2,minmax(0,1fr))}.cijfers div:nth-child(3){border-left:0}.cijfers div:nth-child(n+3){border-top:1px solid var(--lijn)}}
+
+/* heatmap */
+.heat{width:100%;border-collapse:separate;border-spacing:2px;font-size:.9rem}
+.heat th{font-weight:600;text-align:left;padding:.3rem .4rem;color:var(--inkt2);font-size:.82rem}
+.heat th.jr{text-align:center}
+.heat td{text-align:center;padding:.55rem .3rem;border-radius:4px;font-weight:600}
+.heat td.leeg{background:repeating-linear-gradient(135deg,#eef2f3 0 6px,#e2e8ea 6px 8px);color:var(--stil);font-weight:500}
+.heat td.concept{box-shadow:inset 0 0 0 2px #fff, inset 0 0 0 3px var(--blauw-donker)}
+.heat button{background:none;border:0;padding:0;font-weight:600;color:var(--inkt);text-align:left}
+.heat button:hover{text-decoration:underline}
+.schaal{display:flex;align-items:center;gap:.5rem;font-size:.8rem;color:var(--inkt2);margin-top:.6rem}
+.schaal i{flex:0 0 9rem;height:.5rem;border-radius:3px;background:linear-gradient(90deg,#e3eff4,#86b9cd,#2c7fa0,#17475c)}
+
+/* aandacht */
+.aandacht{list-style:none;margin:0;padding:0}
+.aandacht li{display:grid;grid-template-columns:1.4rem 1fr;gap:.5rem;padding:.6rem 0;border-top:1px solid var(--lijn)}
+.aandacht li:first-child{border-top:0}
+.aandacht strong{display:block}
+.aandacht span{color:var(--inkt2);font-size:.88rem}
+
+/* tabel jaarpagina */
+.tabel{width:100%;border-collapse:collapse;font-size:.9rem}
+.tabel th{font-size:.8rem;color:var(--inkt2);font-weight:600;text-align:right;padding:.35rem .5rem;border-bottom:1px solid var(--lijn)}
+.tabel th:first-child,.tabel td:first-child{text-align:left}
+.tabel td{padding:.6rem .5rem;border-bottom:1px solid var(--lijn);text-align:right}
+.tabel tr:last-child td{border-bottom:0}
+.knop{background:var(--blauw);color:#fff;border:0;border-radius:6px;padding:.4rem .8rem;font-weight:600}
+.knop.stil{background:transparent;color:var(--blauw-donker);border:1px solid var(--lijn)}
+.scroll{overflow-x:auto}
+
+/* A — zijmenu */
+.shell-a{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:calc(100vh - 44px)}
+.zij{background:linear-gradient(180deg,var(--blauw-donker),var(--blauw-diep));color:#e8f1f4;padding:1.1rem .75rem}
+.merk{padding:.2rem .6rem 1rem;font-weight:700;font-size:1.05rem;line-height:1.2}
+.merk small{display:block;font-weight:500;font-size:.78rem;opacity:.8}
+.zij h3{font-size:.76rem;font-weight:600;opacity:.7;padding:1rem .6rem .3rem}
+.zij button{display:flex;justify-content:space-between;align-items:center;width:100%;background:transparent;border:0;color:inherit;text-align:left;padding:.5rem .6rem;border-radius:6px}
+.zij button:hover{background:rgba(255,255,255,.08)}
+.zij button[aria-current="page"]{background:#fff;color:var(--blauw-diep);font-weight:650}
+.zij button em{font-style:normal;font-size:.76rem;opacity:.85}
+.zij .menuknop{display:none}
+@media(max-width:820px){
+  .shell-a{grid-template-columns:minmax(0,1fr)}
+  .zij{padding:.6rem .75rem}
+  .zij .merk{padding-bottom:.2rem;display:flex;justify-content:space-between;align-items:center}
+  .zij .menuknop{display:inline-block;width:auto!important;border:1px solid rgba(255,255,255,.4)!important;padding:.25rem .7rem!important}
+  .zij nav{display:none}.zij.open nav{display:block}
+}
+
+/* B — tijdlijn */
+.balk-b{background:linear-gradient(90deg,var(--blauw-licht),var(--blauw-donker) 55%);color:#fff;padding:.9rem clamp(1rem,3vw,2.25rem);display:flex;justify-content:space-between;align-items:center;gap:1rem}
+.balk-b strong{font-size:1.1rem}
+.rail{background:var(--kaart);border-bottom:1px solid var(--lijn);padding:.9rem clamp(1rem,3vw,2.25rem) .7rem;display:flex;align-items:flex-start;gap:0;overflow-x:auto}
+.rail button{background:none;border:0;padding:0 .2rem;min-width:5.5rem;flex:1 1 0;max-width:11rem;position:relative;text-align:center;color:var(--inkt2)}
+.rail button::before{content:"";position:absolute;top:.55rem;left:0;right:0;height:2px;background:var(--lijn)}
+.rail button:first-child::before{left:50%}.rail button:last-child::before{right:50%}
+.rail button i{position:relative;display:block;width:1.15rem;height:1.15rem;margin:0 auto .3rem;border-radius:50%;background:var(--kaart);border:2px solid var(--blauw)}
+.rail button.thuis i{border-radius:4px}
+.rail button[aria-current="page"]{color:var(--inkt);font-weight:650}
+.rail button[aria-current="page"] i{background:var(--blauw);box-shadow:0 0 0 4px #d6e8ef}
+.rail button small{display:block;font-size:.76rem;color:var(--stil);font-weight:500}
+.webben{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.5rem}
+.webben button{background:none;border:1px solid transparent;border-radius:8px;padding:.4rem;text-align:center}
+.webben button:hover{border-color:var(--lijn)}
+.webben button.nu{border-color:var(--blauw);background:#f4f9fb}
+.webben b{display:block;font-size:.95rem}.webben span{font-size:.8rem;color:var(--inkt2)}
+@media(max-width:700px){.webben{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* C — bestuursbrief */
+.shell-c{display:grid;grid-template-columns:64px minmax(0,1fr);min-height:calc(100vh - 44px)}
+.strip{background:var(--blauw-diep);color:#fff;display:flex;flex-direction:column;align-items:center;gap:.35rem;padding:.8rem 0}
+.strip button{width:48px;border:0;border-radius:8px;background:transparent;color:#cfe0e6;padding:.45rem 0;font-size:.78rem;font-weight:600}
+.strip button[aria-current="page"]{background:#fff;color:var(--blauw-diep)}
+.strip .logo{font-weight:800;font-size:.8rem;margin-bottom:.6rem;letter-spacing:.02em}
+.brief{max-width:820px}
+.brief .lead{font-size:clamp(1.5rem,3.2vw,2.15rem);line-height:1.2;font-weight:650;letter-spacing:-.015em;margin:.3rem 0 1.5rem;max-width:22em}
+.rang{list-style:none;margin:0;padding:0}
+.rang li{display:grid;grid-template-columns:1.6rem minmax(0,1.6fr) 120px 3.2rem 4.6rem;gap:.75rem;align-items:center;padding:.7rem 0;border-top:1px solid var(--lijn)}
+.rang li:first-child{border-top:0}
+.rang .pos{color:var(--stil);font-weight:600}
+.rang button{background:none;border:0;padding:0;text-align:left;font-weight:650}
+.rang button:hover{text-decoration:underline}
+.rang .sc{font-size:1.15rem;font-weight:650;text-align:right}
+.assen{display:grid;gap:.7rem}
+.assen .rij{display:grid;grid-template-columns:5.5rem 1fr 2.6rem 4.4rem;gap:.6rem;align-items:center}
+.assen .baan{height:10px;background:#e6edf0;border-radius:5px;position:relative}
+.assen .baan i{position:absolute;inset:0 auto 0 0;background:var(--blauw);border-radius:5px}
+.assen .baan u{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--inkt)}
+@media(max-width:640px){.shell-c{grid-template-columns:minmax(0,1fr)}.strip{flex-direction:row;padding:.4rem .6rem;overflow-x:auto}.strip .logo{margin:0 .6rem 0 0}.rang li{grid-template-columns:1.4rem minmax(0,1fr) 3rem 4.4rem}.rang svg{display:none}}
+</style>
+</head>
+<body>
+<div class="kiezer" role="group" aria-label="Kies een ontwerp">
+  <span>Ontwerp</span>
+  <button data-v="A">A Zijmenu</button><button data-v="B">B Tijdlijn</button><button data-v="C">C Bestuursbrief</button>
+  <span style="margin-left:auto;opacity:.7">Voorbeeldcijfers, alles is klikbaar</span>
+</div>
+<div id="app"></div>
+<div id="tip" role="tooltip"></div><div id="toast" role="status"></div>
+<script>
+const JAREN=[2023,2024,2025,2026], NU=2026;
+const P=[
+ {id:'belastingen',naam:'Belastingen',kleur:'#2a78d6'},
+ {id:'ro',naam:'R&O',kleur:'#eb6834'},
+ {id:'burgerzaken',naam:'Burgerzaken',kleur:'#1baf7a'},
+ {id:'sociaal',naam:'Sociaal Domein',kleur:'#eda100'},
+ {id:'iv',naam:'Informatievoorziening',kleur:'#e87ba4'}];
+// [techniek, mens, proces, status]
+const D={
+ belastingen:{2023:[2.8,2.9,2.7,'def'],2024:[3.0,3.1,2.9,'def'],2025:[3.3,3.3,3.1,'def'],2026:[3.5,3.4,3.3,'def']},
+ ro:{2023:[2.4,2.2,2.3,'def'],2024:[2.3,2.1,2.2,'def'],2025:[2.3,2.3,2.3,'def'],2026:[2.5,1.9,2.4,'def']},
+ burgerzaken:{2023:[3.6,3.7,3.8,'def'],2024:[3.8,3.9,3.9,'def'],2025:[3.8,4.0,4.1,'def'],2026:[4.0,4.1,4.2,'def']},
+ sociaal:{2023:[3.0,2.9,2.8,'def'],2024:[2.9,2.7,2.8,'def'],2025:[2.8,2.5,2.9,'def'],2026:[2.9,2.6,3.0,'concept']},
+ iv:{2023:[2.5,2.6,2.6,'def'],2024:[2.7,2.8,2.7,'def'],2025:[2.8,3.0,2.7,'def'],2026:null}};
+const ASSEN=['Techniek','Mens','Proces'];
+const gem=(pid,j)=>{const d=D[pid][j];return d?(4*d[0]+4*d[1]+8*d[2])/16:null};
+const nl=v=>v==null?'–':v.toFixed(1).replace('.',',');
+const jaarGem=j=>{const v=P.map(p=>gem(p.id,j)).filter(x=>x!=null);return v.reduce((a,b)=>a+b,0)/v.length};
+const asGem=(a,j)=>{const v=P.map(p=>D[p.id][j]).filter(Boolean).map(d=>d[a]);return v.reduce((x,y)=>x+y,0)/v.length};
+function delta(nu,was){if(nu==null||was==null)return '<span class="delta gelijk">nieuw</span>';const d=Math.round((nu-was)*10)/10;
+  if(d>0)return `<span class="delta op num">▲ +${nl(d)}</span>`;if(d<0)return `<span class="delta neer num">▼ −${nl(-d)}</span>`;return '<span class="delta gelijk num">= 0,0</span>'}
+const statusTekst={def:'Definitief',concept:'Concept',geen:'Niet gestart'};
+const status=s=>`<span class="status ${s}"><i></i>${statusTekst[s]}</span>`;
+const stat=(pid,j)=>D[pid][j]?D[pid][j][3]:'geen';
+const klaar=j=>P.filter(p=>stat(p.id,j)==='def').length;
+const RAMP=['#e3eff4','#b9d7e3','#86b9cd','#4f97b3','#2c7fa0','#1f5f7a','#17475c'];
+function kleurVoor(s){const t=Math.max(0,Math.min(1,(s-1)/4))*(RAMP.length-1),i=Math.floor(t),f=t-i;
+  const h=x=>[1,3,5].map(k=>parseInt(x.slice(k,k+2),16)),a=h(RAMP[i]),b=h(RAMP[Math.min(i+1,RAMP.length-1)]);
+  return 'rgb('+a.map((v,k)=>Math.round(v+(b[k]-v)*f)).join(',')+')'}
+
+/* ---------- grafieken ---------- */
+function lijn(){const W=640,H=300,l=34,r=150,t=14,b=30,x=j=>l+(JAREN.indexOf(j))*(W-l-r)/(JAREN.length-1),y=v=>t+(5-v)*(H-t-b)/4;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Gemiddelde score per platform, 2023 tot en met 2026">`;
+  for(let v=1;v<=5;v++)s+=`<line x1="${l}" x2="${W-r}" y1="${y(v)}" y2="${y(v)}" stroke="#e4eaec"/><text x="${l-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="#7d8c93">${v}</text>`;
+  JAREN.forEach(j=>s+=`<text x="${x(j)}" y="${H-8}" text-anchor="middle" font-size="12" fill="#4d5f68">${j}</text>`);
+  const einden=[];
+  P.forEach(p=>{const pts=JAREN.map(j=>({j,v:gem(p.id,j),st:stat(p.id,j)})).filter(q=>q.v!=null);
+    for(let i=1;i<pts.length;i++)s+=`<line x1="${x(pts[i-1].j)}" y1="${y(pts[i-1].v)}" x2="${x(pts[i].j)}" y2="${y(pts[i].v)}" stroke="${p.kleur}" stroke-width="2" stroke-linecap="round" ${pts[i].st==='concept'?'stroke-dasharray="5 5"':''}/>`;
+    pts.forEach(q=>s+=`<circle cx="${x(q.j)}" cy="${y(q.v)}" r="4.5" fill="${q.st==='concept'?'#fff':p.kleur}" stroke="${q.st==='concept'?p.kleur:'#fff'}" stroke-width="2"/><circle cx="${x(q.j)}" cy="${y(q.v)}" r="13" fill="transparent" tabindex="0" data-tip="${p.naam}, ${q.j}: ${nl(q.v)}${q.st==='concept'?' (concept)':''}"/>`);
+    const e=pts[pts.length-1];einden.push({p,y:y(e.v),x:x(e.j),v:e.v,j:e.j})});
+  einden.sort((a,b)=>a.y-b.y);for(let i=1;i<einden.length;i++)if(einden[i].y-einden[i-1].y<16)einden[i].y=einden[i-1].y+16;
+  einden.forEach(e=>{s+=`<line x1="${e.x+7}" y1="${e.y}" x2="${W-r+8}" y2="${e.y}" stroke="${e.p.kleur}" stroke-width="1" opacity=".45"/><text x="${W-r+13}" y="${e.y+4}" font-size="12" fill="#16242b">${e.p.naam} <tspan font-weight="700">${nl(e.v)}</tspan></text>`});
+  return s+'</svg>'}
+function web(j,groot){const S=groot?360:150,c=S/2,R=groot?118:50,n=P.length,pt=(i,v)=>{const a=-Math.PI/2+i*2*Math.PI/n,rr=R*(v/5);return [c+rr*Math.cos(a),c+rr*Math.sin(a)]};
+  const poly=jj=>P.map((p,i)=>({i,v:gem(p.id,jj)})).filter(q=>q.v!=null).map(q=>pt(q.i,q.v).map(z=>z.toFixed(1)).join(',')).join(' ');
+  let s=`<svg viewBox="${groot?-80:0} 0 ${groot?S+160:S} ${S}" role="img" aria-label="Spinnenweb ${j}">`;
+  for(let v=1;v<=5;v++)s+=`<polygon points="${P.map((_,i)=>pt(i,v).map(z=>z.toFixed(1)).join(',')).join(' ')}" fill="none" stroke="#dbe3e6"/>`;
+  P.forEach((p,i)=>{const [a,b]=pt(i,5);s+=`<line x1="${c}" y1="${c}" x2="${a}" y2="${b}" stroke="#dbe3e6"/>`;
+    if(groot){const [la,lb]=pt(i,6.15),leeg=gem(p.id,j)==null;s+=`<text x="${la}" y="${lb+4}" text-anchor="middle" font-size="12" fill="${leeg?'#7d8c93':'#16242b'}">${p.naam}${leeg?' (niet gestart)':''}</text>`}});
+  const vorig=JAREN[JAREN.indexOf(j)-1];
+  if(vorig)s+=`<polygon points="${poly(vorig)}" fill="none" stroke="#7d8c93" stroke-width="1.5" stroke-dasharray="4 4"/>`;
+  s+=`<polygon points="${poly(j)}" fill="#2c7fa0" fill-opacity=".22" stroke="#2c7fa0" stroke-width="2" stroke-linejoin="round"/>`;
+  if(groot)P.forEach((p,i)=>{const v=gem(p.id,j);if(v==null)return;const [a,b]=pt(i,v);s+=`<circle cx="${a}" cy="${b}" r="4.5" fill="#2c7fa0" stroke="#fff" stroke-width="2"/><circle cx="${a}" cy="${b}" r="14" fill="transparent" tabindex="0" data-tip="${p.naam} ${j}: ${nl(v)}${vorig?', '+vorig+': '+nl(gem(p.id,vorig)):''}"/>`});
+  return s+'</svg>'}
+function vonk(pid){const W=120,H=30,v=JAREN.map(j=>gem(pid,j)).filter(x=>x!=null),x=i=>4+i*(W-8)/(JAREN.length-1),y=q=>H-4-(q-1.5)*(H-8)/3;
+  return `<svg viewBox="0 0 ${W} ${H}" aria-hidden="true"><polyline points="${v.map((q,i)=>x(i)+','+y(q).toFixed(1)).join(' ')}" fill="none" stroke="#2c7fa0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${x(v.length-1)}" cy="${y(v[v.length-1])}" r="3.5" fill="#2c7fa0" stroke="#fff" stroke-width="1.5"/></svg>`}
+function heat(){let s='<div class="scroll"><table class="heat"><thead><tr><th>Platform</th>'+JAREN.map(j=>`<th class="jr">${j}</th>`).join('')+'</tr></thead><tbody>';
+  P.forEach(p=>{s+=`<tr><th><button data-platform="${p.id}">${p.naam}</button></th>`;
+    JAREN.forEach(j=>{const v=gem(p.id,j),st=stat(p.id,j);
+      s+=v==null?`<td class="leeg" data-tip="${p.naam} ${j}: nog niet gestart">–</td>`:`<td class="num ${st==='concept'?'concept':''}" style="background:${kleurVoor(v)};color:${v>=3.05?'#fff':'#16242b'}" tabindex="0" data-tip="${p.naam} ${j}: ${nl(v)} (${statusTekst[st].toLowerCase()}). Techniek ${nl(D[p.id][j][0])}, Mens ${nl(D[p.id][j][1])}, Proces ${nl(D[p.id][j][2])}">${nl(v)}</td>`});s+='</tr>'});
+  return s+'</tbody></table></div><div class="schaal"><span>1</span><i></i><span>5</span><span style="margin-left:.75rem">Omrand vakje is een concept, gearceerd is nog niet gestart</span></div>'}
+const legenda=()=>'<div class="legenda">'+P.map(p=>`<span><b style="background:${p.kleur}"></b>${p.naam}</span>`).join('')+'<span>Open stip en stippellijn: concept</span></div>';
+const aandacht=()=>`<ul class="aandacht">
+ <li><span class="delta neer">▼</span><div><strong>R&O: de as Mens daalt naar 1,9</strong><span>Was 2,3 in 2025. Capaciteit en kennisborging scoren het laagst van alle platformen.</span></div></li>
+ <li><span class="delta gelijk">●</span><div><strong>Sociaal Domein staat nog in concept</strong><span>11 van de 16 vragen zijn beantwoord. De voorzitter kan afronden.</span></div></li>
+ <li><span class="delta gelijk">○</span><div><strong>Informatievoorziening is nog niet gestart</strong><span>Er is voor 2026 nog geen voorzitter gekoppeld.</span></div></li>
+ <li><span class="delta op">▲</span><div><strong>Burgerzaken stijgt voor het derde jaar op rij</strong><span>Van 3,7 in 2023 naar 4,1 nu, op alle drie de assen.</span></div></li></ul>`;
+const cijfers=()=>`<dl class="cijfers">
+ <div><dt>Gemiddelde ${NU}</dt><dd class="num">${nl(jaarGem(NU))} ${delta(jaarGem(NU),jaarGem(NU-1))}<small>over ${P.filter(p=>D[p.id][NU]).length} platformen, t.o.v. ${NU-1}</small></dd></div>
+ <div><dt>Afgerond</dt><dd class="num">${klaar(NU)} van ${P.length}<small>1 concept, 1 niet gestart</small></dd></div>
+ <div><dt>Sterkste stijger</dt><dd>Belastingen<small>${delta(gem('belastingen',NU),gem('belastingen',NU-1))} naar ${nl(gem('belastingen',NU))}</small></dd></div>
+ <div><dt>Laagste score</dt><dd>R&O<small>${nl(gem('ro',NU))}, Mens ${delta(D.ro[NU][1],D.ro[NU-1][1])}</small></dd></div></dl>`;
+const assenBlok=()=>'<div class="assen">'+ASSEN.map((a,i)=>{const n=asGem(i,NU),w=asGem(i,NU-1);return `<div class="rij"><span>${a}</span><div class="baan" data-tip="${a}: ${nl(n)} in ${NU}, ${nl(w)} in ${NU-1}"><i style="width:${(n-1)/4*100}%"></i><u style="left:${(w-1)/4*100}%"></u></div><b class="num">${nl(n)}</b>${delta(n,w)}</div>`}).join('')+'<p class="sub" style="margin:.2rem 0 0">Het zwarte streepje is de score van '+(NU-1)+'.</p></div>';
+
+/* ---------- schermen ---------- */
+function jaarScherm(j){const vorig=JAREN[JAREN.indexOf(j)-1];
+  return `<div class="kop"><div><h1>Meting ${j}</h1><p>${klaar(j)} van ${P.length} platformen definitief${vorig?', vergeleken met '+vorig:''}</p></div><button class="knop stil" data-toast="Hier komt de export naar pdf voor de bestuursvergadering.">Exporteer als pdf</button></div>
+  <div class="raster r-gelijk">
+   <div class="kaart"><h2>Spinnenweb ${j}</h2><p class="sub">Gevuld vlak is ${j}${vorig?', de stippellijn is '+vorig:''}.</p>${web(j,true)}</div>
+   <div class="kaart"><h2>Per platform</h2><p class="sub">Gemiddelde per as, schaal 1 tot 5.</p><div class="scroll"><table class="tabel"><thead><tr><th>Platform</th><th>Techniek</th><th>Mens</th><th>Proces</th><th>Gem.</th><th>${vorig?'t.o.v. '+vorig:''}</th></tr></thead><tbody>
+   ${P.map(p=>{const d=D[p.id][j];return `<tr><td><button class="knop stil" style="border:0;padding:0;font-weight:650" data-platform="${p.id}">${p.naam}</button><br>${status(stat(p.id,j))}</td>${d?`<td class="num">${nl(d[0])}</td><td class="num">${nl(d[1])}</td><td class="num">${nl(d[2])}</td><td class="num"><b>${nl(gem(p.id,j))}</b></td><td>${vorig?delta(gem(p.id,j),gem(p.id,vorig)):''}</td>`:'<td colspan="5" style="text-align:left;color:var(--stil)">Nog geen scores</td>'}</tr>`}).join('')}
+   </tbody></table></div></div></div>`}
+function overzichtA(){return `<div class="kop"><div><h1>Overzicht</h1><p>Volwassenheid van de PinkRoccade-platformen, ${JAREN[0]} tot en met ${NU}</p></div></div>${cijfers()}
+  <div class="raster r2"><div class="kaart"><h2>Trend per platform</h2><p class="sub">Gemiddelde score per jaar.</p>${legenda()}<div class="lijnvak">${lijn()}</div></div>
+  <div class="kaart"><h2>Wat vraagt aandacht</h2><p class="sub">Afgeleid uit de cijfers van ${NU}.</p>${aandacht()}</div></div>
+  <div class="raster r2" style="margin-top:1rem"><div class="kaart"><h2>Alle jaren naast elkaar</h2><p class="sub">Donkerder is volwassener. Klik op een platform voor het jaaroverzicht.</p>${heat()}</div>
+  <div class="kaart"><h2>De drie assen in ${NU}</h2><p class="sub">Gemiddeld over alle platformen.</p>${assenBlok()}</div></div>`}
+function overzichtB(){return `<div class="kop"><div><h1>Het web door de jaren</h1><p>Elk web toont de vijf platformen. De stippellijn is het jaar ervoor.</p></div></div>
+  <div class="kaart" style="margin-bottom:1rem"><div class="webben">${JAREN.map(j=>`<button class="${j===NU?'nu':''}" data-jaar="${j}">${web(j,false)}<b>${j}</b><span class="num">gemiddeld ${nl(jaarGem(j))}</span></button>`).join('')}</div></div>
+  <div class="raster r2"><div class="kaart"><h2>Alle jaren naast elkaar</h2><p class="sub">Donkerder is volwassener.</p>${heat()}</div>
+  <div class="kaart"><h2>Wat vraagt aandacht</h2><p class="sub">Afgeleid uit de cijfers van ${NU}.</p>${aandacht()}</div></div>
+  <div class="kaart" style="margin-top:1rem"><h2>Trend per platform</h2><p class="sub">Gemiddelde score per jaar.</p>${legenda()}<div class="lijnvak">${lijn()}</div></div>`}
+function overzichtC(){const rang=P.map(p=>({p,v:gem(p.id,NU)??gem(p.id,NU-1),open:!D[p.id][NU]})).sort((a,b)=>b.v-a.v);
+  return `<div class="brief"><p style="color:var(--inkt2)">Stand van de meting ${NU}, ${klaar(NU)} van ${P.length} platformen afgerond</p>
+  <p class="lead">Burgerzaken loopt voorop met 4,1. R&O blijft achter en verliest op de as Mens.</p>
+  <div class="kaart"><h2>Ranglijst ${NU}</h2><p class="sub">Met het verloop sinds ${JAREN[0]} en het verschil met ${NU-1}.</p><ol class="rang">
+  ${rang.map((r,i)=>`<li><span class="pos num">${i+1}</span><div><button data-platform="${r.p.id}">${r.p.naam}</button><br>${status(stat(r.p.id,NU))}</div>${vonk(r.p.id)}<span class="sc num">${nl(r.v)}</span>${r.open?'<span class="delta gelijk">cijfer '+(NU-1)+'</span>':delta(gem(r.p.id,NU),gem(r.p.id,NU-1))}</li>`).join('')}</ol></div>
+  <div class="raster r-gelijk" style="margin-top:1rem"><div class="kaart"><h2>De drie assen</h2><p class="sub">Gemiddeld over alle platformen.</p>${assenBlok()}</div>
+  <div class="kaart"><h2>Wat vraagt aandacht</h2><p class="sub">Vier punten voor de bestuursvergadering.</p>${aandacht()}</div></div>
+  <div class="kaart" style="margin-top:1rem"><h2>Alle jaren naast elkaar</h2><p class="sub">Donkerder is volwassener.</p>${heat()}</div></div>`}
+
+/* ---------- schillen ---------- */
+const S={v:'A',scherm:'overzicht',jaar:NU,menu:false};
+const huidig=(scherm,j)=>S.scherm===scherm&&(j==null||S.jaar===j)?'aria-current="page"':'';
+const badge=j=>j===NU?`${klaar(j)}/${P.length}`:'afgerond';
+function teken(){const body=S.scherm==='jaar'?jaarScherm(S.jaar):({A:overzichtA,B:overzichtB,C:overzichtC})[S.v]();let h;
+  if(S.v==='A')h=`<div class="shell-a"><aside class="zij ${S.menu?'open':''}"><div class="merk"><span>GVPRLG Spinnenweb<small>Volwassenheidsmeting</small></span><button class="menuknop" data-menu aria-expanded="${S.menu}">Menu</button></div>
+    <nav aria-label="Hoofdmenu"><button data-scherm="overzicht" ${huidig('overzicht')}>Overzicht</button><h3>Metingen</h3>
+    ${[...JAREN].reverse().map(j=>`<button data-jaar="${j}" ${huidig('jaar',j)}>${j}<em>${badge(j)}</em></button>`).join('')}
+    <h3>Beheer</h3><button data-toast="Hier opent het bestaande scherm Gebruikers.">Gebruikers</button><button data-toast="Hier opent het bestaande Auditlog.">Auditlog</button><button data-toast="Nieuwe meting aanmaken verhuist hierheen.">Nieuwe meting</button></nav></aside>
+    <main class="inhoud">${body}</main></div>`;
+  else if(S.v==='B')h=`<header class="balk-b"><strong>GVPRLG Spinnenweb</strong><span>Ralph Wagter</span></header>
+    <nav class="rail" aria-label="Jaren"><button class="thuis" data-scherm="overzicht" ${huidig('overzicht')}><i></i>Overzicht<small>alle jaren</small></button>
+    ${JAREN.map(j=>`<button data-jaar="${j}" ${huidig('jaar',j)}><i></i>${j}<small>${badge(j)}</small></button>`).join('')}</nav><main class="inhoud">${body}</main>`;
+  else h=`<div class="shell-c"><nav class="strip" aria-label="Hoofdmenu"><span class="logo">GV</span><button data-scherm="overzicht" ${huidig('overzicht')}>Start</button>
+    ${[...JAREN].reverse().map(j=>`<button data-jaar="${j}" ${huidig('jaar',j)}>${j}</button>`).join('')}<button data-toast="Hier opent Beheer: gebruikers, auditlog en nieuwe meting.">Beheer</button></nav><main class="inhoud">${body}</main></div>`;
+  document.getElementById('app').innerHTML=h;
+  document.querySelectorAll('.kiezer button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S.v))}
+const tip=document.getElementById('tip'),toast=document.getElementById('toast');let tt;
+function toon(el,x,y){tip.textContent=el.dataset.tip;tip.style.display='block';const r=tip.getBoundingClientRect();
+  tip.style.left=Math.max(6,Math.min(innerWidth-r.width-6,x+12))+'px';tip.style.top=Math.max(6,y-r.height-10)+'px'}
+document.addEventListener('mousemove',e=>{const el=e.target.closest('[data-tip]');el?toon(el,e.clientX,e.clientY):tip.style.display='none'});
+document.addEventListener('focusin',e=>{const el=e.target.closest('[data-tip]');if(el){const r=el.getBoundingClientRect();toon(el,r.left+r.width/2,r.top)}});
+document.addEventListener('focusout',()=>tip.style.display='none');
+document.addEventListener('click',e=>{const b=e.target.closest('button,[data-tip]');if(!b)return;
+  if(b.dataset.v){S.v=b.dataset.v;S.menu=false;teken();scrollTo(0,0)}
+  else if(b.dataset.scherm){S.scherm='overzicht';S.menu=false;teken();scrollTo(0,0)}
+  else if(b.dataset.jaar){S.scherm='jaar';S.jaar=+b.dataset.jaar;S.menu=false;teken();scrollTo(0,0)}
+  else if(b.dataset.platform){S.scherm='jaar';S.jaar=NU;teken();scrollTo(0,0);meld('In de echte app opent hier het resultaat van '+P.find(p=>p.id===b.dataset.platform).naam+'.')}
+  else if('menu' in b.dataset){S.menu=!S.menu;teken()}
+  else if(b.dataset.toast)meld(b.dataset.toast)
+  else if(b.dataset.tip){const r=b.getBoundingClientRect();toon(b,r.left+r.width/2,r.top)}});
+function meld(t){toast.textContent=t;toast.style.display='block';clearTimeout(tt);tt=setTimeout(()=>toast.style.display='none',2600)}
+teken();
+</script>
+</body>
+</html>
