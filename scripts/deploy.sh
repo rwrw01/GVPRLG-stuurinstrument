@@ -42,6 +42,7 @@ $DOCKER save "$MIGRATE_NAME:$SHA" "$APP_NAME:$SHA" | gzip | $SSH "$VPS_HOST" "gu
 echo "== 4. Deploy =="
 PREV_APP=$($SSH "$VPS_HOST" "docker inspect gvprlg-app --format '{{.Config.Image}}' 2>/dev/null" || echo "none")
 PREV_MIGRATE=$($SSH "$VPS_HOST" "docker inspect gvprlg-migrate --format '{{.Config.Image}}' 2>/dev/null" || echo "none")
+PREV_APP=${PREV_APP:-none}; PREV_MIGRATE=${PREV_MIGRATE:-none}
 echo "previous: app=$PREV_APP migrate=$PREV_MIGRATE"
 $SSH "$VPS_HOST" "cd $COMPOSE_DIR && \
   sudo MIGRATE_IMAGE=$MIGRATE_NAME:$SHA APP_IMAGE=$APP_NAME:$SHA docker compose up -d --no-build --remove-orphans && \

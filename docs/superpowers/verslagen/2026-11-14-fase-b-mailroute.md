@@ -95,3 +95,19 @@ TBD — nog geen adres opgegeven.
 5. Terzijde uit de mox-log: geautomatiseerde wachtwoordpogingen op submission met gebruikersnamen
    `ralph.wagter@athide.nl` en `ralph.wagter` vanaf twee externe IP's, alle `badcreds`;
    mox rate-limit actief. Geen actie binnen deze taak.
+
+## Vervolg — eerste deploy van de app (2026-11-14, middag)
+
+Per stap akkoord van de beheerder. Bewijs: uitvoer van `scripts/deploy.sh` en losse controles.
+
+| Stap | Resultaat |
+|---|---|
+| `/opt/gvprlg` | map 0755; `docker-compose.yml`, entrypoint-scripts (root 0644), `.env` (0600, `BOOTSTRAP_BEHEERDER_EMAIL`), `secrets/db_password` (0444) |
+| Netwerken | Docker-standaardpools uitgeput; `net-fe-gvprlg` = `172.30.14.0/28`, `gvprlg-internal` = `172.30.15.0/28` (compose) |
+| Traefik | `docker network connect` zonder herstart; `/opt/traefik/docker-compose.yml` +2 regels, backup `docker-compose.yml.bak-gvprlg-20261114-123706` |
+| Login-thema | `/opt/keycloak/themes/gvprlg`; Keycloak-herstart nodig (publiek weer bereikbaar na 19 s); `loginTheme=gvprlg` alleen op realm `gvprlg` |
+| Deploy | images `gvprlg-app:2b8c175` en `gvprlg-migrate:2b8c175` (arm64) lokaal gebouwd en via SSH geladen; migraties toegepast (exit 0); app healthy op `172.30.14.3`/`172.30.15.3`, uid `gvprlg`, read-only rootfs |
+| Controle | Let's Encrypt-certificaat `CN=spinnenweb.gvprlg.nl` (tot 2027-02-12); `/api/healthz` en `/api/readyz` 200; `/` → `/inloggen`; login → `https://auth.athide.nl/realms/gvprlg/...` met thema-CSS |
+
+Bijvangst: de app-log toonde een afgewezen verzoek met een ongeldige `Next-Action`-header,
+het patroon van scanners op de recente Next.js-RCE-advisories; de gepatchte versie weigerde het.

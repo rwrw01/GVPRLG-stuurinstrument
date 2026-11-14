@@ -82,36 +82,39 @@ motivatie.
 
 ### Eerste keer (koude deploy)
 
+De VPS krijgt nooit broncode en bouwt nooit zelf: images worden lokaal voor `linux/arm64`
+gebouwd en via SSH doorgezet (`scripts/deploy.sh`). In `/opt/gvprlg` staat alleen
+operationele configuratie: `docker-compose.yml`, de twee entrypoint-scripts, `.env` en
+`secrets/`. Eenmalig, met `sudo` op VPS-001:
+
 ```bash
-ssh ralph@100.64.0.2
+# 1. Map (0755) en operationele bestanden (root, 0644) uit de repo plaatsen
+#    docker-compose.yml, app-entrypoint.sh, migrate-entrypoint.sh  (LF-regeleinden)
 
-# 1. Clone (alleen de eerste keer)
-sudo git clone <gvprlg-repo-url> /opt/gvprlg
-cd /opt/gvprlg
+# 2. .env (root, 0600) met het adres van de eerste beheerder
+printf 'BOOTSTRAP_BEHEERDER_EMAIL=<adres>
+' > /opt/gvprlg/.env
 
-# 2. Secret aanmaken VÓÓR de eerste `docker compose up`
-#    (ontbreekt het bestand bij `up`, dan maakt Docker er per ongeluk een MAP van met
-#    diezelfde naam — controleer dus dat dit een bestand is, niet een map, voordat je verdergaat)
-mkdir -p secrets
-chmod 700 secrets
-openssl rand -hex 32 > secrets/db_password
-chmod 0444 secrets/db_password
-test -f secrets/db_password && ! test -d secrets/db_password
+# 3. Database-secret VÓÓR de eerste start (anders maakt Docker er een map van)
+openssl rand -hex 32 | tr -d '
+' > /opt/gvprlg/secrets/db_password
+chmod 0444 /opt/gvprlg/secrets/db_password
 
-# 3. Het externe Traefik-netwerk moet bestaan VÓÓR `docker compose up`
-#    (zowel deze compose als Traefik's eigen compose declareren het als `external: true` —
-#    geen van beide maakt het aan, dus dit is een losse, eenmalige stap)
-docker network create net-fe-gvprlg
+# 4. Spoke-netwerk met expliciet subnet (de standaard-adrespools van Docker zijn op;
+#    gvprlg-internal krijgt 172.30.15.0/28 via de compose)
+docker network create --driver bridge --subnet 172.30.14.0/28 net-fe-gvprlg
 
-# 4. Pas hierna de Traefik-wijziging uit het voorbereide diff (zie plan Task 5) toepassen
-#    in sovereign-stack, zodat Traefik het netwerk ook kent.
+# 5. Traefik koppelen zonder herstart, en blijvend in /opt/traefik/docker-compose.yml
+#    (service-netwerk + top-level `external: true`, eerst een .bak maken)
+docker network connect net-fe-gvprlg traefik
 
-# 5. Keycloak-realm en app-secrets (zie "Eerste installatie authenticatie" hieronder) —
-#    ook VÓÓR de eerste `docker compose up`.
+# 6. Keycloak-realm, app-secrets en login-thema: zie "Eerste installatie authenticatie"
+```
 
-# 6. Bouwen en starten
-docker compose build
-docker compose up -d
+Daarna vanaf de ontwikkellaptop (Git Bash, Docker Engine in WSL met `qemu-user-static`):
+
+```bash
+bash scripts/deploy.sh
 ```
 
 ### Eerste installatie authenticatie (Keycloak, eenmalig)
@@ -134,6 +137,13 @@ naar Keycloak of mox bij; de `app`-service houdt precies `gvprlg-internal` en `n
    `http://localhost:8080` worden verstuurd, krijgen dan onbruikbare links. Controleer na de
    import dat `https://auth.athide.nl/realms/gvprlg/.well-known/openid-configuration` als
    `issuer` precies `https://auth.athide.nl/realms/gvprlg` geeft.
+
+   Het realm-bestand zet ook `loginTheme=gvprlg`. Kopieer vóór de import
+   `deploy/keycloak/themes/gvprlg` naar `/opt/keycloak/themes/gvprlg` (root, mappen 0755,
+   bestanden 0644). Keycloak ziet een nieuwe themamap pas na een herstart
+   (`sudo docker compose restart keycloak` in `/opt/keycloak`, circa 20 s onderbreking voor
+   alle realms). Controleer met `kcadm.sh get serverinfo` (volledige uitvoer; `--fields themes`
+   geeft een lege lijst).
 2. **SMTP instellen** in realm `gvprlg` → *Realm settings* → *Email*: host (mox, poort 465,
    SSL aan), gebruikersnaam, wachtwoord en from-adres volgens stap 1 van de mailroute
    (zie "Mail" hieronder). *Test connection* gebruiken.
@@ -188,13 +198,16 @@ ook expliciet afwijzen met een duidelijke foutmelding in plaats van stil te fale
 
 ### Volgende keren (update)
 
+Commit en push naar `main`, dan vanaf de ontwikkellaptop:
+
 ```bash
-ssh ralph@100.64.0.2
-cd /opt/gvprlg
-git pull
-docker compose build
-docker compose up -d
+bash scripts/deploy.sh
 ```
+
+Het script stopt bij niet-gecommitte wijzigingen, een niet-gepushte commit of rode
+typecheck/unittests; het bouwt beide images voor `linux/arm64`, laadt ze op VPS-001, start ze
+met `docker compose up -d --no-build`, controleert `/api/healthz` over geldige TLS en de
+login-doorverwijzing naar realm `gvprlg`, en rolt terug bij een mislukte controle.
 
 Secrets staan in `/opt/gvprlg/secrets/` (map chmod 700, root-only; `db_password` chmod 0444,
 `keycloak_client_secret` en `nextauth_secret` eigendom van uid 1001 met chmod 600) — nooit in
