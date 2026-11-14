@@ -28,6 +28,27 @@ if [ "$(git rev-list --count "origin/main..HEAD" 2>/dev/null || echo 1)" != "0" 
 fi
 npx tsc --noEmit
 npx vitest run --reporter=dot
+# The image is built from the working tree minus .dockerignore (so without tests/), and
+# `next build` type-checks it with tsconfig.build.json. Check exactly that context here, so a
+# module that only exists outside the image fails the gate instead of the image build.
+# The copy lives inside node_modules: packages resolve from the repo's node_modules, and git,
+# tsc and the dev server's watcher all ignore it.
+GATE_DIR=node_modules/.cache/gvprlg-gate
+rm -rf "$GATE_DIR" && mkdir -p "$GATE_DIR"
+trap 'rm -rf "$GATE_DIR"' EXIT
+git ls-files -z | tar --null -T - -cf - | tar -xf - -C "$GATE_DIR"
+if [ -f next-env.d.ts ]; then cp next-env.d.ts "$GATE_DIR/"; fi
+(
+  cd "$GATE_DIR"
+  while IFS= read -r patroon || [ -n "$patroon" ]; do
+    patroon="${patroon%$'\r'}"
+    case "$patroon" in ''|'#'*) continue ;; esac
+    rm -rf -- $patroon   # unquoted on purpose: root-level globs such as *.md, as Docker applies them
+  done < .dockerignore
+  npx tsc --noEmit -p tsconfig.build.json
+)
+rm -rf "$GATE_DIR"
+trap - EXIT
 
 echo "== 2. Build $SHA for linux/$VPS_PLATFORM =="
 WSL_DIR=$(wsl -e wslpath -a "$(pwd -W 2>/dev/null || pwd)")
