@@ -8,8 +8,12 @@ describe('CONFIG', () => {
   });
 
   it('heeft een CMMI-schaal van 1 (Initial) tot 5 (Optimizing)', () => {
-    expect(CONFIG.schaal[0]).toEqual({ waarde: 1, label: 'Initial', beschrijving: 'Ad-hoc, geen gestructureerde aanpak' });
+    expect(CONFIG.schaal[0]).toEqual({ waarde: 1, label: 'Initial', naam: 'Ad hoc', beschrijving: 'Ad-hoc, geen gestructureerde aanpak' });
     expect(CONFIG.schaal[4]!.label).toBe('Optimizing');
+  });
+
+  it('should give every level a Dutch name next to the CMMI name', () => {
+    expect(CONFIG.schaal.map((s) => s.naam)).toEqual(['Ad hoc', 'Herhaalbaar', 'Vastgelegd', 'Gemeten', 'Lerend']);
   });
 
   it('proces-as heeft 8 vragen inclusief de twee "partner van betekenis"-vragen', () => {

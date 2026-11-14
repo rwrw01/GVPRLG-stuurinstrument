@@ -1,6 +1,6 @@
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { prisma } from './prismaClient';
-import { createMeting, getMetingByJaar, heropenPlatform, listMetingen, savePlatformScore } from './metingenRepository';
+import { createMeting, getMetingByJaar, heropenPlatform, listMetingen, listMetingenMetScores, savePlatformScore } from './metingenRepository';
 
 beforeAll(async () => {
   await prisma.$connect();
@@ -26,6 +26,20 @@ describe('metingenRepository', () => {
     await createMeting(2026);
     const metingen = await listMetingen();
     expect(metingen.map((m) => m.jaar)).toEqual([2026, 2027]);
+  });
+
+  it('should list every meting with its platform scores, oldest year first', async () => {
+    const later = await createMeting(2028);
+    await createMeting(2027);
+    await savePlatformScore({
+      metingId: later.id, jaar: 2028, platformId: 'ro', status: 'definitief', algemeneToelichting: '',
+      laatstGewijzigdDoor: 'test', vraagScores: [{ vraagId: 'capaciteit-kennis', score: 4, toelichting: '' }],
+    });
+    const metingen = await listMetingenMetScores();
+    expect(metingen.map((m) => m.jaar)).toEqual([2027, 2028]);
+    expect(metingen[0]?.platformen).toEqual({});
+    expect(metingen[1]?.platformen.ro?.status).toBe('definitief');
+    expect(metingen[1]?.platformen.ro?.scoresPerAs.mens?.['capaciteit-kennis']).toBe(4);
   });
 
   it('slaat een platform-score op en leest die terug met scores per as', async () => {

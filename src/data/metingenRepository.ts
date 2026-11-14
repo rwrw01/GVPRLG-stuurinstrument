@@ -33,13 +33,17 @@ function vraagToAsId(vraagId: string): string | undefined {
   return undefined;
 }
 
-export async function getMetingByJaar(jaar: number): Promise<MetingWithPlatformen | null> {
-  const meting = await prisma.meting.findUnique({
+type MetingRij = NonNullable<Awaited<ReturnType<typeof vindMetingMetScores>>>;
+
+function vindMetingMetScores(jaar: number) {
+  return prisma.meting.findUnique({
     where: { jaar },
     include: { platformen: { include: { vraagScores: true } } },
   });
-  if (!meting) return null;
+}
 
+// Maps one meting row with its platform and question scores to the snapshot shape.
+function naarMetingMetPlatformen(meting: MetingRij): MetingWithPlatformen {
   const platformen: Record<string, PlatformSnapshot> = {};
   for (const p of meting.platformen) {
     const scoresPerAs: Record<string, Record<string, number | null>> = {};
@@ -59,8 +63,29 @@ export async function getMetingByJaar(jaar: number): Promise<MetingWithPlatforme
       toelichtingen,
     };
   }
-
   return { id: meting.id, jaar: meting.jaar, aangemaakt: meting.aangemaakt, platformen };
+}
+
+/**
+ * Loads one meting with the status and scores of every platform that has a row.
+ * @param jaar - Measurement year
+ * @returns the meting, or null when the year does not exist
+ */
+export async function getMetingByJaar(jaar: number): Promise<MetingWithPlatformen | null> {
+  const meting = await vindMetingMetScores(jaar);
+  return meting ? naarMetingMetPlatformen(meting) : null;
+}
+
+/**
+ * Loads every meting with the status and scores of its platforms, oldest year first.
+ * @returns all metingen in ascending year order
+ */
+export async function listMetingenMetScores(): Promise<MetingWithPlatformen[]> {
+  const metingen = await prisma.meting.findMany({
+    orderBy: { jaar: 'asc' },
+    include: { platformen: { include: { vraagScores: true } } },
+  });
+  return metingen.map(naarMetingMetPlatformen);
 }
 
 /**

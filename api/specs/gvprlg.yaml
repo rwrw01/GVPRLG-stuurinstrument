@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: GVPRLG Volwassenheidsmeting API
+  title: GVPRLG Spinnenweb API
   version: 1.0.0-fase-b
 security:
   - cookieAuth: []
@@ -180,6 +180,26 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+  /api/overzicht:
+    get:
+      summary: Startscherm met de trend over alle meetjaren, voor elke actieve gebruiker
+      description: >
+        Per meetjaar (oudste eerst) en per platform de status, het gemiddelde per as (van de
+        beantwoorde vragen van die as), het totaal (gemiddelde over alle beantwoorde vragen) en het
+        aantal beantwoorde vragen; plus de afgeleide openingszin, kerncijfers, gespreksonderwerpen
+        en de drie assen ten opzichte van het vorige jaar met scores. Concepten tellen mee.
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Overzicht' }
+        '401':
+          $ref: '#/components/responses/NietIngelogd'
+        '403':
+          $ref: '#/components/responses/GeenToegang'
   /api/ik:
     get:
       summary: Gegevens van de ingelogde, actieve gebruiker
@@ -421,6 +441,108 @@ components:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
   schemas:
+    Overzicht:
+      type: object
+      required: [platformen, jaren, nuJaar, vorigeJaar, openingszin, kerncijfers, gespreksonderwerpen, assen]
+      properties:
+        platformen:
+          type: array
+          items:
+            type: object
+            required: [id, naam, kleur]
+            properties:
+              id: { type: string }
+              naam: { type: string }
+              kleur: { type: string, description: Vaste lijnkleur in de trendgrafiek }
+        jaren:
+          type: array
+          items: { $ref: '#/components/schemas/JaarCijfers' }
+        nuJaar: { type: [integer, 'null'], description: Nieuwste jaar met scores }
+        vorigeJaar: { type: [integer, 'null'], description: Jaar met scores daarvoor }
+        openingszin: { type: string }
+        kerncijfers:
+          oneOf:
+            - $ref: '#/components/schemas/Kerncijfers'
+            - type: 'null'
+        gespreksonderwerpen:
+          type: array
+          maxItems: 4
+          items:
+            type: object
+            required: [soort, titel, toelichting]
+            properties:
+              soort: { type: string, enum: [daling, concept, niet-gestart, stijging] }
+              titel: { type: string }
+              toelichting: { type: string }
+        assen:
+          type: array
+          items:
+            type: object
+            required: [id, naam, nu, vorige]
+            properties:
+              id: { type: string }
+              naam: { type: string }
+              nu: { type: [number, 'null'] }
+              vorige: { type: [number, 'null'] }
+    JaarCijfers:
+      type: object
+      required: [jaar, voortgang, aantalDefinitief, gemiddelde, perAs, platformen]
+      properties:
+        jaar: { type: integer }
+        voortgang: { type: string, description: '"<definitief>/<platformen>" of "afgerond"', examples: ['3/5', afgerond] }
+        aantalDefinitief: { type: integer }
+        gemiddelde: { type: [number, 'null'] }
+        perAs:
+          type: object
+          additionalProperties: { type: [number, 'null'] }
+        platformen:
+          type: array
+          items:
+            type: object
+            required: [platformId, status, perAs, totaal, beantwoord]
+            properties:
+              platformId: { type: string }
+              status: { type: string, enum: [definitief, concept, niet-gestart] }
+              perAs:
+                type: object
+                additionalProperties: { type: [number, 'null'] }
+              totaal: { type: [number, 'null'] }
+              beantwoord: { type: integer, minimum: 0 }
+    AsScore:
+      type: object
+      required: [platformId, asId, waarde, vorige, verschil]
+      properties:
+        platformId: { type: string }
+        asId: { type: string }
+        waarde: { type: number }
+        vorige: { type: [number, 'null'] }
+        verschil: { type: [number, 'null'] }
+    Kerncijfers:
+      type: object
+      required: [jaar, gemiddelde, vorigeJaar, vorigeGemiddelde, aantalPlatformen, aantalDefinitief, aantalConcept, aantalNietGestart, stijger, groeikans]
+      properties:
+        jaar: { type: integer }
+        gemiddelde: { type: [number, 'null'] }
+        vorigeJaar: { type: [integer, 'null'] }
+        vorigeGemiddelde: { type: [number, 'null'] }
+        aantalPlatformen: { type: integer }
+        aantalDefinitief: { type: integer }
+        aantalConcept: { type: integer }
+        aantalNietGestart: { type: integer }
+        stijger:
+          oneOf:
+            - type: object
+              required: [platformId, waarde, vorige, verschil]
+              properties:
+                platformId: { type: string }
+                waarde: { type: number }
+                vorige: { type: number }
+                verschil: { type: number }
+            - type: 'null'
+        groeikans:
+          oneOf:
+            - $ref: '#/components/schemas/AsScore'
+            - type: 'null'
     Problem:
       type: object
       description: RFC 9457 problem details

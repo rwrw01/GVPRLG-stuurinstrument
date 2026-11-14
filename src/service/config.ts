@@ -16,11 +16,16 @@ export interface As {
 export interface Platform {
   id: string;
   naam: string;
+  /** Fixed line colour in the trend chart (palette checked for colour-vision deficiency). */
+  kleur: string;
 }
 
 export interface SchaalNiveau {
   waarde: number;
+  /** CMMI name of the level, shown after the Dutch name. */
   label: string;
+  /** Dutch name of the level, shown first in the UI. */
+  naam: string;
   beschrijving: string;
 }
 
@@ -36,17 +41,17 @@ export const CONFIG: {
   schaal: SchaalNiveau[];
 } = {
   platformen: [
-    { id: 'belastingen', naam: 'Belastingen' },
-    { id: 'ro', naam: 'R&O' },
-    { id: 'burgerzaken', naam: 'Burgerzaken' },
-    { id: 'sociaal-domein', naam: 'Sociaal Domein' },
-    { id: 'informatievoorziening', naam: 'Informatievoorziening' },
+    { id: 'belastingen', naam: 'Belastingen', kleur: '#2a78d6' },
+    { id: 'ro', naam: 'R&O', kleur: '#eb6834' },
+    { id: 'burgerzaken', naam: 'Burgerzaken', kleur: '#1baf7a' },
+    { id: 'sociaal-domein', naam: 'Sociaal Domein', kleur: '#eda100' },
+    { id: 'informatievoorziening', naam: 'Informatievoorziening', kleur: '#e87ba4' },
   ],
   assen: [
     {
       id: 'techniek',
       naam: 'Techniek',
-      kleur: '#1F6FB8', // darker than brand #3786D2 to reach WCAG AA contrast (5.2:1) as text colour
+      kleur: '#1F6FB8', // darker than #3786D2 to reach WCAG AA contrast (5.2:1) as text colour
       vragen: [
         { id: 'common-ground-standaarden', kort: 'Common Ground', tekst: 'De producten voldoen aan Common Ground-principes en open standaarden (API-first, ZGW-API\'s, iConnect, scheiding data/logica)', nds: 'Open' },
         { id: 'cloud-data', kort: 'Cloud & data', tekst: 'De producten zijn volwaardige SaaS-oplossingen met datagedreven werken: data via API\'s beschikbaar voor analyse en veilig deelbaar over overheidslagen', nds: 'Cloud' },
@@ -84,17 +89,17 @@ export const CONFIG: {
   ndsThemas: [
     { id: 'Open', kleur: '#6366F1' },
     { id: 'Cloud', kleur: '#3786D2' },
-    { id: 'AI', kleur: '#E2007A' },
+    { id: 'AI', kleur: '#2c7fa0' },
     { id: 'Burgers en ondernemers centraal', kleur: '#15803D' },
-    { id: 'Digitale weerbaarheid en autonomie', kleur: '#000041' },
+    { id: 'Digitale weerbaarheid en autonomie', kleur: '#1c3f4f' },
     { id: 'Digitaal vakmanschap', kleur: '#C2410C' },
   ],
   schaal: [
-    { waarde: 1, label: 'Initial', beschrijving: 'Ad-hoc, geen gestructureerde aanpak' },
-    { waarde: 2, label: 'Managed', beschrijving: 'Herhaalbaar op projectniveau, nog niet organisatiebreed geborgd' },
-    { waarde: 3, label: 'Defined', beschrijving: 'Gestandaardiseerd en organisatiebreed vastgelegd' },
-    { waarde: 4, label: 'Quantitatively Managed', beschrijving: 'Gemeten en gestuurd op basis van data' },
-    { waarde: 5, label: 'Optimizing', beschrijving: 'Continue verbetering ingebed in de organisatie' },
+    { waarde: 1, label: 'Initial', naam: 'Ad hoc', beschrijving: 'Ad-hoc, geen gestructureerde aanpak' },
+    { waarde: 2, label: 'Managed', naam: 'Herhaalbaar', beschrijving: 'Herhaalbaar op projectniveau, nog niet organisatiebreed geborgd' },
+    { waarde: 3, label: 'Defined', naam: 'Vastgelegd', beschrijving: 'Gestandaardiseerd en organisatiebreed vastgelegd' },
+    { waarde: 4, label: 'Quantitatively Managed', naam: 'Gemeten', beschrijving: 'Gemeten en gestuurd op basis van data' },
+    { waarde: 5, label: 'Optimizing', naam: 'Lerend', beschrijving: 'Continue verbetering ingebed in de organisatie' },
   ],
 };
 
