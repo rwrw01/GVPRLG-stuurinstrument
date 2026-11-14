@@ -16,9 +16,10 @@ interface PlatformData {
 export default function InvulformulierPage() {
   const params = useParams<{ jaar: string; platformId: string }>();
   const router = useRouter();
-  const { ik } = useIk();
-  // UI only: a lezer sees the form read-only; the server refuses every write with 403 alleen-lezen.
-  const alleenLezen = ik?.rol === 'lezer';
+  const { ik, laden: ikLaden } = useIk();
+  // UI only (the server refuses every write of a lezer with 403 alleen-lezen): the form stays
+  // read-only until the role is known, and for a lezer or when /api/ik failed.
+  const alleenLezen = ikLaden || ik === null || ik.rol === 'lezer';
   const [laden, setLaden] = useState(true);
   const [laadFout, setLaadFout] = useState<string | null>(null);
   const [algemeneToelichting, setAlgemeneToelichting] = useState('');
@@ -107,7 +108,7 @@ export default function InvulformulierPage() {
   return (
     <div>
       <h2>{platform?.naam} — Meting {params.jaar}</h2>
-      {alleenLezen && (
+      {ik?.rol === 'lezer' && (
         <div className="alert alert-info" role="status">Je hebt alleen leesrechten. Wijzigingen opslaan is niet mogelijk.</div>
       )}
       {fout && <div className="alert alert-warning" role="alert">{fout}</div>}

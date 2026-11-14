@@ -5,6 +5,11 @@ import { verstuurJson } from '../_verstuurJson';
 import { PlatformKeuze } from './PlatformKeuze';
 import { BEHEER_ROLLEN, type BeheerRol } from './_beheerTypen';
 
+/**
+ * Narrows a select value to a known role.
+ * @param waarde - Value of the role select
+ * @returns The matching role, or `invuller` for an unknown value
+ */
 function naarRol(waarde: string): BeheerRol {
   return BEHEER_ROLLEN.find((r) => r === waarde) ?? 'invuller';
 }

@@ -206,8 +206,18 @@ test.describe('GVPRLG fase B — beheer', () => {
     await expect(rij.locator('td[data-label="Rol"]')).toHaveText('invuller');
     expect((await vindBeheerGebruiker(page.request, FASE_B_JAAR, doel.email)).platformIds).toEqual([PLATFORM_INVULLER]);
 
+    const knop = rij.getByRole('button', { name: /Rol wijzigen/ });
+    await expect(knop).toBeDisabled();
     await rij.getByLabel(`Nieuwe rol voor ${doel.naam}`).selectOption('lezer');
-    await rij.getByRole('button', { name: /Rol wijzigen/ }).click();
+    // The confirm blocks the click until handled, so accept it from a handler registered first.
+    /** @type {string[]} */
+    const meldingen = [];
+    page.once('dialog', (dialoog) => {
+      meldingen.push(dialoog.message());
+      void dialoog.accept();
+    });
+    await knop.click();
+    expect(meldingen).toEqual([`${doel.naam} wordt lezer. Alle platformkoppelingen in alle meetjaren worden verwijderd. Doorgaan?`]);
 
     await expect(rij.locator('td[data-label="Rol"]')).toHaveText('lezer');
     await expect(rij.locator(`td[data-label="Platformen ${FASE_B_JAAR}"]`)).toHaveText('-');

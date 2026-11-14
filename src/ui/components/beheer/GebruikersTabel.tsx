@@ -15,19 +15,35 @@ function platformNamen(ids: string[]): string {
   return namen.length > 0 ? namen.join(', ') : '-';
 }
 
+/**
+ * Role select (placeholder "Kies rol…" first) plus "Rol wijzigen" button for one user. The button
+ * stays disabled until a role is chosen; becoming lezer is confirmed first because it removes all
+ * platform links in every year.
+ * @param props.g - The user in this row
+ * @param props.onWijzig - Sends the PATCH role change
+ * @returns the inline role control
+ */
 function RolWijzigen({ g, onWijzig }: { g: BeheerGebruiker; onWijzig: Acties['onWijzig'] }) {
   const andere = BEHEER_ROLLEN.filter((r) => r !== g.rol);
-  const [nieuweRol, setNieuweRol] = useState<BeheerRol>(andere[0] ?? 'invuller');
+  const [nieuweRol, setNieuweRol] = useState<BeheerRol | null>(null);
   const id = `rol-${g.id}`;
+  function wijzig() {
+    if (!nieuweRol) return;
+    const bevestigd =
+      nieuweRol !== 'lezer' ||
+      window.confirm(`${g.naam} wordt lezer. Alle platformkoppelingen in alle meetjaren worden verwijderd. Doorgaan?`);
+    if (bevestigd) onWijzig(g.id, { actie: 'rol', rol: nieuweRol });
+  }
   return (
     <span className="rol-wijzigen">
       <label htmlFor={id} className="visueel-verborgen">Nieuwe rol voor {g.naam}</label>
-      <select id={id} value={nieuweRol} onChange={(e) => setNieuweRol(andere.find((r) => r === e.target.value) ?? nieuweRol)}>
+      <select id={id} value={nieuweRol ?? ''} onChange={(e) => setNieuweRol(andere.find((r) => r === e.target.value) ?? null)}>
+        <option value="">Kies rol…</option>
         {andere.map((r) => (
           <option key={r} value={r}>{r}</option>
         ))}
       </select>
-      <button type="button" className="btn btn-outline" aria-label={`Rol wijzigen van ${g.naam}`} onClick={() => onWijzig(g.id, { actie: 'rol', rol: nieuweRol })}>
+      <button type="button" className="btn btn-outline" aria-label={`Rol wijzigen van ${g.naam}`} disabled={!nieuweRol} onClick={wijzig}>
         Rol wijzigen
       </button>
     </span>
