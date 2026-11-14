@@ -57,22 +57,23 @@ export function GebruikersTabel({ gebruikers, jaar, ...acties }: { gebruikers: B
   }
 
   return (
-    <table aria-label="Gebruikers" className="beheer-tabel">
-      <thead>
-        <tr>
-          <th>Naam</th><th>E-mail</th><th>Rol</th><th>Status</th><th>Platformen {jaar}</th><th>Acties</th>
+    <div className="tabel-scroll">
+    <table aria-label="Gebruikers" className="beheer-tabel beheer-tabel-stapel" role="table">
+      <thead role="rowgroup">
+        <tr role="row">
+          <th role="columnheader">Naam</th><th role="columnheader">E-mail</th><th role="columnheader">Rol</th><th role="columnheader">Status</th><th role="columnheader">Platformen {jaar}</th><th role="columnheader">Acties</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody role="rowgroup">
         {gebruikers.map((g) => (
           <Fragment key={g.id}>
-            <tr>
-              <td>{g.naam}</td><td>{g.email}</td><td>{g.rol}</td><td>{g.status}</td><td>{platformNamen(g.platformIds)}</td>
-              <td><RijActies g={g} acties={acties} onKoppelingen={() => setEditorVoor(g.id)} /></td>
+            <tr role="row">
+              <td role="cell" data-label="Naam">{g.naam}</td><td role="cell" data-label="E-mail">{g.email}</td><td role="cell" data-label="Rol">{g.rol}</td><td role="cell" data-label="Status">{g.status}</td><td role="cell" data-label={`Platformen ${jaar}`}>{platformNamen(g.platformIds)}</td>
+              <td role="cell" data-label="Acties" className="cel-acties"><RijActies g={g} acties={acties} onKoppelingen={() => setEditorVoor(g.id)} /></td>
             </tr>
             {editorVoor === g.id && (
-              <tr>
-                <td colSpan={6}>
+              <tr role="row">
+                <td role="cell" colSpan={6} className="cel-editor">
                   <KoppelingenEditor gebruikerId={g.id} huidig={g.platformIds} onOpslaan={(ids) => opslaan(g.id, ids)} onAnnuleren={() => setEditorVoor(null)} />
                 </td>
               </tr>
@@ -81,5 +82,6 @@ export function GebruikersTabel({ gebruikers, jaar, ...acties }: { gebruikers: B
         ))}
       </tbody>
     </table>
+    </div>
   );
 }

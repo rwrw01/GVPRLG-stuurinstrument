@@ -58,3 +58,21 @@
 .audit-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 0 1rem; align-items: end; }
 .audit-filters .btn { margin-bottom: 1.25rem; }
 .heropenen { margin-top: 0.75rem; }
+
+/* Tables never widen the page: they scroll inside their card. */
+.tabel-scroll { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.cel-detail { overflow-wrap: anywhere; }
+
+/* Narrow screens (phone, iPad portrait in split view): one card per row.
+   Explicit ARIA roles on the table keep its semantics when display changes. */
+@media (max-width: 760px) {
+  .beheer-tabel-stapel, .beheer-tabel-stapel tbody, .beheer-tabel-stapel tr, .beheer-tabel-stapel td { display: block; }
+  .beheer-tabel-stapel thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .beheer-tabel-stapel tbody tr { border: 1px solid var(--color-border); border-radius: var(--radius); padding: 0.5rem 0.75rem; margin-bottom: 0.75rem; }
+  .beheer-tabel-stapel td { border-bottom: none; padding: 0.3rem 0; display: grid; grid-template-columns: 7rem 1fr; gap: 0.5rem; }
+  .beheer-tabel-stapel td::before { content: attr(data-label); font-weight: 600; color: var(--color-muted); }
+  .beheer-tabel-stapel td.cel-acties, .beheer-tabel-stapel td.cel-editor { display: block; padding-top: 0.5rem; }
+  .beheer-tabel-stapel td.cel-acties::before { display: block; margin-bottom: 0.35rem; }
+  .beheer-tabel-stapel td.cel-editor::before { content: none; }
+  .beheer-tabel-stapel tr + tr .cel-editor { margin-top: -0.75rem; }
+}
