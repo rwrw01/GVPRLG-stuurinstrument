@@ -21,7 +21,14 @@ export default function InloggenPage() {
         Je logt in met je e-mailadres en een eenmalige code uit je authenticator-app (bijvoorbeeld
         Microsoft Authenticator of Google Authenticator). Er is geen wachtwoord nodig.
       </p>
-      <p>Log je voor het eerst in? Dan koppel je eerst je authenticator-app door de QR-code te scannen.</p>
+      <p>
+        Toegang krijg je via een uitnodigingsmail; daarin koppel je eenmalig je authenticator-app.
+        Heb je nog geen uitnodiging ontvangen? Neem dan contact op met de{' '}
+        <a href="https://gvprlg.nl/contact/" target="_blank" rel="noopener noreferrer">
+          Gebruikersvereniging PinkRoccade Local Government
+        </a>
+        .
+      </p>
       <Suspense fallback={null}>
         <InlogKnop />
       </Suspense>

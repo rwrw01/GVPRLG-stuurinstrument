@@ -33,6 +33,17 @@ async function slaEersteVraagOpAlsConcept(page) {
 }
 
 test.describe('GVPRLG fase B — inloggen met Keycloak (TOTP)', () => {
+  test('inlogpagina verwijst wie nog geen uitnodiging heeft naar de gebruikersvereniging', async ({ browser }) => {
+    const page = await schonePagina(browser);
+    await page.goto('/inloggen');
+    await expect(page.getByText('Toegang krijg je via een uitnodigingsmail')).toBeVisible();
+    await expect(page.getByText('QR-code te scannen')).toHaveCount(0);
+    const contact = page.getByRole('link', { name: 'Gebruikersvereniging PinkRoccade Local Government' });
+    await expect(contact).toHaveAttribute('href', 'https://gvprlg.nl/contact/');
+    await expect(contact).toHaveAttribute('rel', /noopener/);
+    await page.context().close();
+  });
+
   test('toont na inloggen direct de naam van de gebruiker', async ({ page }) => {
     await login(page, GEBRUIKERS.invuller.email);
     await expect(page).toHaveURL('http://localhost:3000/');
