@@ -17,6 +17,7 @@ a { color: var(--color-secondary); }
   padding: 0.9rem clamp(1rem, 3vw, 2rem);
   display: flex; justify-content: space-between; align-items: center; gap: 1rem;
 }
+.kop-merk { min-width: 0; }
 .kop h1 { font-size: 1.35rem; font-weight: 700; line-height: 1.2; }
 .kop-ondertitel { font-size: 0.88rem; color: #fff; }
 .kop :focus-visible { outline-color: #fff; }
@@ -58,7 +59,7 @@ a { color: var(--color-secondary); }
 .zijmenu-link[aria-current]:focus-visible { outline-offset: 2px; }
 
 .gebruiker-menu {
-  display: flex; flex-direction: column; gap: 0.35rem;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 0.35rem;
   border-top: 1px solid rgba(255, 255, 255, 0.25); padding: 0.9rem 0.6rem 0; font-size: 0.9rem;
 }
 .gebruiker-naam { font-weight: 600; overflow-wrap: anywhere; }

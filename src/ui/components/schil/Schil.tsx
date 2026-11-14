@@ -9,6 +9,11 @@ import { OverzichtProvider } from '@/src/ui/hooks/useOverzicht';
 import { Zijmenu } from './Zijmenu';
 import { zonderMenu } from './_schilPaden';
 
+/**
+ * Header with the product name, the subtitle and (on app pages) the Menu button.
+ * @param props.menuKnop - The Menu button, or null on pages without a session
+ * @returns the header
+ */
 function Kop({ menuKnop }: { menuKnop: ReactNode }) {
   return (
     <header className="kop">
@@ -42,7 +47,8 @@ export function Schil({ children }: { children: ReactNode }) {
   useEffect(() => setOpen(false), [pathname]);
 
   const menuKnop = kaal ? null : (
-    <button type="button" id="menu-knop" className="menu-knop" aria-expanded={open} aria-controls="zijmenu" onClick={() => setOpen((o) => !o)}>
+    <button type="button" id="menu-knop" className="menu-knop" aria-expanded={open} aria-controls="zijmenu"
+      onClick={() => setOpen((o) => !o)} onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}>
       Menu
     </button>
   );
@@ -55,7 +61,7 @@ export function Schil({ children }: { children: ReactNode }) {
         <main id="inhoud" className="inhoud inhoud-kaal">{children}</main>
       ) : (
         <div className="schil">
-          <Zijmenu pathname={pathname} open={open} onSluit={sluit} />
+          <Zijmenu pathname={pathname} open={open} onSluit={sluit} onKies={() => setOpen(false)} />
           <main id="inhoud" className="inhoud">
             <Kruimelpad />
             {children}

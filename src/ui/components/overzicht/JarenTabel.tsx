@@ -4,6 +4,13 @@ import { celKleur } from './_kleurschaal';
 import { nl } from './_formatteer';
 import type { JaarCijfers, OverzichtPlatform, PlatformCijfers } from './_overzichtTypen';
 
+/**
+ * One table cell: the score on the blue ramp, a concept outlined, no scores hatched.
+ * @param props.cijfers - Platform figures of the year, if any
+ * @param props.jaar - Year
+ * @param props.naam - Platform name
+ * @returns the cell
+ */
 function Cel({ cijfers, jaar, naam }: { cijfers: PlatformCijfers | undefined; jaar: number; naam: string }) {
   if (!cijfers || cijfers.totaal === null) {
     const tekst = cijfers?.status === 'concept' ? 'concept, nog geen scores' : 'niet gestart';
@@ -43,7 +50,7 @@ interface JarenTabelProps {
 export function JarenTabel({ jaren, platformen, nuJaar }: JarenTabelProps) {
   return (
     <>
-      <div className="tabel-scroll">
+      <div className="tabel-scroll" id="jaren-tabel" tabIndex={-1}>
         <table className="jaren-tabel" aria-label="Gemiddelde score per platform en jaar">
           <thead>
             <tr>

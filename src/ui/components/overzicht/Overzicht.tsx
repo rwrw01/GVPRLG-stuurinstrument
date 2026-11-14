@@ -9,6 +9,13 @@ import { Kerncijfers } from './Kerncijfers';
 import { TrendGrafiek } from './TrendGrafiek';
 import type { Overzicht as OverzichtData, OverzichtPlatform } from './_overzichtTypen';
 
+/**
+ * Card with a heading and an optional sub line.
+ * @param props.titel - Heading, also the region name
+ * @param props.sub - Sub line
+ * @param props.children - Card content
+ * @returns the card
+ */
 function Kaart({ titel, sub, children }: { titel: string; sub?: string; children: ReactNode }) {
   return (
     <section className="card kaart" aria-label={titel}>
@@ -19,6 +26,11 @@ function Kaart({ titel, sub, children }: { titel: string; sub?: string; children
   );
 }
 
+/**
+ * Legend of the trend chart: platform colours and the concept marking.
+ * @param props.platformen - Platforms with their colour
+ * @returns the legend
+ */
 function Legenda({ platformen }: { platformen: OverzichtPlatform[] }) {
   return (
     <ul className="trend-legenda">
@@ -30,6 +42,11 @@ function Legenda({ platformen }: { platformen: OverzichtPlatform[] }) {
   );
 }
 
+/**
+ * Trend card: the chart from two years with scores on, otherwise the empty-state sentence.
+ * @param props.data - The overview
+ * @returns the card
+ */
 function Trend({ data }: { data: OverzichtData }) {
   const metScores = data.jaren.filter((j) => j.platformen.some((p) => p.totaal !== null));
   return (
@@ -37,6 +54,7 @@ function Trend({ data }: { data: OverzichtData }) {
       {metScores.length < 2 && <p className="trend-leeg">Een trend verschijnt zodra er twee jaren met scores zijn.</p>}
       {metScores.length >= 2 && (
         <>
+          <a className="naar-tabel" href="#jaren-tabel">Naar de tabel met alle jaren</a>
           <Legenda platformen={data.platformen} />
           <TrendGrafiek jaren={metScores} platformen={data.platformen}
             titel={`Gemiddelde score per platform, ${metScores[0]!.jaar} tot en met ${metScores.at(-1)!.jaar}`} />
@@ -46,6 +64,11 @@ function Trend({ data }: { data: OverzichtData }) {
   );
 }
 
+/**
+ * Page heading with the state of the newest year with scores.
+ * @param props.data - The overview
+ * @returns the heading block
+ */
 function Kopregel({ data }: { data: OverzichtData }) {
   const nu = data.jaren.find((j) => j.jaar === data.nuJaar);
   return (
@@ -81,7 +104,7 @@ export function Overzicht({ data }: { data: OverzichtData }) {
         <Kaart titel="Alle jaren naast elkaar" sub="Donkerder is verder ontwikkeld. Kies een platform voor het resultaat van het nieuwste jaar.">
           {data.jaren.length === 0 ? <p>Er zijn nog geen metingen.</p> : <JarenTabel jaren={data.jaren} platformen={data.platformen} nuJaar={data.nuJaar} />}
         </Kaart>
-        <Kaart titel={data.nuJaar ? `De drie assen in ${data.nuJaar}` : 'De drie assen'} sub="Gemiddeld over alle platformen.">
+        <Kaart titel={data.nuJaar ? `De drie assen in ${data.nuJaar}` : 'De drie assen'}>
           {data.nuJaar ? <AssenBlok assen={data.assen} nuJaar={data.nuJaar} vorigeJaar={data.vorigeJaar} /> : <p>Nog geen scores.</p>}
         </Kaart>
       </div>

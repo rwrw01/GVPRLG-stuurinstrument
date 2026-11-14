@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { JaarCijfers } from './_overzichtTypen';
-import { bouwTrend, MAAT, xVoor, yVoor } from './_trendGeometrie';
+import { bouwTrend, MAAT, verbonden, xVoor, yVoor } from './_trendGeometrie';
 
 function jaar(j: number, totalen: Record<string, number | null>): JaarCijfers {
   return {
@@ -27,5 +27,19 @@ describe('trend geometry', () => {
     expect(lijnen[1]?.punten.map((p) => p.jaar)).toEqual([2026]);
     const [a, b] = lijnen.map((l) => l.eindLabelY!);
     expect(Math.abs(a! - b!)).toBeGreaterThanOrEqual(16);
+  });
+
+  it('should break the line across a year without a score', () => {
+    const [a] = bouwTrend([jaar(2024, { a: 3 }), jaar(2025, { a: null }), jaar(2026, { a: 4 })], PLATFORMEN);
+    expect(a?.punten.map((p) => p.index)).toEqual([0, 2]);
+    expect(verbonden(a!.punten[0]!, a!.punten[1]!)).toBe(false);
+  });
+
+  it('should keep end labels inside the chart height', () => {
+    const vijf = ['a', 'b', 'c', 'd', 'e'].map((id) => ({ id, naam: id, kleur: '#000' }));
+    const lijnen = bouwTrend([jaar(2026, { a: 1, b: 1, c: 1, d: 1, e: 1 })], vijf);
+    const ys = lijnen.map((l) => l.eindLabelY!).sort((x, y) => x - y);
+    expect(ys.at(-1)).toBeLessThanOrEqual(MAAT.hoogte - MAAT.onder);
+    ys.slice(1).forEach((y, i) => expect(y - ys[i]!).toBeGreaterThanOrEqual(16));
   });
 });

@@ -42,11 +42,6 @@
 .balk-4, .balk-5 { background: var(--color-success); }
 .vraag-detail-toelichting { font-size: 0.8rem; color: var(--color-muted); font-style: italic; margin-top: 0.2rem; }
 
-/* Header with user menu */
-.header-balk { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
-.gebruiker-menu { display: flex; align-items: center; gap: 1rem; font-size: 0.9rem; }
-.gebruiker-menu a { color: white; }
-
 /* Administration and audit pages */
 .platform-keuze { border: none; margin-bottom: 1.25rem; display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; }
 .platform-keuze legend { font-weight: 500; font-size: 0.9rem; margin-bottom: 0.4rem; }
