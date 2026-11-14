@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { gelijk, meting, rij } from './_overzichtTestdata';
+import { gelijk, meting, rij } from '@/tests/support/overzicht-testdata';
 import { kiesGespreksonderwerpen } from './gespreksonderwerpen';
 import { berekenJaarCijfers } from './overzichtCijfers';
 
@@ -21,7 +21,7 @@ describe('kiesGespreksonderwerpen', () => {
       { soort: 'daling', titel: 'R&O: de as Mens staat onder druk', toelichting: 'Van 2,3 in 2025 naar 1,9 in 2026. Dit vraagt samen aandacht.' },
       { soort: 'concept', titel: 'Sociaal Domein staat nog in concept', toelichting: '8 van de 16 vragen zijn beantwoord.' },
       { soort: 'niet-gestart', titel: 'Informatievoorziening is nog niet gestart', toelichting: 'Voor 2026 zijn nog geen scores ingevuld.' },
-      { soort: 'stijging', titel: 'Burgerzaken groeit 2 jaar op rij', toelichting: 'Van 3,7 in 2024 naar 4,1 in 2026.' },
+      { soort: 'stijging', titel: 'Burgerzaken groeit 2 metingen op rij', toelichting: 'Van 3,7 in 2024 naar 4,1 in 2026.' },
     ]);
   });
 
@@ -38,6 +38,28 @@ describe('kiesGespreksonderwerpen', () => {
     const jaren = [meting(2025, { ro: gelijk('definitief', 2) }), meting(2026, { ro: gelijk('definitief', 2.5) })].map(berekenJaarCijfers);
     const stijging = kiesGespreksonderwerpen(jaren).find((o) => o.soort === 'stijging');
     expect(stijging?.titel).toBe('R&O groeit ten opzichte van 2025');
+  });
+
+  it('should use the singular for one answered question and make no fall or rise point from a concept', () => {
+    const concept = rij('concept', {});
+    concept.scoresPerAs.mens!['capaciteit-kennis'] = 1;
+    const jaren = [meting(2025, { ro: gelijk('definitief', 3) }), meting(2026, { ro: concept })].map(berekenJaarCijfers);
+    const onderwerpen = kiesGespreksonderwerpen(jaren);
+    expect(onderwerpen.map((o) => o.soort)).toEqual(['concept', 'niet-gestart']);
+    expect(onderwerpen[0]?.toelichting).toBe('1 van de 16 vragen is beantwoord.');
+  });
+
+  it('should report no rise or fall when the displayed totals are equal', () => {
+    // 49/16 and 50/16 both display as 3,1.
+    const metVieren = (vieren: number) => {
+      const data = gelijk('definitief', 3);
+      Object.keys(data.scoresPerAs.proces!).slice(0, vieren).forEach((id) => {
+        data.scoresPerAs.proces![id] = 4;
+      });
+      return data;
+    };
+    const jaren = [meting(2025, { ro: metVieren(1) }), meting(2026, { ro: metVieren(2) })].map(berekenJaarCijfers);
+    expect(kiesGespreksonderwerpen(jaren).map((o) => o.soort)).toEqual(['niet-gestart']);
   });
 
   it('should return at most four points and none without scores', () => {

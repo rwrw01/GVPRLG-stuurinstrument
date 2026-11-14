@@ -1,17 +1,9 @@
 import { listMetingenMetScores } from '../data/metingenRepository';
 import { CONFIG } from '../service/config';
 import { kiesGespreksonderwerpen, type Gespreksonderwerp } from '../service/gespreksonderwerpen';
+import { berekenKerncijfers, vergelijkAssen, type AsVergelijking, type Kerncijfers } from '../service/kerncijfers';
 import { maakOpeningszin } from '../service/openingszin';
-import { berekenKerncijfers, type Kerncijfers } from '../service/overzichtAnalyse';
 import { berekenJaarCijfers, kiesVergelijking, type JaarCijfers, type MetingInvoer } from '../service/overzichtCijfers';
-
-/** Average of one axis over all platforms, now and in the comparison year. */
-export interface AsVergelijking {
-  id: string;
-  naam: string;
-  nu: number | null;
-  vorige: number | null;
-}
 
 /** Everything the start screen and the side menu show, ready to render. */
 export interface Overzicht {
@@ -41,12 +33,7 @@ export function bouwOverzicht(metingen: MetingInvoer[]): Overzicht {
     openingszin: maakOpeningszin(jaren),
     kerncijfers: nu ? berekenKerncijfers(nu, vorige) : null,
     gespreksonderwerpen: kiesGespreksonderwerpen(jaren),
-    assen: CONFIG.assen.map((as) => ({
-      id: as.id,
-      naam: as.naam,
-      nu: nu?.perAs[as.id] ?? null,
-      vorige: vorige?.perAs[as.id] ?? null,
-    })),
+    assen: vergelijkAssen(nu, vorige),
   };
 }
 

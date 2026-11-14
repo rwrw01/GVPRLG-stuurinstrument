@@ -30,8 +30,9 @@ export interface AsScore {
 export interface Kerncijfers {
   jaar: number;
   gemiddelde: number | null;
+  aantalGemiddelde: number;
   vorigeJaar: number | null;
-  vorigeGemiddelde: number | null;
+  vergelijking: { nu: number; vorige: number; aantal: number } | null;
   aantalPlatformen: number;
   aantalDefinitief: number;
   aantalConcept: number;
@@ -57,6 +58,8 @@ export interface AsVergelijking {
   naam: string;
   nu: number | null;
   vorige: number | null;
+  aantal: number;
+  vergeleken: boolean;
 }
 
 export interface Overzicht {

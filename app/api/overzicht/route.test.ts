@@ -43,7 +43,7 @@ describe('GET /api/overzicht', () => {
     const ro = body.jaren[1].platformen.find((p: { platformId: string }) => p.platformId === 'ro');
     expect(ro).toEqual({ platformId: 'ro', status: 'definitief', perAs: { techniek: null, mens: 3, proces: null }, totaal: 3, beantwoord: 1 });
     expect(body.jaren[1].voortgang).toBe('1/5');
-    expect(body.openingszin).toBe('In 2027 staat het gemiddelde op 3,0 over 1 platform met scores.');
+    expect(body.openingszin).toBe('In 2027 staat het gemiddelde op 3,0 over 1 definitief platform.');
     expect(Array.isArray(body.gespreksonderwerpen)).toBe(true);
   });
 

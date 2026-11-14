@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { gelijk, meting, rij } from './_overzichtTestdata';
+import { gelijk, meting, rij } from '@/tests/support/overzicht-testdata';
 import { berekenJaarCijfers, berekenPlatformCijfers, kiesVergelijking, voortgangLabel } from './overzichtCijfers';
 
 describe('berekenPlatformCijfers', () => {

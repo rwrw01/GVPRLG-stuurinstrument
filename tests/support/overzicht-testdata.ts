@@ -1,6 +1,6 @@
 // Test-only helper: imported exclusively from *.test.ts files, never from production code.
-import { CONFIG } from './config';
-import type { MetingInvoer, PlatformRij } from './overzichtCijfers';
+import { CONFIG } from '@/src/service/config';
+import type { MetingInvoer, PlatformRij } from '@/src/service/overzichtCijfers';
 
 /**
  * A platform row in which every question of an axis gets the given score; axes left out stay unanswered.

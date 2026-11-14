@@ -478,12 +478,17 @@ components:
           type: array
           items:
             type: object
-            required: [id, naam, nu, vorige]
+            required: [id, naam, nu, vorige, aantal, vergeleken]
+            description: >
+              Over de platformen die in beide jaren definitief zijn (vergeleken=true), anders over de
+              definitieve platformen van het nieuwste jaar zonder vergelijking.
             properties:
               id: { type: string }
               naam: { type: string }
               nu: { type: [number, 'null'] }
               vorige: { type: [number, 'null'] }
+              aantal: { type: integer, description: Aantal platformen achter de cijfers }
+              vergeleken: { type: boolean }
     JaarCijfers:
       type: object
       required: [jaar, voortgang, aantalDefinitief, gemiddelde, perAs, platformen]
@@ -519,12 +524,25 @@ components:
         verschil: { type: [number, 'null'] }
     Kerncijfers:
       type: object
-      required: [jaar, gemiddelde, vorigeJaar, vorigeGemiddelde, aantalPlatformen, aantalDefinitief, aantalConcept, aantalNietGestart, stijger, groeikans]
+      description: >
+        Afgeleide uitspraken gebruiken alleen definitieve platformen; een vergelijking alleen de
+        platformen die in beide jaren definitief zijn. Stijging en daling worden bepaald op de
+        waarden afgerond op één decimaal.
+      required: [jaar, gemiddelde, aantalGemiddelde, vorigeJaar, vergelijking, aantalPlatformen, aantalDefinitief, aantalConcept, aantalNietGestart, stijger, groeikans]
       properties:
         jaar: { type: integer }
-        gemiddelde: { type: [number, 'null'] }
+        gemiddelde: { type: [number, 'null'], description: Gemiddelde van de definitieve platformen }
+        aantalGemiddelde: { type: integer }
         vorigeJaar: { type: [integer, 'null'] }
-        vorigeGemiddelde: { type: [number, 'null'] }
+        vergelijking:
+          oneOf:
+            - type: object
+              required: [nu, vorige, aantal]
+              properties:
+                nu: { type: number }
+                vorige: { type: number }
+                aantal: { type: integer, minimum: 1 }
+            - type: 'null'
         aantalPlatformen: { type: integer }
         aantalDefinitief: { type: integer }
         aantalConcept: { type: integer }
