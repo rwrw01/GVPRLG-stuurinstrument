@@ -10,8 +10,9 @@ import { berekenJaarCijfers, type MetingInvoer } from '@/src/service/overzichtCi
 import { gelijk, meting, rij } from '@/tests/support/overzicht-testdata';
 
 // The board and the supplier read the same screens: "volwassen(heid)" reads as a judgement,
-// so the word may not appear in any UI text (design 2026-11-14, section 1).
-const VERBODEN = /volwassen/i;
+// so the word may not appear in any UI text (design 2026-11-14, section 1). "voorzitter" is gone
+// too: access is per user with the roles invuller and lezer (decision 2026-11-14).
+const VERBODEN = /volwassen|voorzitter/i;
 const ROOT = process.cwd();
 
 function bestanden(map: string, extensie: '.tsx' | '.ts'): string[] {
@@ -54,24 +55,24 @@ const SCENARIOS: Record<string, MetingInvoer[]> = {
 };
 
 describe('woordkeuze', () => {
-  it('should not contain "volwassen" in any .tsx file under app/ or src/ui/', () => {
+  it('should not contain "volwassen" or "voorzitter" in any .tsx file under app/ or src/ui/', () => {
     const paden = [...bestanden('app', '.tsx'), ...bestanden(join('src', 'ui'), '.tsx')];
     expect(paden.length).toBeGreaterThan(10);
     expect(metVerboden(paden)).toEqual([]);
   });
 
-  it('should not contain "volwassen" in any non-test .ts file that produces UI or API text', () => {
+  it('should not contain "volwassen" or "voorzitter" in any non-test .ts file that produces UI or API text', () => {
     const mappen = [join('src', 'service'), join('src', 'ui'), join('src', 'integration'), join('src', 'process'), join('app', 'api')];
     const paden = mappen.flatMap((map) => bestanden(map, '.ts'));
     expect(paden.length).toBeGreaterThan(20);
     expect(metVerboden(paden)).toEqual([]);
   });
 
-  it('should not contain "volwassen" in any text of the configuration', () => {
+  it('should not contain "volwassen" or "voorzitter" in any text of the configuration', () => {
     expect(teksten(CONFIG).filter((t) => VERBODEN.test(t))).toEqual([]);
   });
 
-  it('should not produce "volwassen" in any generated sentence or talking point', () => {
+  it('should not produce "volwassen" or "voorzitter" in any generated sentence or talking point', () => {
     const uitvoer = Object.values(SCENARIOS).flatMap((metingen) => {
       const jaren = metingen.map(berekenJaarCijfers);
       return [maakOpeningszin(jaren), ...kiesGespreksonderwerpen(jaren).flatMap((o) => [o.titel, o.toelichting])];

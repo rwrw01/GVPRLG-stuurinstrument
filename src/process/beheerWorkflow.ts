@@ -13,7 +13,7 @@ import { fail, ok, type Result } from '../service/result';
 export { wijzigGebruikerDoorBeheerder, type GebruikerWijzigingActie, type WijzigFout } from './_gebruikerWijzigen';
 
 /** Input for registering a new user (chair) with their platforms for one year. */
-export interface VoorzitterInvoer {
+export interface GebruikerInvoer {
   email: string;
   naam: string;
   rol: Rol;
@@ -55,9 +55,9 @@ async function auditKoppelingen(
  * @param invoer - E-mail (normalised), name, role, year and platform ids (may be empty)
  * @returns The created user, or `lezer-koppeling` (a lezer with platforms) / `bestaat-al` / `meting-onbekend`
  */
-export async function voegVoorzitterToe(
+export async function voegGebruikerToe(
   actor: GebruikerRecord,
-  invoer: VoorzitterInvoer,
+  invoer: GebruikerInvoer,
 ): Promise<Result<GebruikerRecord, 'lezer-koppeling' | 'bestaat-al' | 'meting-onbekend'>> {
   if (invoer.rol === 'lezer' && invoer.platformIds.length > 0) return fail('lezer-koppeling');
   if (await vindGebruikerOpEmail(invoer.email)) return fail('bestaat-al');

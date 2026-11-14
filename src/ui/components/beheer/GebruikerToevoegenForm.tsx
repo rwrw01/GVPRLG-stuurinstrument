@@ -15,13 +15,13 @@ function naarRol(waarde: string): BeheerRol {
 }
 
 /**
- * Form "Voorzitter toevoegen": registers a user in the app with platform links for the chosen year.
+ * Form "Gebruiker toevoegen": registers a user in the app with platform links for the chosen year.
  * Only an invuller gets platform links; for any other role the form sends `platformIds: []`.
  * @param props.jaar - Measurement year the platform links apply to
  * @param props.onToegevoegd - Called after a successful registration
  * @returns the form card
  */
-export function VoorzitterToevoegenForm({ jaar, onToegevoegd }: { jaar: number; onToegevoegd: () => void }) {
+export function GebruikerToevoegenForm({ jaar, onToegevoegd }: { jaar: number; onToegevoegd: () => void }) {
   const [email, setEmail] = useState('');
   const [naam, setNaam] = useState('');
   const [rol, setRol] = useState<BeheerRol>('invuller');
@@ -42,8 +42,8 @@ export function VoorzitterToevoegenForm({ jaar, onToegevoegd }: { jaar: number; 
   }
 
   return (
-    <form className="card" onSubmit={verstuur} aria-label="Voorzitter toevoegen">
-      <h3>Voorzitter toevoegen (meetjaar {jaar})</h3>
+    <form className="card" onSubmit={verstuur} aria-label="Gebruiker toevoegen">
+      <h3>Gebruiker toevoegen (meetjaar {jaar})</h3>
       <div className="form-group">
         <label htmlFor="nieuw-email">E-mail</label>
         <input id="nieuw-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -61,7 +61,7 @@ export function VoorzitterToevoegenForm({ jaar, onToegevoegd }: { jaar: number; 
         </select>
       </div>
       {rol === 'invuller' && <PlatformKeuze gekozen={platformIds} onChange={setPlatformIds} idPrefix="nieuw-platform" />}
-      <button type="submit" className="btn btn-primary">Voorzitter toevoegen</button>
+      <button type="submit" className="btn btn-primary">Gebruiker toevoegen</button>
       {fout && <div className="alert alert-warning" role="alert">{fout}</div>}
     </form>
   );

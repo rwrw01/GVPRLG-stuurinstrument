@@ -4,29 +4,29 @@ import {
   AuditFilterSchema,
   GebruikerWijzigenSchema,
   KoppelingenSchema,
-  VoorzitterToevoegenSchema,
+  GebruikerToevoegenSchema,
 } from './beheerSchemas';
 
 const GELDIG = { email: 'jan@test.local', naam: 'Jan', rol: 'invuller', jaar: 2027, platformIds: ['belastingen'] };
 
-describe('VoorzitterToevoegenSchema', () => {
+describe('GebruikerToevoegenSchema', () => {
   it('normaliseert e-mail', () => {
-    const result = VoorzitterToevoegenSchema.safeParse({ ...GELDIG, email: '  Jan.Jansen@Test.LOCAL ' });
+    const result = GebruikerToevoegenSchema.safeParse({ ...GELDIG, email: '  Jan.Jansen@Test.LOCAL ' });
     expect(result.success).toBe(true);
     expect(result.data?.email).toBe('jan.jansen@test.local');
   });
 
   it('weigert onbekend platform', () => {
-    expect(VoorzitterToevoegenSchema.safeParse({ ...GELDIG, platformIds: ['bestaat-niet'] }).success).toBe(false);
+    expect(GebruikerToevoegenSchema.safeParse({ ...GELDIG, platformIds: ['bestaat-niet'] }).success).toBe(false);
   });
 
   it('accepteert een gebruiker zonder platformen', () => {
-    expect(VoorzitterToevoegenSchema.safeParse({ ...GELDIG, platformIds: [] }).success).toBe(true);
+    expect(GebruikerToevoegenSchema.safeParse({ ...GELDIG, platformIds: [] }).success).toBe(true);
   });
 
   it('should accept rol lezer and refuse an unknown rol', () => {
-    expect(VoorzitterToevoegenSchema.safeParse({ ...GELDIG, rol: 'lezer', platformIds: [] }).success).toBe(true);
-    expect(VoorzitterToevoegenSchema.safeParse({ ...GELDIG, rol: 'kijker' }).success).toBe(false);
+    expect(GebruikerToevoegenSchema.safeParse({ ...GELDIG, rol: 'lezer', platformIds: [] }).success).toBe(true);
+    expect(GebruikerToevoegenSchema.safeParse({ ...GELDIG, rol: 'kijker' }).success).toBe(false);
   });
 });
 

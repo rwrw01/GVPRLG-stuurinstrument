@@ -9,7 +9,7 @@ import {
   PLATFORM_CONCEPT,
   PLATFORM_DEFINITIEF,
   PLATFORM_INVULLER,
-  PLATFORM_NIEUWE_VOORZITTER,
+  PLATFORM_NIEUWE_GEBRUIKER,
   SESSIE_BEHEERDER,
   SESSIE_INVULLER,
 } from './e2e-data';
@@ -147,30 +147,30 @@ test.describe('GVPRLG fase B — lezer', () => {
 test.describe('GVPRLG fase B — beheer', () => {
   test.use({ storageState: SESSIE_BEHEERDER });
 
-  test('nieuwe voorzitter: uitnodiging via Mailpit, QR koppelen, eerste login bindt account', async ({ page, browser }) => {
-    const voorzitter = GEBRUIKERS.nieuweVoorzitter;
+  test('nieuwe gebruiker: uitnodiging via Mailpit, QR koppelen, eerste login bindt account', async ({ page, browser }) => {
+    const nieuw = GEBRUIKERS.nieuweGebruiker;
     await page.goto('/beheer');
     await kiesBeheerJaar(page, FASE_B_JAAR);
-    const formulier = page.getByRole('form', { name: 'Voorzitter toevoegen' });
-    await formulier.getByLabel('E-mail').fill(voorzitter.email);
-    await formulier.getByLabel('Naam').fill(voorzitter.naam);
+    const formulier = page.getByRole('form', { name: 'Gebruiker toevoegen' });
+    await formulier.getByLabel('E-mail').fill(nieuw.email);
+    await formulier.getByLabel('Naam').fill(nieuw.naam);
     await formulier.getByLabel('Sociaal Domein').check();
-    await formulier.getByRole('button', { name: 'Voorzitter toevoegen' }).click();
-    await expect(gebruikerRij(page, voorzitter.email)).toContainText('uitgenodigd');
+    await formulier.getByRole('button', { name: 'Gebruiker toevoegen' }).click();
+    await expect(gebruikerRij(page, nieuw.email)).toContainText('uitgenodigd');
 
     // The admin sends the invitation from the Keycloak console; here via the dev admin API.
-    await verstuurUitnodiging(voorzitter.email);
+    await verstuurUitnodiging(nieuw.email);
     const uitnodigingPagina = await schonePagina(browser);
-    const secret = await koppelAuthenticator(uitnodigingPagina, voorzitter.email);
+    const secret = await koppelAuthenticator(uitnodigingPagina, nieuw.email);
     await uitnodigingPagina.context().close();
     // First login in a context without any Keycloak or app session: this binds the account.
     const loginPagina = await schonePagina(browser);
-    await login(loginPagina, voorzitter.email, secret);
-    await expect(loginPagina.getByRole('navigation', MENU)).toContainText(voorzitter.naam);
+    await login(loginPagina, nieuw.email, secret);
+    await expect(loginPagina.getByRole('navigation', MENU)).toContainText(nieuw.naam);
     await loginPagina.context().close();
 
-    const gebonden = await vindBeheerGebruiker(page.request, FASE_B_JAAR, voorzitter.email);
-    expect(gebonden).toMatchObject({ status: 'actief', gekoppeld: true, platformIds: [PLATFORM_NIEUWE_VOORZITTER] });
+    const gebonden = await vindBeheerGebruiker(page.request, FASE_B_JAAR, nieuw.email);
+    expect(gebonden).toMatchObject({ status: 'actief', gekoppeld: true, platformIds: [PLATFORM_NIEUWE_GEBRUIKER] });
   });
 
   test('ingetrokken gebruiker wordt bij de volgende actie geweigerd', async ({ page, browser }) => {

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useJaren } from '@/src/ui/hooks/useJaren';
 import { leesDetail, verstuurJson } from '../_verstuurJson';
 import { GebruikersTabel } from './GebruikersTabel';
-import { VoorzitterToevoegenForm } from './VoorzitterToevoegenForm';
+import { GebruikerToevoegenForm } from './GebruikerToevoegenForm';
 import type { BeheerGebruiker, GebruikerWijziging } from './_beheerTypen';
 
 function JaarKeuze({ jaren, jaar, onChange }: { jaren: number[]; jaar: number; onChange: (jaar: number) => void }) {
@@ -68,7 +68,7 @@ function GebruikersVoorJaar({ jaren }: { jaren: number[] }) {
           onKoppelingen={(id, platformIds) => voerUit(`/api/beheer/gebruikers/${id}/koppelingen`, 'PUT', { jaar, platformIds })}
         />
       </div>
-      <VoorzitterToevoegenForm jaar={jaar} onToegevoegd={() => void laad()} />
+      <GebruikerToevoegenForm jaar={jaar} onToegevoegd={() => void laad()} />
     </>
   );
 }

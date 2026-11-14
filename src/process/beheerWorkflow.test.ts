@@ -9,7 +9,7 @@ import {
   type GebruikerRecord,
 } from '../data/gebruikersRepository';
 import { createMeting } from '../data/metingenRepository';
-import { voegVoorzitterToe, wijzigGebruikerDoorBeheerder, zetKoppelingenDoorBeheerder } from './beheerWorkflow';
+import { voegGebruikerToe, wijzigGebruikerDoorBeheerder, zetKoppelingenDoorBeheerder } from './beheerWorkflow';
 
 let beheerder: GebruikerRecord;
 
@@ -30,11 +30,11 @@ async function tweedeBeheerder(): Promise<GebruikerRecord> {
   return maakGebruiker({ email: 'bob@test.local', naam: 'Bob', rol: 'beheerder', status: 'actief' });
 }
 
-describe('voegVoorzitterToe', () => {
-  it('voegt voorzitter toe met koppelingen en audit', async () => {
+describe('voegGebruikerToe', () => {
+  it('voegt een gebruiker toe met koppelingen en audit', async () => {
     const meting = await createMeting(2027);
 
-    const resultaat = await voegVoorzitterToe(beheerder, INVOER);
+    const resultaat = await voegGebruikerToe(beheerder, INVOER);
 
     expect(resultaat).toMatchObject({ ok: true, data: { email: 'jan@test.local', rol: 'invuller', status: 'uitgenodigd' } });
     if (!resultaat.ok) return;
@@ -59,7 +59,7 @@ describe('voegVoorzitterToe', () => {
     await createMeting(2027);
     await maakGebruiker({ email: 'jan@test.local', naam: 'Jan', rol: 'invuller' });
 
-    const resultaat = await voegVoorzitterToe(beheerder, { ...INVOER, email: 'JAN@Test.local' });
+    const resultaat = await voegGebruikerToe(beheerder, { ...INVOER, email: 'JAN@Test.local' });
 
     expect(resultaat).toEqual({ ok: false, error: 'bestaat-al' });
     expect(await prisma.gebruiker.count()).toBe(2);
@@ -69,7 +69,7 @@ describe('voegVoorzitterToe', () => {
   it('should refuse a lezer with platformIds without writing anything', async () => {
     await createMeting(2027);
 
-    const resultaat = await voegVoorzitterToe(beheerder, { ...INVOER, rol: 'lezer' });
+    const resultaat = await voegGebruikerToe(beheerder, { ...INVOER, rol: 'lezer' });
 
     expect(resultaat).toEqual({ ok: false, error: 'lezer-koppeling' });
     expect(await prisma.gebruiker.count()).toBe(1);
@@ -79,14 +79,14 @@ describe('voegVoorzitterToe', () => {
   it('should add a lezer without platformIds', async () => {
     await createMeting(2027);
 
-    const resultaat = await voegVoorzitterToe(beheerder, { ...INVOER, rol: 'lezer', platformIds: [] });
+    const resultaat = await voegGebruikerToe(beheerder, { ...INVOER, rol: 'lezer', platformIds: [] });
 
     expect(resultaat).toMatchObject({ ok: true, data: { rol: 'lezer', status: 'uitgenodigd' } });
     expect(await prisma.platformInvuller.count()).toBe(0);
   });
 
   it('weigert een onbekend meetjaar', async () => {
-    const resultaat = await voegVoorzitterToe(beheerder, INVOER);
+    const resultaat = await voegGebruikerToe(beheerder, INVOER);
 
     expect(resultaat).toEqual({ ok: false, error: 'meting-onbekend' });
     expect(await prisma.gebruiker.count()).toBe(1);

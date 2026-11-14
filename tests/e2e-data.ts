@@ -20,16 +20,16 @@ export const PLATFORM_CONCEPT = 'ro';
 /** Platform of FASE_B_JAAR seeded as definitief, reopened in journey 8. */
 export const PLATFORM_DEFINITIEF = 'burgerzaken';
 /** Platform linked to the new chair in journey 5. */
-export const PLATFORM_NIEUWE_VOORZITTER = 'sociaal-domein';
+export const PLATFORM_NIEUWE_GEBRUIKER = 'sociaal-domein';
 
-/** Dev realm users; all except NIEUWE_VOORZITTER log in with the dev TOTP seed. */
+/** Dev realm users; all except NIEUWE_GEBRUIKER log in with the dev TOTP seed. */
 export const GEBRUIKERS = {
   beheerder: { email: 'beheerder@test.local', naam: 'Test Beheerder' },
   invuller: { email: 'invuller@test.local', naam: 'Test Invuller' },
   lezer: { email: 'lezer@test.local', naam: 'Test Lezer' },
   /** App-only user (no Keycloak account) that journey "rol lezer" turns from invuller into lezer. */
   wordtLezer: { email: 'wordt-lezer@test.local', naam: 'Test Wordt Lezer' },
-  nieuweVoorzitter: { email: 'invuller2@test.local', naam: 'Test Invuller Twee' },
+  nieuweGebruiker: { email: 'invuller2@test.local', naam: 'Test Invuller Twee' },
   zonderAppGebruiker: { email: 'geen-app@test.local', naam: 'Geen App' },
 } as const;
 

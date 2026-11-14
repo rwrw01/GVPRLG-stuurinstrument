@@ -13,7 +13,7 @@ const PlatformIdsSchema = z
   .max(PLATFORM_IDS.length)
   .refine((ids) => ids.every((id) => PLATFORM_IDS.includes(id)), { message: 'Onbekend platform' });
 
-export const VoorzitterToevoegenSchema = z.object({
+export const GebruikerToevoegenSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(254),
   naam: z.string().trim().min(1).max(200),
   rol: RolSchema,

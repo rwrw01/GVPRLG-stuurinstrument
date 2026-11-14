@@ -183,7 +183,7 @@ naar Keycloak of mox bij; de `app`-service houdt precies `gvprlg-internal` en `n
    ```
 
    Maak voor dit adres daarna een Keycloak-gebruiker aan volgens het runbook "Nieuwe
-   voorzitter" (stappen 1–2). Zolang er geen actieve beheerder is, maakt de app bij de eerste
+   gebruiker" (stappen 1–2). Zolang er geen actieve beheerder is, maakt de app bij de eerste
    login met dit adres de beheerder aan.
 
 De overige app-configuratie (`KEYCLOAK_ISSUER=https://auth.athide.nl/realms/gvprlg`,
@@ -221,7 +221,7 @@ omzetten is alleen configuratie in realm `gvprlg` (SMTP-account en from-adres), 
 
 **Stap 1 — testroute.** Afzender `gvprlg-noreply@publicvibes.nl` op het bestaande mox-domein
 `publicvibes.nl` (SPF/DKIM al ingericht). Hiermee test je de uitnodigingsflow op de
-productie-Keycloak met eigen testmailboxen. **In deze stap worden geen echte voorzitters
+productie-Keycloak met eigen testmailboxen. **In deze stap worden geen echte gebruikers
 uitgenodigd** — een afzender op `publicvibes.nl` oogt voor gemeenten als phishing.
 
 **Stap 2 — definitieve route** `noreply@spinnenweb.gvprlg.nl`, zodra de DNS-records er zijn:
@@ -250,14 +250,14 @@ Gmail-adres en controleer in de headers: `spf=pass`, `dkim=pass` en `dmarc=pass`
 Rollen en platformtoegang staan in de app (`/beheer`); Keycloak levert alleen de identiteit
 (e-mail + TOTP). Keycloak-console: `https://auth.athide.nl/admin/` (via VPN), realm `gvprlg`.
 
-### Nieuwe voorzitter
+### Nieuwe gebruiker
 
 1. Keycloak-console → realm `gvprlg` → *Users* → *Add user*: e-mail, voor- en achternaam,
    **Email verified: aan**, *Required user actions*: **Configure OTP**. *Create*.
 2. Bij die gebruiker: *Credentials* (of *Actions*) → **Send email** (execute actions) met
-   actie *Configure OTP* en lifespan **72 uur**. De voorzitter koppelt via de link een
+   actie *Configure OTP* en lifespan **72 uur**. De gebruiker koppelt via de link een
    authenticator-app.
-3. In de app: `/beheer` → **Voorzitter toevoegen** met hetzelfde e-mailadres en de
+3. In de app: `/beheer` → **Gebruiker toevoegen** met hetzelfde e-mailadres en de
    platform(en). Bij de eerste login koppelt de app het Keycloak-account op e-mailadres.
 
 ### Authenticator kwijt

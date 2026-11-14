@@ -83,7 +83,7 @@ async function _maakOverzichtJaren(repos: Repos, beheerderId: string): Promise<v
 }
 
 async function _leegMailpit(): Promise<void> {
-  const query = new URLSearchParams({ query: `to:${GEBRUIKERS.nieuweVoorzitter.email}` });
+  const query = new URLSearchParams({ query: `to:${GEBRUIKERS.nieuweGebruiker.email}` });
   const response = await fetch(`${MAILPIT_URL}/api/v1/search?${query.toString()}`, { method: 'DELETE' });
   if (!response.ok) throw new Error(`Mailpit cleanup failed: ${response.status}`);
 }
@@ -112,8 +112,8 @@ export default async function globalSetup(): Promise<void> {
     await _maakFaseBJaar(repos, beheerderId, invullerId);
     await _maakOverzichtJaren(repos, beheerderId);
 
-    await _verwijderAppGebruiker(prisma, GEBRUIKERS.nieuweVoorzitter.email);
-    await resetNaarTotpInstellen(GEBRUIKERS.nieuweVoorzitter.email);
+    await _verwijderAppGebruiker(prisma, GEBRUIKERS.nieuweGebruiker.email);
+    await resetNaarTotpInstellen(GEBRUIKERS.nieuweGebruiker.email);
     await _verwijderAppGebruiker(prisma, GEBRUIKERS.zonderAppGebruiker.email);
     await zorgVoorGebruikerMetTotp(GEBRUIKERS.zonderAppGebruiker.email, { voornaam: 'Geen', achternaam: 'App' });
     await _leegMailpit();

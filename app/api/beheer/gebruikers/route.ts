@@ -3,9 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { lijstGebruikersMetKoppelingen } from '@/src/data/gebruikersRepository';
 import { vereisGebruiker, weigerRol } from '@/src/integration/auth/sessie';
 import { beheerFoutResponse, naarGebruikerDto } from '@/src/integration/beheerDto';
-import { GebruikersQuerySchema, VoorzitterToevoegenSchema } from '@/src/integration/beheerSchemas';
+import { GebruikersQuerySchema, GebruikerToevoegenSchema } from '@/src/integration/beheerSchemas';
 import { problemResponse } from '@/src/integration/problemResponse';
-import { voegVoorzitterToe } from '@/src/process/beheerWorkflow';
+import { voegGebruikerToe } from '@/src/process/beheerWorkflow';
 
 /**
  * Lists all users with their platform assignments for a year; beheerder only.
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 /**
  * Registers a new user with platform assignments for a year; beheerder only. The Keycloak
  * account is created separately in the Keycloak console.
- * @param request - JSON body matching `VoorzitterToevoegenSchema`
+ * @param request - JSON body matching `GebruikerToevoegenSchema`
  * @returns 201 `{ gebruiker }`; 400/401/403/404/409 problem+json otherwise
  */
 export async function POST(request: NextRequest) {
@@ -38,9 +38,9 @@ export async function POST(request: NextRequest) {
   const geweigerd = await weigerRol(sessie.gebruiker, 'beheerder');
   if (geweigerd) return geweigerd;
 
-  const parsed = VoorzitterToevoegenSchema.safeParse(await request.json().catch(() => null));
+  const parsed = GebruikerToevoegenSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return problemResponse(400, 'Ongeldige invoer', parsed.error.message);
-  const resultaat = await voegVoorzitterToe(sessie.gebruiker, parsed.data);
+  const resultaat = await voegGebruikerToe(sessie.gebruiker, parsed.data);
   if (!resultaat.ok) return beheerFoutResponse(resultaat.error);
   const gebruiker = { ...naarGebruikerDto(resultaat.data), platformIds: parsed.data.platformIds };
   return NextResponse.json({ gebruiker }, { status: 201 });

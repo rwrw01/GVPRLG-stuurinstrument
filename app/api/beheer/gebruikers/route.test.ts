@@ -72,7 +72,7 @@ describe('GET /api/beheer/gebruikers', () => {
 });
 
 describe('POST /api/beheer/gebruikers', () => {
-  it('voegt een voorzitter toe', async () => {
+  it('voegt een gebruiker toe', async () => {
     await createMeting(2027);
 
     const response = await POST(postRequest(NIEUW));

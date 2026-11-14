@@ -282,7 +282,7 @@ paths:
         '403':
           $ref: '#/components/responses/GeenToegang'
     post:
-      summary: Registreer een voorzitter met platformkoppelingen; alleen beheerder
+      summary: Registreer een gebruiker met platformkoppelingen; alleen beheerder
       description: >-
         Maakt alleen de gebruiker in de applicatie aan (status uitgenodigd). Het Keycloak-account
         wordt door de beheerder in de Keycloak-console aangemaakt; de eerste login koppelt op e-mail.
@@ -293,7 +293,7 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/VoorzitterToevoegen' }
+            schema: { $ref: '#/components/schemas/GebruikerToevoegen' }
       responses:
         '201':
           description: Aangemaakt
@@ -594,7 +594,7 @@ components:
           required: [platformIds]
           properties:
             platformIds: { type: array, items: { type: string } }
-    VoorzitterToevoegen:
+    GebruikerToevoegen:
       type: object
       required: [email, naam, rol, jaar, platformIds]
       properties:
