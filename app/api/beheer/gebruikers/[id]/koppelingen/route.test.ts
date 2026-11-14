@@ -64,6 +64,18 @@ describe('PUT /api/beheer/gebruikers/[id]/koppelingen', () => {
     expect(response.status).toBe(400);
   });
 
+  it('should answer 400 with a Dutch problem detail for a lezer with platforms', async () => {
+    await createMeting(2027);
+    const lea = await maakGebruiker({ email: 'lea@test.local', naam: 'Lea', rol: 'lezer', status: 'actief' });
+
+    const response = await put(lea.id, { jaar: 2027, platformIds: ['ro'] });
+
+    expect(response.status).toBe(400);
+    expect(response.headers.get('Content-Type')).toContain('application/problem+json');
+    expect((await response.json()).detail).toBe('Een lezer kan niet aan platformen gekoppeld worden.');
+    expect(await prisma.platformInvuller.count()).toBe(0);
+  });
+
   it('403 voor invuller', async () => {
     await createMeting(2027);
     mockSessie(jan);

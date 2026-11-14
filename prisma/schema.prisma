@@ -69,7 +69,7 @@ model Gebruiker {
   id           String    @id @default(cuid())
   email        String    @unique
   naam         String
-  rol          String // 'invuller' | 'beheerder'
+  rol          String // 'invuller' | 'beheerder' | 'lezer' (a lezer never has platform_invullers rows)
   status       String    @default("uitgenodigd") // 'uitgenodigd' | 'actief' | 'ingetrokken'
   keycloakSub  String?   @unique
   aangemaakt   DateTime  @default(now())

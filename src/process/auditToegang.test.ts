@@ -63,4 +63,13 @@ describe('beperkAuditFilterTotGebruiker', () => {
       platformIds: [],
     });
   });
+
+  it('should give a lezer the invuller view: no actor filter and only own (no) platforms', async () => {
+    const lezer = await maakGebruiker({ email: 'lea@test.local', naam: 'Lea', rol: 'lezer', status: 'actief' });
+
+    expect(await beperkAuditFilterTotGebruiker(lezer, { platformId: 'ro', actor: beheerder.id, limiet: 200 })).toEqual({
+      limiet: 200,
+      platformIds: [],
+    });
+  });
 });

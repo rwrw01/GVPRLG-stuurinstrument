@@ -84,5 +84,9 @@ export async function weigerPlatformSchrijfrecht(
     doelId: meting.id,
     detail: `${platformDetail(platformId, meting.jaar)};reden=${resultaat.error.reden}`,
   });
-  return problemResponse(403, GEEN_TOEGANG, 'U bent niet gekoppeld aan dit platform voor dit meetjaar.');
+  const detail =
+    resultaat.error.reden === 'alleen-lezen'
+      ? 'U heeft alleen leesrechten; wijzigingen opslaan is niet mogelijk.'
+      : 'U bent niet gekoppeld aan dit platform voor dit meetjaar.';
+  return problemResponse(403, GEEN_TOEGANG, detail);
 }

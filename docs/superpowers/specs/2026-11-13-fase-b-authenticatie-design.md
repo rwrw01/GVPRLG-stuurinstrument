@@ -169,6 +169,21 @@ interne datastore-netwerk (gvprlg-Postgres, `internal: true`). Hij wordt **niet*
 - `src/integration/testUser.ts` en `TEST_USER_ID` verdwijnen; bestaande tests draaien met een
   ingelogde testgebruiker.
 
+**Aanvulling 2026-11-14: rol lezer.** Naast `invuller` en `beheerder` bestaat de rol `lezer`
+(`gebruikers.rol` blijft een string; geen migratie). Een lezer ziet alles wat een invuller ziet,
+inclusief concepten, en mag het invulformulier openen: alle invoer is dan uitgeschakeld, er zijn
+geen opslaanknoppen en bovenaan staat "Je hebt alleen leesrechten. Wijzigingen opslaan is niet
+mogelijk." De server is de echte grens: `vereisPlatformSchrijfrecht` geeft een lezer altijd 403
+met reden `alleen-lezen`, ook als er (nog) een koppeling bestaat, en de weigering wordt geaudit
+als `toegang_geweigerd`. Beheer (`/beheer`, beheer-API's, meting aanmaken, heropenen) blijft
+alleen voor `beheerder`. Een lezer heeft nooit platformkoppelingen: aanmaken met rol `lezer` en
+niet-lege `platformIds`, of `PUT .../koppelingen` met een niet-lege lijst voor een lezer, geeft 400
+"Een lezer kan niet aan platformen gekoppeld worden."; een rolwijziging naar `lezer` verwijdert in
+dezelfde transactie alle koppelingen (alle meetjaren) en zet het aantal als
+`koppelingenVerwijderd` in het auditdetail van `rol_gewijzigd`. Zelfbescherming en "laatste actieve
+beheerder" gelden ook bij beheerder → lezer. In de auditlog krijgt een lezer het invullerzicht
+(alleen regels van eigen platformen, dus leeg).
+
 ## 7. Beheerscherm en uitnodigen
 
 **Nieuwe voorzitter (route A, twee plekken):**

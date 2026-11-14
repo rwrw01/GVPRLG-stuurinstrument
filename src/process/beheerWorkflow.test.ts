@@ -66,6 +66,25 @@ describe('voegVoorzitterToe', () => {
     expect(await prisma.auditLogEntry.count()).toBe(0);
   });
 
+  it('should refuse a lezer with platformIds without writing anything', async () => {
+    await createMeting(2027);
+
+    const resultaat = await voegVoorzitterToe(beheerder, { ...INVOER, rol: 'lezer' });
+
+    expect(resultaat).toEqual({ ok: false, error: 'lezer-koppeling' });
+    expect(await prisma.gebruiker.count()).toBe(1);
+    expect(await prisma.auditLogEntry.count()).toBe(0);
+  });
+
+  it('should add a lezer without platformIds', async () => {
+    await createMeting(2027);
+
+    const resultaat = await voegVoorzitterToe(beheerder, { ...INVOER, rol: 'lezer', platformIds: [] });
+
+    expect(resultaat).toMatchObject({ ok: true, data: { rol: 'lezer', status: 'uitgenodigd' } });
+    expect(await prisma.platformInvuller.count()).toBe(0);
+  });
+
   it('weigert een onbekend meetjaar', async () => {
     const resultaat = await voegVoorzitterToe(beheerder, INVOER);
 
@@ -119,6 +138,36 @@ describe('wijzigGebruikerDoorBeheerder', () => {
     expect(resultaat).toMatchObject({ ok: true, data: { id: doel.id, rol: 'invuller' } });
     const audit = await prisma.auditLogEntry.findMany({ where: { actie: 'rol_gewijzigd' } });
     expect(audit[0]).toMatchObject({ actor: beheerder.id, doelId: doel.id, detail: 'van=beheerder;naar=invuller;email=bob@test.local' });
+  });
+
+  it('should remove all assignments in every year when the role becomes lezer', async () => {
+    const m2026 = await createMeting(2026);
+    const m2027 = await createMeting(2027);
+    const jan = await maakGebruiker({ email: 'jan@test.local', naam: 'Jan', rol: 'invuller' });
+    await zetKoppelingen(jan.id, m2026.id, ['ro']);
+    await zetKoppelingen(jan.id, m2027.id, ['ro', 'belastingen']);
+
+    const resultaat = await wijzigGebruikerDoorBeheerder(beheerder, jan.id, { actie: 'rol', rol: 'lezer' });
+
+    expect(resultaat).toMatchObject({ ok: true, data: { id: jan.id, rol: 'lezer' } });
+    expect(await prisma.platformInvuller.count({ where: { gebruiker: jan.id } })).toBe(0);
+    const audit = await prisma.auditLogEntry.findMany({ where: { actie: 'rol_gewijzigd' } });
+    expect(audit).toHaveLength(1);
+    expect(audit[0]?.detail).toBe('van=invuller;naar=lezer;email=jan@test.local;koppelingenVerwijderd=3');
+  });
+
+  it('should apply self-protection and last-beheerder protection to beheerder -> lezer', async () => {
+    const doel = await tweedeBeheerder();
+    expect(await wijzigGebruikerDoorBeheerder(beheerder, beheerder.id, { actie: 'rol', rol: 'lezer' })).toEqual({
+      ok: false,
+      error: 'zelfbescherming',
+    });
+    await prisma.gebruiker.update({ where: { id: beheerder.id }, data: { status: 'ingetrokken' } });
+    expect(await wijzigGebruikerDoorBeheerder(beheerder, doel.id, { actie: 'rol', rol: 'lezer' })).toEqual({
+      ok: false,
+      error: 'laatste-beheerder',
+    });
+    expect(await vindGebruikerOpId(doel.id)).toMatchObject({ rol: 'beheerder' });
   });
 
   it('trekt toegang in en herstelt die met audit', async () => {
@@ -201,6 +250,18 @@ describe('zetKoppelingenDoorBeheerder', () => {
       ['koppeling_toegevoegd', beheerder.id, jan.id, 'platform=burgerzaken;jaar=2027;gebruiker=jan@test.local'],
       ['koppeling_verwijderd', beheerder.id, jan.id, 'platform=belastingen;jaar=2027;gebruiker=jan@test.local'],
     ]);
+  });
+
+  it('should refuse assignments for a lezer but allow an empty list', async () => {
+    await createMeting(2027);
+    const lea = await maakGebruiker({ email: 'lea@test.local', naam: 'Lea', rol: 'lezer' });
+
+    expect(await zetKoppelingenDoorBeheerder(beheerder, lea.id, 2027, ['ro'])).toEqual({ ok: false, error: 'lezer-koppeling' });
+    expect(await zetKoppelingenDoorBeheerder(beheerder, lea.id, 2027, [])).toEqual({
+      ok: true,
+      data: { toegevoegd: [], verwijderd: [] },
+    });
+    expect(await prisma.platformInvuller.count()).toBe(0);
   });
 
   it('geeft niet-gevonden en meting-onbekend', async () => {

@@ -15,7 +15,13 @@ export interface GebruikerDto {
 }
 
 /** Errors the admin workflow can return. */
-export type BeheerFout = 'bestaat-al' | 'meting-onbekend' | 'niet-gevonden' | 'zelfbescherming' | 'laatste-beheerder';
+export type BeheerFout =
+  | 'bestaat-al'
+  | 'meting-onbekend'
+  | 'niet-gevonden'
+  | 'zelfbescherming'
+  | 'laatste-beheerder'
+  | 'lezer-koppeling';
 
 const FOUTEN: Record<BeheerFout, { status: number; title: string; detail: string }> = {
   'bestaat-al': { status: 409, title: 'Gebruiker bestaat al', detail: 'Er bestaat al een gebruiker met dit e-mailadres.' },
@@ -30,6 +36,11 @@ const FOUTEN: Record<BeheerFout, { status: number; title: string; detail: string
     status: 409,
     title: 'Laatste beheerder',
     detail: 'Er moet minstens één actieve beheerder overblijven.',
+  },
+  'lezer-koppeling': {
+    status: 400,
+    title: 'Ongeldige invoer',
+    detail: 'Een lezer kan niet aan platformen gekoppeld worden.',
   },
 };
 
@@ -51,7 +62,7 @@ export function naarGebruikerDto(gebruiker: GebruikerRecord): GebruikerDto {
 }
 
 /**
- * Maps an admin workflow error to a problem+json response (409 or 404).
+ * Maps an admin workflow error to a problem+json response (400, 404 or 409).
  * @param fout - Workflow error
  * @returns The problem+json response
  */

@@ -2,7 +2,7 @@ import type { Gebruiker } from '@prisma/client';
 
 import { prisma } from './prismaClient';
 
-export type Rol = 'invuller' | 'beheerder';
+export type Rol = 'invuller' | 'beheerder' | 'lezer';
 export type GebruikerStatus = 'uitgenodigd' | 'actief' | 'ingetrokken';
 
 /** A `gebruikers` row with `rol` and `status` narrowed to their unions. */
@@ -117,6 +117,24 @@ export async function wijzigGebruiker(id: string, wijziging: GebruikerWijziging)
     data: { rol: wijziging.rol, status: wijziging.status, keycloakSub: wijziging.keycloakSub },
   });
   return naarRecord(rij);
+}
+
+/**
+ * Changes the role and, in the same transaction, removes all platform assignments of the user
+ * (every meting). Used when a user becomes a `lezer`, who may never hold assignments.
+ * @param id - User id
+ * @param rol - New role
+ * @returns The updated user and the number of removed assignments
+ */
+export async function wijzigRolEnWisKoppelingen(
+  id: string,
+  rol: Rol,
+): Promise<{ gebruiker: GebruikerRecord; verwijderdeKoppelingen: number }> {
+  return prisma.$transaction(async (tx) => {
+    const { count } = await tx.platformInvuller.deleteMany({ where: { gebruiker: id } });
+    const rij = await tx.gebruiker.update({ where: { id }, data: { rol } });
+    return { gebruiker: naarRecord(rij), verwijderdeKoppelingen: count };
+  });
 }
 
 /**

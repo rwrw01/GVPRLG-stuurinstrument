@@ -174,6 +174,33 @@ describe('PUT /api/metingen/[jaar]/platformen/[platformId]', () => {
     });
   });
 
+  it('should refuse a lezer with 403 alleen-lezen (audited) even with an assignment', async () => {
+    const meting = await createMeting(2027);
+    const lezer = await maakGebruiker({ email: 'lea@test.local', naam: 'Lea', rol: 'lezer', status: 'actief' });
+    await zetKoppelingen(lezer.id, meting.id, ['belastingen']);
+    mockSessie(lezer);
+
+    const response = await PUT(putRequest(CONCEPT), { params: Promise.resolve({ jaar: '2027', platformId: 'belastingen' }) });
+    expect(response.status).toBe(403);
+    expect(response.headers.get('Content-Type')).toContain('application/problem+json');
+    expect((await response.json()).detail).toContain('alleen leesrechten');
+    expect(await prisma.platformScore.count()).toBe(0);
+    const audit = await prisma.auditLogEntry.findMany({ where: { actie: 'toegang_geweigerd' } });
+    expect(audit).toHaveLength(1);
+    expect(audit[0]).toMatchObject({ actor: lezer.id, detail: 'platform=belastingen;jaar=2027;reden=alleen-lezen' });
+  });
+
+  it('should let a lezer read a platform via GET', async () => {
+    await createMeting(2027);
+    const lezer = await maakGebruiker({ email: 'lea@test.local', naam: 'Lea', rol: 'lezer', status: 'actief' });
+    mockSessie(lezer);
+
+    const response = await GET(new Request('http://localhost') as unknown as import('next/server').NextRequest, {
+      params: Promise.resolve({ jaar: '2027', platformId: 'belastingen' }),
+    });
+    expect(response.status).toBe(200);
+  });
+
   it('laat een gekoppelde invuller zijn eigen platform opslaan', async () => {
     const meting = await createMeting(2027);
     const invuller = await maakInvuller();

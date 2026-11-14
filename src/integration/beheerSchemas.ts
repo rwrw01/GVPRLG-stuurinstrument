@@ -6,7 +6,7 @@ import { CONFIG } from '../service/config';
 const PLATFORM_IDS = CONFIG.platformen.map((p) => p.id);
 
 const JaarSchema = z.number().int().min(2020).max(2100);
-const RolSchema = z.enum(['invuller', 'beheerder']);
+const RolSchema = z.enum(['invuller', 'beheerder', 'lezer']);
 
 const PlatformIdsSchema = z
   .array(z.string())

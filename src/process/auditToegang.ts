@@ -7,7 +7,8 @@ export type AuditVerzoek = Omit<AuditFilter, 'platformIds'> & { platformId?: str
 /**
  * Scopes an audit search to what the user may see. A beheerder sees everything. An invuller only
  * sees rows of platforms he is assigned to in any year (an empty set yields no rows), cannot pick
- * a foreign platform and cannot filter on actor.
+ * a foreign platform and cannot filter on actor. A lezer gets exactly the invuller view; since a
+ * lezer never holds assignments, that is an empty result.
  * @param gebruiker - Active user behind the session
  * @param verzoek - Requested filter
  * @returns Filter for `zoekAudit`

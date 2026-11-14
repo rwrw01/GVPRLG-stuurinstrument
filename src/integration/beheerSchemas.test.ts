@@ -23,6 +23,11 @@ describe('VoorzitterToevoegenSchema', () => {
   it('accepteert een gebruiker zonder platformen', () => {
     expect(VoorzitterToevoegenSchema.safeParse({ ...GELDIG, platformIds: [] }).success).toBe(true);
   });
+
+  it('should accept rol lezer and refuse an unknown rol', () => {
+    expect(VoorzitterToevoegenSchema.safeParse({ ...GELDIG, rol: 'lezer', platformIds: [] }).success).toBe(true);
+    expect(VoorzitterToevoegenSchema.safeParse({ ...GELDIG, rol: 'kijker' }).success).toBe(false);
+  });
 });
 
 describe('KoppelingenSchema', () => {
@@ -35,6 +40,10 @@ describe('GebruikerWijzigenSchema', () => {
   it('accepteert een rolwijziging en weigert een onbekende actie', () => {
     expect(GebruikerWijzigenSchema.safeParse({ actie: 'rol', rol: 'beheerder' }).success).toBe(true);
     expect(GebruikerWijzigenSchema.safeParse({ actie: 'verwijderen' }).success).toBe(false);
+  });
+
+  it('should accept a role change to lezer', () => {
+    expect(GebruikerWijzigenSchema.safeParse({ actie: 'rol', rol: 'lezer' }).success).toBe(true);
   });
 });
 

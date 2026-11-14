@@ -107,6 +107,25 @@ describe('POST /api/beheer/gebruikers', () => {
     expect((await response.json()).title).toBe('Ongeldige invoer');
   });
 
+  it('should answer 400 for a lezer with platformIds', async () => {
+    await createMeting(2027);
+
+    const response = await POST(postRequest({ ...NIEUW, rol: 'lezer' }));
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).detail).toBe('Een lezer kan niet aan platformen gekoppeld worden.');
+    expect(await prisma.gebruiker.count({ where: { email: 'jan@test.local' } })).toBe(0);
+  });
+
+  it('should add a lezer without platformIds', async () => {
+    await createMeting(2027);
+
+    const response = await POST(postRequest({ ...NIEUW, rol: 'lezer', platformIds: [] }));
+
+    expect(response.status).toBe(201);
+    expect((await response.json()).gebruiker).toMatchObject({ rol: 'lezer', platformIds: [] });
+  });
+
   it('403 voor invuller', async () => {
     await createMeting(2027);
     await invullerSessie();

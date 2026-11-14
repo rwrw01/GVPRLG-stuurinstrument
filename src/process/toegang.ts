@@ -27,17 +27,19 @@ export function vereisRol(g: GebruikerRecord, rol: Rol): Result<GebruikerRecord,
 
 /**
  * Requires write access to one platform within a meting: administrators always, fillers only
- * when assigned to that platform for that meting. Writes no audit rows.
+ * when assigned to that platform for that meting, readers never (even with a stray assignment).
+ * Writes no audit rows.
  * @param g - Active user
  * @param metingId - Meting id
  * @param platformId - Platform id
- * @returns The user, or 403 `geen-koppeling` for an unassigned filler
+ * @returns The user, 403 `alleen-lezen` for a reader, or 403 `geen-koppeling` for an unassigned filler
  */
 export async function vereisPlatformSchrijfrecht(
   g: GebruikerRecord,
   metingId: string,
   platformId: string,
 ): Promise<Result<GebruikerRecord, Weigering>> {
+  if (g.rol === 'lezer') return fail({ status: 403, reden: 'alleen-lezen' });
   if (g.rol === 'beheerder') return ok(g);
   if (await heeftKoppeling(g.id, metingId, platformId)) return ok(g);
   return fail({ status: 403, reden: 'geen-koppeling' });

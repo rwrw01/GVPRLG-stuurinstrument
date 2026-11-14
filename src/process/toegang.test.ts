@@ -87,4 +87,14 @@ describe('vereisPlatformSchrijfrecht', () => {
     const resultaat = await vereisPlatformSchrijfrecht(beheerder, meting.id, 'belastingen');
     expect(resultaat).toEqual({ ok: true, data: beheerder });
   });
+
+  it('should refuse a lezer with alleen-lezen even when an assignment exists', async () => {
+    const meting = await createMeting(2027);
+    const lezer = await maakGebruiker({ email: 'lea@test.local', naam: 'Lea', rol: 'lezer', status: 'actief' });
+    // A stray assignment (e.g. inserted directly in the DB) must not grant write access.
+    await zetKoppelingen(lezer.id, meting.id, ['belastingen']);
+
+    const resultaat = await vereisPlatformSchrijfrecht(lezer, meting.id, 'belastingen');
+    expect(resultaat).toEqual({ ok: false, error: { status: 403, reden: 'alleen-lezen' } });
+  });
 });

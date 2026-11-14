@@ -53,12 +53,13 @@ async function auditKoppelingen(
  * first login binds it by e-mail. Audited as `gebruiker_toegevoegd` plus one row per platform.
  * @param actor - The acting administrator
  * @param invoer - E-mail (normalised), name, role, year and platform ids (may be empty)
- * @returns The created user, or `bestaat-al` / `meting-onbekend`
+ * @returns The created user, or `lezer-koppeling` (a lezer with platforms) / `bestaat-al` / `meting-onbekend`
  */
 export async function voegVoorzitterToe(
   actor: GebruikerRecord,
   invoer: VoorzitterInvoer,
-): Promise<Result<GebruikerRecord, 'bestaat-al' | 'meting-onbekend'>> {
+): Promise<Result<GebruikerRecord, 'lezer-koppeling' | 'bestaat-al' | 'meting-onbekend'>> {
+  if (invoer.rol === 'lezer' && invoer.platformIds.length > 0) return fail('lezer-koppeling');
   if (await vindGebruikerOpEmail(invoer.email)) return fail('bestaat-al');
   const meting = await getMetingByJaar(invoer.jaar);
   if (!meting) return fail('meting-onbekend');
@@ -82,16 +83,17 @@ export async function voegVoorzitterToe(
  * @param doelId - Id of the user whose assignments change
  * @param jaar - Measurement year
  * @param platformIds - Desired platform ids for that year
- * @returns The added and removed platform ids, or `niet-gevonden` / `meting-onbekend`
+ * @returns The added and removed platform ids, or `niet-gevonden` / `lezer-koppeling` / `meting-onbekend`
  */
 export async function zetKoppelingenDoorBeheerder(
   actor: GebruikerRecord,
   doelId: string,
   jaar: number,
   platformIds: string[],
-): Promise<Result<KoppelingWijziging, 'niet-gevonden' | 'meting-onbekend'>> {
+): Promise<Result<KoppelingWijziging, 'niet-gevonden' | 'lezer-koppeling' | 'meting-onbekend'>> {
   const doel = await vindGebruikerOpId(doelId);
   if (!doel) return fail('niet-gevonden');
+  if (doel.rol === 'lezer' && platformIds.length > 0) return fail('lezer-koppeling');
   const meting = await getMetingByJaar(jaar);
   if (!meting) return fail('meting-onbekend');
 

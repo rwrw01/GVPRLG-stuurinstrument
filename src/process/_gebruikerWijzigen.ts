@@ -3,6 +3,7 @@ import {
   telActieveBeheerders,
   vindGebruikerOpId,
   wijzigGebruiker,
+  wijzigRolEnWisKoppelingen,
   type GebruikerRecord,
   type Rol,
 } from '../data/gebruikersRepository';
@@ -21,7 +22,7 @@ type Bescherming = Extract<WijzigFout, 'zelfbescherming' | 'laatste-beheerder'>;
 
 // Unlinking also removes access: the user drops to `uitgenodigd` until the next login.
 function ontneemtBeheer(wijziging: GebruikerWijzigingActie): boolean {
-  if (wijziging.actie === 'rol') return wijziging.rol === 'invuller';
+  if (wijziging.actie === 'rol') return wijziging.rol !== 'beheerder';
   return wijziging.actie === 'intrekken' || wijziging.actie === 'ontkoppelAccount';
 }
 
@@ -41,10 +42,18 @@ async function audit(actor: GebruikerRecord, doel: GebruikerRecord, actie: Audit
   await schrijfAudit({ actor: actor.id, actie, doelType: 'gebruiker', doelId: doel.id, detail });
 }
 
+// A lezer never holds platform assignments: becoming one removes them all (every year) in the
+// same transaction, and the audit detail records how many were removed.
 async function wijzigRol(actor: GebruikerRecord, doel: GebruikerRecord, rol: Rol): Promise<GebruikerRecord> {
   if (doel.rol === rol) return doel;
+  const detail = `van=${doel.rol};naar=${rol};email=${doel.email}`;
+  if (rol === 'lezer') {
+    const { gebruiker, verwijderdeKoppelingen } = await wijzigRolEnWisKoppelingen(doel.id, rol);
+    await audit(actor, doel, 'rol_gewijzigd', `${detail};koppelingenVerwijderd=${verwijderdeKoppelingen}`);
+    return gebruiker;
+  }
   const gewijzigd = await wijzigGebruiker(doel.id, { rol });
-  await audit(actor, doel, 'rol_gewijzigd', `van=${doel.rol};naar=${rol};email=${doel.email}`);
+  await audit(actor, doel, 'rol_gewijzigd', detail);
   return gewijzigd;
 }
 

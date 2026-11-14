@@ -121,7 +121,13 @@ paths:
         '401':
           $ref: '#/components/responses/NietIngelogd'
         '403':
-          $ref: '#/components/responses/GeenToegang'
+          description: >-
+            Geen schrijfrecht (problem+json, geaudit als toegang_geweigerd): account niet actief,
+            invuller niet gekoppeld aan dit platform (reden geen-koppeling) of rol lezer
+            (reden alleen-lezen, altijd, ook met een koppeling).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
         '400':
           description: Ongeldige invoer (problem+json)
         '404':
@@ -202,6 +208,8 @@ paths:
       description: >-
         Een beheerder ziet alle regels. Een invuller ziet alleen regels van platformen waaraan hij
         in enig meetjaar gekoppeld is; een platformId buiten die set en het actor-filter worden genegeerd.
+        Een lezer krijgt hetzelfde zicht als een invuller; omdat een lezer nooit koppelingen heeft,
+        is dat een lege lijst.
       security:
         - cookieAuth: []
       parameters:
@@ -277,7 +285,12 @@ paths:
                 properties:
                   gebruiker: { $ref: '#/components/schemas/GebruikerMetKoppelingen' }
         '400':
-          $ref: '#/components/responses/OngeldigeInvoer'
+          description: >-
+            Ongeldige invoer, of een lezer met niet-lege platformIds: "Een lezer kan niet aan
+            platformen gekoppeld worden." (problem+json)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
         '401':
           $ref: '#/components/responses/NietIngelogd'
         '403':
@@ -298,8 +311,10 @@ paths:
       description: >-
         Wordt geaudit als rol_gewijzigd, toegang_ingetrokken, toegang_hersteld of account_ontkoppeld.
         Een beheerder kan zichzelf niet degraderen, intrekken of ontkoppelen, en de laatste actieve
-        beheerder kan niet worden gedegradeerd, ingetrokken of ontkoppeld. Het Keycloak-subject wordt
-        niet in de auditregel opgenomen.
+        beheerder kan niet worden gedegradeerd, ingetrokken of ontkoppeld (ook niet naar lezer). Het
+        Keycloak-subject wordt niet in de auditregel opgenomen. Een rolwijziging naar lezer verwijdert
+        in dezelfde transactie alle platformkoppelingen van de gebruiker (alle meetjaren); het aantal
+        staat als koppelingenVerwijderd in het detail van de auditregel rol_gewijzigd.
       security:
         - cookieAuth: []
       parameters:
@@ -360,7 +375,12 @@ paths:
                   toegevoegd: { type: array, items: { type: string } }
                   verwijderd: { type: array, items: { type: string } }
         '400':
-          $ref: '#/components/responses/OngeldigeInvoer'
+          description: >-
+            Ongeldige invoer, of een lezer met niet-lege platformIds: "Een lezer kan niet aan
+            platformen gekoppeld worden." (problem+json)
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
         '401':
           $ref: '#/components/responses/NietIngelogd'
         '403':
@@ -389,7 +409,8 @@ components:
     GeenToegang:
       description: >-
         Ingelogd maar geen toegang: account niet actief, onvoldoende rol (POST /api/metingen,
-        POST .../heropenen en /api/beheer/* vereisen beheerder) of geen platformkoppeling (PUT).
+        POST .../heropenen en /api/beheer/* vereisen beheerder), geen platformkoppeling (PUT) of
+        rol lezer (PUT; reden alleen-lezen, ook als er een koppeling bestaat).
         Wordt geaudit als toegang_geweigerd.
       content:
         application/problem+json:
@@ -410,7 +431,10 @@ components:
         detail: { type: string }
     Rol:
       type: string
-      enum: [invuller, beheerder]
+      description: >-
+        invuller schrijft gekoppelde platformen, beheerder alles; lezer ziet alles wat een invuller
+        ziet (inclusief concepten) maar mag niets schrijven en heeft nooit platformkoppelingen.
+      enum: [invuller, beheerder, lezer]
     Gebruiker:
       type: object
       description: Gebruiker zoals de beheer-API die toont; het Keycloak-subject zelf wordt nooit getoond.
