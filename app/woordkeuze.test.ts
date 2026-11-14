@@ -46,6 +46,11 @@ const SCENARIOS: Record<string, MetingInvoer[]> = {
   alleenStijging: [meting(2025, { ro: gelijk('definitief', 2) }), meting(2026, { ro: gelijk('definitief', 2.5) })],
   alleenDaling: [meting(2025, { ro: gelijk('definitief', 3) }), meting(2026, { ro: rij('definitief', { techniek: 3, mens: 2, proces: 3 }) })],
   vergelijkbaar: [meting(2025, { ro: gelijk('definitief', 3) }), meting(2026, { ro: gelijk('definitief', 3) })],
+  vergelijkbaarEenBasis: [meting(2025, { ro: gelijk('definitief', 3) }), meting(2026, { ro: gelijk('definitief', 3), belastingen: gelijk('definitief', 4) })],
+  vergelijkbaarMeerBasis: [
+    meting(2025, { ro: gelijk('definitief', 3), burgerzaken: gelijk('definitief', 3) }),
+    meting(2026, { ro: gelijk('definitief', 3), burgerzaken: gelijk('definitief', 3), belastingen: gelijk('definitief', 4.5) }),
+  ],
 };
 
 describe('woordkeuze', () => {

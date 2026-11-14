@@ -42,6 +42,21 @@ export function maakOpeningszin(jaren: JaarCijfers[]): string {
     return `In ${nu.jaar} ligt bij ${platformNaam(daling.platformId)} de grootste groeikans op de as ${asNaam(daling.asId)}.`;
   }
   if (zichtbaarVerschil(vergelijking.nu, vergelijking.vorige) !== 0) return standzin(nu);
-  const basis = vergelijking.aantal === 1 ? '1 platform' : `${vergelijking.aantal} platformen`;
-  return `In ${nu.jaar} is het gemiddelde ${formatScore(vergelijking.nu)}, vergelijkbaar met ${vorige.jaar} (over ${basis}).`;
+  return vergelijkbaarZin(nu, vorige.jaar, vergelijking.aantal);
+}
+
+/**
+ * State sentence (the same year average as the key figure) plus a comparison clause with its own
+ * base: the simple "vergelijkbaar met {jaar}" only when every definitief platform of this year was
+ * also definitief in the comparison year.
+ * @param nu - Newest year with scores
+ * @param vorigeJaar - Comparison year
+ * @param aantalGemeenschappelijk - Platforms definitief in both years
+ * @returns the sentence
+ */
+function vergelijkbaarZin(nu: JaarCijfers, vorigeJaar: number, aantalGemeenschappelijk: number): string {
+  const stand = standzin(nu).slice(0, -1);
+  if (aantalGemeenschappelijk === definitieveVan(nu).length) return `${stand}, vergelijkbaar met ${vorigeJaar}.`;
+  if (aantalGemeenschappelijk === 1) return `${stand}; het platform dat ook in ${vorigeJaar} definitief was, scoort vergelijkbaar.`;
+  return `${stand}; de ${aantalGemeenschappelijk} platformen die ook in ${vorigeJaar} definitief waren, scoren gemiddeld vergelijkbaar.`;
 }

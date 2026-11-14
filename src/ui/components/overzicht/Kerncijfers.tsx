@@ -1,3 +1,4 @@
+import { kerncijferBasis } from './_basisTeksten';
 import { nl } from './_formatteer';
 import type { Kerncijfers as KerncijfersData, OverzichtPlatform } from './_overzichtTypen';
 import { Verschil } from './Verschil';
@@ -6,23 +7,6 @@ interface KerncijfersProps {
   cijfers: KerncijfersData;
   platformen: OverzichtPlatform[];
   asNaam: (asId: string) => string;
-}
-
-const platformenTekst = (aantal: number) => (aantal === 1 ? '1 platform' : `${aantal} platformen`);
-
-/**
- * Base of the average and of its difference, so the reader sees what is compared.
- * @param cijfers - Key figures
- * @returns e.g. "Over 3 definitieve platformen; verschil met 2025 over 2 platformen die in beide jaren definitief zijn"
- */
-function basisTekst(cijfers: KerncijfersData): string {
-  if (cijfers.gemiddelde === null) return 'Nog geen definitieve platformen';
-  const basis = `Over ${cijfers.aantalGemiddelde === 1 ? '1 definitief platform' : `${cijfers.aantalGemiddelde} definitieve platformen`}`;
-  if (cijfers.vergelijking) {
-    return `${basis}; verschil met ${cijfers.vorigeJaar} over ${platformenTekst(cijfers.vergelijking.aantal)} die in beide jaren definitief zijn`;
-  }
-  if (cijfers.vorigeJaar) return `${basis}; geen vergelijking met ${cijfers.vorigeJaar}, geen platform is in beide jaren definitief`;
-  return `${basis}; nog geen vergelijkingsjaar`;
 }
 
 /**
@@ -34,7 +18,7 @@ function basisTekst(cijfers: KerncijfersData): string {
 function Stijger({ cijfers, naamVan }: { cijfers: KerncijfersData; naamVan: (id: string) => string }) {
   const { stijger, vorigeJaar, vergelijking } = cijfers;
   if (!stijger) {
-    const reden = !vorigeJaar ? 'Nog geen vergelijkingsjaar' : vergelijking ? `Geen stijging ten opzichte van ${vorigeJaar}` : `Geen platform in ${vorigeJaar} en ${cijfers.jaar} definitief`;
+    const reden = !vorigeJaar ? 'Nog geen vergelijkingsjaar' : vergelijking ? `Geen stijging ten opzichte van ${vorigeJaar}` : 'Geen platform is in beide jaren definitief';
     return <><dd>–</dd><dd className="kern-sub">{reden}</dd></>;
   }
   return (
@@ -82,7 +66,7 @@ export function Kerncijfers({ cijfers, platformen, asNaam }: KerncijfersProps) {
         <dd className="getal">
           {nl(cijfers.gemiddelde)} {cijfers.vergelijking && <Verschil nu={cijfers.vergelijking.nu} was={cijfers.vergelijking.vorige} />}
         </dd>
-        <dd className="kern-sub">{basisTekst(cijfers)}</dd>
+        <dd className="kern-sub">{kerncijferBasis(cijfers)}</dd>
       </div>
       <div>
         <dt>Definitief</dt>

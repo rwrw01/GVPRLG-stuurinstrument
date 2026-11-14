@@ -1,3 +1,4 @@
+import { assenBasis } from './_basisTeksten';
 import { nl } from './_formatteer';
 import type { AsVergelijking } from './_overzichtTypen';
 import { Verschil } from './Verschil';
@@ -28,24 +29,6 @@ function AsRij({ as, nuJaar, vorigeJaar }: { as: AsVergelijking; nuJaar: number;
 }
 
 /**
- * Explains the base of the axis figures.
- * @param props.assen - Axis figures
- * @param props.nuJaar - Newest year with scores
- * @param props.vorigeJaar - Comparison year, or null
- * @returns the sentence
- */
-function basis(assen: AsVergelijking[], nuJaar: number, vorigeJaar: number | null): string {
-  const aantal = assen[0]?.aantal ?? 0;
-  const platformen = aantal === 1 ? '1 platform' : `${aantal} platformen`;
-  if (assen[0]?.vergeleken && vorigeJaar) {
-    return `Gemiddeld over de ${platformen} die in ${vorigeJaar} en ${nuJaar} definitief zijn. Het streepje is de score van ${vorigeJaar}.`;
-  }
-  if (aantal === 0) return `In ${nuJaar} is nog geen platform definitief.`;
-  const zonder = vorigeJaar ? ` Geen vergelijking met ${vorigeJaar}: geen platform is in beide jaren definitief.` : '';
-  return `Gemiddeld over ${aantal === 1 ? '1 definitief platform' : `${aantal} definitieve platformen`}.${zonder}`;
-}
-
-/**
  * The three axes: a bar with the score, and when compared a marker at the comparison year and
  * the difference, all over the platforms definitief in both years.
  * @param props.assen - Axis comparison from the overview
@@ -59,7 +42,7 @@ export function AssenBlok({ assen, nuJaar, vorigeJaar }: { assen: AsVergelijking
       <ul className="assen-lijst">
         {assen.map((as) => <AsRij key={as.id} as={as} nuJaar={nuJaar} vorigeJaar={vorigeJaar} />)}
       </ul>
-      <p className="kaart-sub">Schaal 1 tot 5. {basis(assen, nuJaar, vorigeJaar)}</p>
+      <p className="kaart-sub">Schaal 1 tot 5. {assenBasis(assen, nuJaar, vorigeJaar)}</p>
     </>
   );
 }

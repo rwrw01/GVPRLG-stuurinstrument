@@ -47,7 +47,35 @@ describe('maakOpeningszin', () => {
 
   it('should say "vergelijkbaar" only when the displayed average of the common platforms is unchanged', () => {
     const gelijkBlijvend = [meting(2025, { ro: gelijk('definitief', 3) }), meting(2026, { ro: gelijk('definitief', 3) })].map(berekenJaarCijfers);
-    expect(maakOpeningszin(gelijkBlijvend)).toBe('In 2026 is het gemiddelde 3,0, vergelijkbaar met 2025 (over 1 platform).');
+    expect(maakOpeningszin(gelijkBlijvend)).toBe('In 2026 staat het gemiddelde op 3,0 over 1 definitief platform, vergelijkbaar met 2025.');
+  });
+
+  it('should state the same average as the key figure when a platform is definitief for the first time', () => {
+    const jaren = [
+      meting(2025, { ro: gelijk('definitief', 3) }),
+      meting(2026, { ro: gelijk('definitief', 3), belastingen: gelijk('definitief', 4) }),
+    ].map(berekenJaarCijfers);
+    expect(maakOpeningszin(jaren)).toBe(
+      'In 2026 staat het gemiddelde op 3,5 over 2 definitieve platformen; het platform dat ook in 2025 definitief was, scoort vergelijkbaar.',
+    );
+  });
+
+  it('should name a plural comparison base separately from the year average', () => {
+    const jaren = [
+      meting(2025, { ro: gelijk('definitief', 3), burgerzaken: gelijk('definitief', 3) }),
+      meting(2026, { ro: gelijk('definitief', 3), burgerzaken: gelijk('definitief', 3), belastingen: gelijk('definitief', 4.5) }),
+    ].map(berekenJaarCijfers);
+    expect(maakOpeningszin(jaren)).toBe(
+      'In 2026 staat het gemiddelde op 3,5 over 3 definitieve platformen; de 2 platformen die ook in 2025 definitief waren, scoren gemiddeld vergelijkbaar.',
+    );
+  });
+
+  it('should use the simple form with a plural base when the sets are equal', () => {
+    const jaren = [
+      meting(2025, { ro: gelijk('definitief', 3), burgerzaken: gelijk('definitief', 4) }),
+      meting(2026, { ro: gelijk('definitief', 3), burgerzaken: gelijk('definitief', 4) }),
+    ].map(berekenJaarCijfers);
+    expect(maakOpeningszin(jaren)).toBe('In 2026 staat het gemiddelde op 3,5 over 2 definitieve platformen, vergelijkbaar met 2025.');
   });
 
   it('should give the neutral state sentence when the common average shifted without a platform rising or an axis falling', () => {
