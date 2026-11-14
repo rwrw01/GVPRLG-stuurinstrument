@@ -9,7 +9,7 @@ export interface Ik {
   id: string;
   naam: string;
   email: string;
-  rol: 'invuller' | 'beheerder';
+  rol: 'invuller' | 'beheerder' | 'lezer';
 }
 
 /**

@@ -55,6 +55,10 @@
 .beheer-tabel { font-size: 0.85rem; }
 .beheer-tabel td { vertical-align: top; }
 .beheer-acties .btn { padding: 0.3rem 0.6rem; font-size: 0.8rem; }
+.rol-wijzigen { display: inline-flex; gap: 0.35rem; align-items: center; }
+.rol-wijzigen select { width: auto; padding: 0.25rem 0.4rem; font-size: 0.8rem; }
+/* Visually hidden but read by screen readers (labels of compact controls). */
+.visueel-verborgen { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .audit-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 0 1rem; align-items: end; }
 .audit-filters .btn { margin-bottom: 1.25rem; }
 .heropenen { margin-top: 0.75rem; }

@@ -1,9 +1,15 @@
+/** Roles as in the Rol enum of the OpenAPI spec. */
+export type BeheerRol = 'invuller' | 'lezer' | 'beheerder';
+
+/** All roles in the order the admin UI offers them. */
+export const BEHEER_ROLLEN: readonly BeheerRol[] = ['invuller', 'lezer', 'beheerder'];
+
 /** A user row of `GET /api/beheer/gebruikers` (GebruikerMetKoppelingen in the OpenAPI spec). */
 export interface BeheerGebruiker {
   id: string;
   email: string;
   naam: string;
-  rol: 'invuller' | 'beheerder';
+  rol: BeheerRol;
   status: 'uitgenodigd' | 'actief' | 'ingetrokken';
   gekoppeld: boolean;
   laatsteLogin: string | null;
@@ -12,7 +18,7 @@ export interface BeheerGebruiker {
 
 /** Body of `PATCH /api/beheer/gebruikers/[id]` (GebruikerWijzigen in the OpenAPI spec). */
 export type GebruikerWijziging =
-  | { actie: 'rol'; rol: 'invuller' | 'beheerder' }
+  | { actie: 'rol'; rol: BeheerRol }
   | { actie: 'intrekken' }
   | { actie: 'herstellen' }
   | { actie: 'ontkoppelAccount' };

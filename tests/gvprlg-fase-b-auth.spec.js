@@ -18,6 +18,7 @@ import { verstuurUitnodiging } from './keycloak-admin';
 const MENU = { name: 'Gebruikersmenu' };
 const NIET_GEKOPPELD = 'U bent niet gekoppeld aan dit platform voor dit meetjaar.';
 const INGETROKKEN = 'Uw toegang is ingetrokken of nog niet geactiveerd.';
+const ALLEEN_LEZEN = 'Je hebt alleen leesrechten. Wijzigingen opslaan is niet mogelijk.';
 
 // Journeys share dev-stack state (one invuller, one fase-B year) and may wait for a TOTP period.
 // Tests in this file run in order in one worker (no fullyParallel); restores happen in finally blocks.
@@ -108,6 +109,32 @@ test.describe('GVPRLG fase B — invuller', () => {
   });
 });
 
+test.describe('GVPRLG fase B — lezer', () => {
+  test('lezer ziet het invulformulier alleen-lezen en een directe PUT geeft 403', async ({ browser }) => {
+    const page = await schonePagina(browser);
+    try {
+      await login(page, GEBRUIKERS.lezer.email);
+      await page.goto(`/metingen/${FASE_B_JAAR}/${PLATFORM_CONCEPT}`);
+      await expect(page.getByText(ALLEEN_LEZEN)).toBeVisible();
+      // The concept seeded by the beheerder (score 2 everywhere) is visible, but nothing is editable.
+      const eersteVraag = page.locator('.question-row').first();
+      await expect(eersteVraag.locator('input[type="radio"][value="2"]')).toBeChecked();
+      await expect(eersteVraag.locator('input[type="radio"]').first()).toBeDisabled();
+      await expect(page.locator('#algemene-toelichting')).toBeDisabled();
+      await expect(page.getByRole('button', { name: 'Opslaan als concept' })).toHaveCount(0);
+      await expect(page.getByRole('button', { name: /Afronden/ })).toHaveCount(0);
+
+      const response = await page.request.put(`/api/metingen/${FASE_B_JAAR}/platformen/${PLATFORM_CONCEPT}`, {
+        data: { status: 'concept', algemeneToelichting: 'lezer', vraagScores: [] },
+      });
+      expect(response.status()).toBe(403);
+      expect((await response.json()).detail).toContain('alleen leesrechten');
+    } finally {
+      await page.context().close();
+    }
+  });
+});
+
 test.describe('GVPRLG fase B — beheer', () => {
   test.use({ storageState: SESSIE_BEHEERDER });
 
@@ -169,6 +196,23 @@ test.describe('GVPRLG fase B — beheer', () => {
       expect(hersteld.ok()).toBeTruthy();
       await invullerContext.close();
     }
+  });
+
+  test('beheerder maakt iemand lezer en de koppelingen verdwijnen', async ({ page }) => {
+    const doel = GEBRUIKERS.wordtLezer;
+    await page.goto('/beheer');
+    await kiesBeheerJaar(page, FASE_B_JAAR);
+    const rij = gebruikerRij(page, doel.email);
+    await expect(rij.locator('td[data-label="Rol"]')).toHaveText('invuller');
+    expect((await vindBeheerGebruiker(page.request, FASE_B_JAAR, doel.email)).platformIds).toEqual([PLATFORM_INVULLER]);
+
+    await rij.getByLabel(`Nieuwe rol voor ${doel.naam}`).selectOption('lezer');
+    await rij.getByRole('button', { name: /Rol wijzigen/ }).click();
+
+    await expect(rij.locator('td[data-label="Rol"]')).toHaveText('lezer');
+    await expect(rij.locator(`td[data-label="Platformen ${FASE_B_JAAR}"]`)).toHaveText('-');
+    await expect(rij.getByRole('button', { name: 'Koppelingen' })).toHaveCount(0);
+    expect((await vindBeheerGebruiker(page.request, FASE_B_JAAR, doel.email)).platformIds).toEqual([]);
   });
 
   test('beheerder heropent een definitief platform', async ({ page }) => {

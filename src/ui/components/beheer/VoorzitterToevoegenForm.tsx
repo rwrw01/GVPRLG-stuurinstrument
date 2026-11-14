@@ -3,9 +3,15 @@
 import { useState, type FormEvent } from 'react';
 import { verstuurJson } from '../_verstuurJson';
 import { PlatformKeuze } from './PlatformKeuze';
+import { BEHEER_ROLLEN, type BeheerRol } from './_beheerTypen';
+
+function naarRol(waarde: string): BeheerRol {
+  return BEHEER_ROLLEN.find((r) => r === waarde) ?? 'invuller';
+}
 
 /**
  * Form "Voorzitter toevoegen": registers a user in the app with platform links for the chosen year.
+ * Only an invuller gets platform links; for any other role the form sends `platformIds: []`.
  * @param props.jaar - Measurement year the platform links apply to
  * @param props.onToegevoegd - Called after a successful registration
  * @returns the form card
@@ -13,14 +19,15 @@ import { PlatformKeuze } from './PlatformKeuze';
 export function VoorzitterToevoegenForm({ jaar, onToegevoegd }: { jaar: number; onToegevoegd: () => void }) {
   const [email, setEmail] = useState('');
   const [naam, setNaam] = useState('');
-  const [rol, setRol] = useState<'invuller' | 'beheerder'>('invuller');
+  const [rol, setRol] = useState<BeheerRol>('invuller');
   const [platformIds, setPlatformIds] = useState<string[]>([]);
   const [fout, setFout] = useState<string | null>(null);
 
   async function verstuur(event: FormEvent) {
     event.preventDefault();
     setFout(null);
-    const melding = await verstuurJson('/api/beheer/gebruikers', 'POST', { email, naam, rol, jaar, platformIds });
+    const gekozen = rol === 'invuller' ? platformIds : [];
+    const melding = await verstuurJson('/api/beheer/gebruikers', 'POST', { email, naam, rol, jaar, platformIds: gekozen });
     if (melding) return setFout(melding);
     setEmail('');
     setNaam('');
@@ -42,12 +49,13 @@ export function VoorzitterToevoegenForm({ jaar, onToegevoegd }: { jaar: number; 
       </div>
       <div className="form-group">
         <label htmlFor="nieuw-rol">Rol</label>
-        <select id="nieuw-rol" value={rol} onChange={(e) => setRol(e.target.value === 'beheerder' ? 'beheerder' : 'invuller')}>
-          <option value="invuller">invuller</option>
-          <option value="beheerder">beheerder</option>
+        <select id="nieuw-rol" value={rol} onChange={(e) => setRol(naarRol(e.target.value))}>
+          {BEHEER_ROLLEN.map((r) => (
+            <option key={r} value={r}>{r}</option>
+          ))}
         </select>
       </div>
-      <PlatformKeuze gekozen={platformIds} onChange={setPlatformIds} idPrefix="nieuw-platform" />
+      {rol === 'invuller' && <PlatformKeuze gekozen={platformIds} onChange={setPlatformIds} idPrefix="nieuw-platform" />}
       <button type="submit" className="btn btn-primary">Voorzitter toevoegen</button>
       {fout && <div className="alert alert-warning" role="alert">{fout}</div>}
     </form>

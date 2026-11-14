@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { CONFIG } from '@/src/service/config';
 import { ScoreSchaalLegenda } from '@/src/ui/components/ScoreSchaalLegenda';
+import { useIk } from '@/src/ui/hooks/useIk';
 
 interface PlatformData {
   status: string;
@@ -15,6 +16,9 @@ interface PlatformData {
 export default function InvulformulierPage() {
   const params = useParams<{ jaar: string; platformId: string }>();
   const router = useRouter();
+  const { ik } = useIk();
+  // UI only: a lezer sees the form read-only; the server refuses every write with 403 alleen-lezen.
+  const alleenLezen = ik?.rol === 'lezer';
   const [laden, setLaden] = useState(true);
   const [laadFout, setLaadFout] = useState<string | null>(null);
   const [algemeneToelichting, setAlgemeneToelichting] = useState('');
@@ -103,6 +107,9 @@ export default function InvulformulierPage() {
   return (
     <div>
       <h2>{platform?.naam} — Meting {params.jaar}</h2>
+      {alleenLezen && (
+        <div className="alert alert-info" role="status">Je hebt alleen leesrechten. Wijzigingen opslaan is niet mogelijk.</div>
+      )}
       {fout && <div className="alert alert-warning" role="alert">{fout}</div>}
       <ScoreSchaalLegenda />
       {CONFIG.assen.map((as) => (
@@ -123,6 +130,7 @@ export default function InvulformulierPage() {
                       name={v.id}
                       value={s.waarde}
                       checked={scores[v.id] === s.waarde}
+                      disabled={alleenLezen}
                       onChange={() => setScores((prev) => ({ ...prev, [v.id]: s.waarde }))}
                       aria-label={`${s.waarde} - ${s.label}: ${s.beschrijving}`}
                     />
@@ -135,6 +143,7 @@ export default function InvulformulierPage() {
                 <textarea
                   id={`toelichting-${v.id}`}
                   value={toelichtingen[v.id] ?? ''}
+                  disabled={alleenLezen}
                   onChange={(e) => setToelichtingen((prev) => ({ ...prev, [v.id]: e.target.value }))}
                   placeholder="Onderbouwing / verantwoording voor deze score"
                 />
@@ -149,15 +158,18 @@ export default function InvulformulierPage() {
           <textarea
             id="algemene-toelichting"
             value={algemeneToelichting}
+            disabled={alleenLezen}
             onChange={(e) => setAlgemeneToelichting(e.target.value)}
             placeholder="Overkoepelende opmerkingen bij deze platform-meting"
           />
         </div>
       </div>
-      <div className="btn-group">
-        <button className="btn btn-primary" onClick={() => opslaan('concept')}>Opslaan als concept</button>
-        <button className="btn btn-success" onClick={() => opslaan('definitief')}>Afronden (definitief)</button>
-      </div>
+      {!alleenLezen && (
+        <div className="btn-group">
+          <button className="btn btn-primary" onClick={() => opslaan('concept')}>Opslaan als concept</button>
+          <button className="btn btn-success" onClick={() => opslaan('definitief')}>Afronden (definitief)</button>
+        </div>
+      )}
     </div>
   );
 }

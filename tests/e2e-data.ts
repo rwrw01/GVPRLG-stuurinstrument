@@ -20,6 +20,9 @@ export const PLATFORM_NIEUWE_VOORZITTER = 'sociaal-domein';
 export const GEBRUIKERS = {
   beheerder: { email: 'beheerder@test.local', naam: 'Test Beheerder' },
   invuller: { email: 'invuller@test.local', naam: 'Test Invuller' },
+  lezer: { email: 'lezer@test.local', naam: 'Test Lezer' },
+  /** App-only user (no Keycloak account) that journey "rol lezer" turns from invuller into lezer. */
+  wordtLezer: { email: 'wordt-lezer@test.local', naam: 'Test Wordt Lezer' },
   nieuweVoorzitter: { email: 'invuller2@test.local', naam: 'Test Invuller Twee' },
   zonderAppGebruiker: { email: 'geen-app@test.local', naam: 'Geen App' },
 } as const;

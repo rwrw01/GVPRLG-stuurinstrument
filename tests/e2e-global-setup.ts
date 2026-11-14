@@ -26,7 +26,7 @@ async function _ruimJarenOp(prisma: Prisma): Promise<void> {
 }
 
 // Ensures an active app user with the given role, bound to its current Keycloak subject.
-async function _zorgVoorActief(repos: Repos, gebruiker: { email: string; naam: string }, rol: 'beheerder' | 'invuller'): Promise<string> {
+async function _zorgVoorActief(repos: Repos, gebruiker: { email: string; naam: string }, rol: 'beheerder' | 'invuller' | 'lezer'): Promise<string> {
   const bestaand = await repos.vindGebruikerOpEmail(gebruiker.email);
   const record = bestaand ?? (await repos.maakGebruiker({ email: gebruiker.email, naam: gebruiker.naam, rol }));
   await repos.wijzigGebruiker(record.id, { rol, status: 'actief' });
@@ -52,10 +52,13 @@ function _vraagScores(score: number): Array<{ vraagId: string; score: number; to
   return vraagIds.map((vraagId) => ({ vraagId, score, toelichting: '' }));
 }
 
-// The fase-B year: invuller linked to one platform, one concept and one definitief platform by the beheerder.
+// The fase-B year: invuller linked to one platform, one concept and one definitief platform by the
+// beheerder, and the app-only "wordt lezer" user as invuller of the same platform.
 async function _maakFaseBJaar(repos: Repos, beheerderId: string, invullerId: string): Promise<void> {
   const meting = await repos.createMeting(FASE_B_JAAR);
   await repos.zetKoppelingen(invullerId, meting.id, [PLATFORM_INVULLER]);
+  const wordtLezer = await repos.maakGebruiker({ ...GEBRUIKERS.wordtLezer, rol: 'invuller' });
+  await repos.zetKoppelingen(wordtLezer.id, meting.id, [PLATFORM_INVULLER]);
   const basis = { metingId: meting.id, jaar: FASE_B_JAAR, algemeneToelichting: '', laatstGewijzigdDoor: beheerderId };
   await repos.savePlatformScore({ ...basis, platformId: PLATFORM_CONCEPT, status: 'concept', vraagScores: _vraagScores(2) });
   await repos.savePlatformScore({ ...basis, platformId: PLATFORM_DEFINITIEF, status: 'definitief', vraagScores: _vraagScores(4) });
@@ -69,7 +72,7 @@ async function _leegMailpit(): Promise<void> {
 
 /**
  * Resets everything the E2E suite depends on in the dev stack (app DB, dev Keycloak, Mailpit):
- * removes leftover test years, ensures the beheerder and invuller users, creates the fase-B year,
+ * removes leftover test years, ensures the beheerder, invuller and lezer users, creates the fase-B year,
  * and puts invuller2 and geen-app back in their "not yet in the app" state.
  * @returns Promise that resolves once the dev stack is ready for a run
  */
@@ -84,6 +87,9 @@ export default async function globalSetup(): Promise<void> {
     await _ruimJarenOp(prisma);
     const beheerderId = await _zorgVoorActief(repos, GEBRUIKERS.beheerder, 'beheerder');
     const invullerId = await _zorgVoorActief(repos, GEBRUIKERS.invuller, 'invuller');
+    const lezerId = await _zorgVoorActief(repos, GEBRUIKERS.lezer, 'lezer');
+    await prisma.platformInvuller.deleteMany({ where: { gebruiker: lezerId } });
+    await _verwijderAppGebruiker(prisma, GEBRUIKERS.wordtLezer.email);
     await _maakFaseBJaar(repos, beheerderId, invullerId);
 
     await _verwijderAppGebruiker(prisma, GEBRUIKERS.nieuweVoorzitter.email);

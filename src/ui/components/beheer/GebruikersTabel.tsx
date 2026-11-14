@@ -3,7 +3,7 @@
 import { Fragment, useState } from 'react';
 import { CONFIG } from '@/src/service/config';
 import { KoppelingenEditor } from './KoppelingenEditor';
-import type { BeheerGebruiker, GebruikerWijziging } from './_beheerTypen';
+import { BEHEER_ROLLEN, type BeheerGebruiker, type BeheerRol, type GebruikerWijziging } from './_beheerTypen';
 
 interface Acties {
   onWijzig: (id: string, wijziging: GebruikerWijziging) => void;
@@ -15,8 +15,26 @@ function platformNamen(ids: string[]): string {
   return namen.length > 0 ? namen.join(', ') : '-';
 }
 
+function RolWijzigen({ g, onWijzig }: { g: BeheerGebruiker; onWijzig: Acties['onWijzig'] }) {
+  const andere = BEHEER_ROLLEN.filter((r) => r !== g.rol);
+  const [nieuweRol, setNieuweRol] = useState<BeheerRol>(andere[0] ?? 'invuller');
+  const id = `rol-${g.id}`;
+  return (
+    <span className="rol-wijzigen">
+      <label htmlFor={id} className="visueel-verborgen">Nieuwe rol voor {g.naam}</label>
+      <select id={id} value={nieuweRol} onChange={(e) => setNieuweRol(andere.find((r) => r === e.target.value) ?? nieuweRol)}>
+        {andere.map((r) => (
+          <option key={r} value={r}>{r}</option>
+        ))}
+      </select>
+      <button type="button" className="btn btn-outline" aria-label={`Rol wijzigen van ${g.naam}`} onClick={() => onWijzig(g.id, { actie: 'rol', rol: nieuweRol })}>
+        Rol wijzigen
+      </button>
+    </span>
+  );
+}
+
 function RijActies({ g, acties, onKoppelingen }: { g: BeheerGebruiker; acties: Acties; onKoppelingen: () => void }) {
-  const andereRol = g.rol === 'beheerder' ? 'invuller' : 'beheerder';
   function ontkoppel() {
     if (window.confirm(`Keycloak-account van ${g.naam} ontkoppelen? De volgende login koppelt opnieuw op e-mail.`)) {
       acties.onWijzig(g.id, { actie: 'ontkoppelAccount' });
@@ -24,10 +42,8 @@ function RijActies({ g, acties, onKoppelingen }: { g: BeheerGebruiker; acties: A
   }
   return (
     <div className="btn-group beheer-acties">
-      <button type="button" className="btn btn-outline" onClick={onKoppelingen}>Koppelingen</button>
-      <button type="button" className="btn btn-outline" onClick={() => acties.onWijzig(g.id, { actie: 'rol', rol: andereRol })}>
-        Rol wijzigen naar {andereRol}
-      </button>
+      {g.rol !== 'lezer' && <button type="button" className="btn btn-outline" onClick={onKoppelingen}>Koppelingen</button>}
+      <RolWijzigen key={g.rol} g={g} onWijzig={acties.onWijzig} />
       {g.status === 'ingetrokken' ? (
         <button type="button" className="btn btn-outline" onClick={() => acties.onWijzig(g.id, { actie: 'herstellen' })}>Toegang herstellen</button>
       ) : (

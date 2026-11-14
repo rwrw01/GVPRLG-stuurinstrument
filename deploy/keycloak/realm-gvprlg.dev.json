@@ -150,6 +150,22 @@
       ]
     },
     {
+      "username": "lezer@test.local",
+      "email": "lezer@test.local",
+      "firstName": "Test",
+      "lastName": "Lezer",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "otp",
+          "userLabel": "Dev TOTP",
+          "secretData": "{\"value\":\"JBSWY3DPEHPK3PXP\"}",
+          "credentialData": "{\"subType\":\"totp\",\"digits\":6,\"counter\":0,\"period\":30,\"algorithm\":\"HmacSHA1\",\"secretEncoding\":\"BASE32\"}"
+        }
+      ]
+    },
+    {
       "username": "invuller2@test.local",
       "email": "invuller2@test.local",
       "firstName": "Test",

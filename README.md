@@ -45,9 +45,10 @@ Testgebruikers in de dev-realm (inloggen met e-mail + TOTP-code, geen wachtwoord
 
 - `beheerder@test.local` — beheerder (via `BOOTSTRAP_BEHEERDER_EMAIL` in `.env`)
 - `invuller@test.local` — invuller
+- `lezer@test.local` — lezer (ziet alles, kan niets opslaan; de app-gebruiker maakt de E2E-setup aan)
 - `invuller2@test.local` — moet bij de eerste login nog een authenticator koppelen
 
-De TOTP-seed van `beheerder@test.local` en `invuller@test.local` is `JBSWY3DPEHPK3PXP`
+De TOTP-seed van `beheerder@test.local`, `invuller@test.local` en `lezer@test.local` is `JBSWY3DPEHPK3PXP`
 (SHA1, 6 cijfers, 30 s). Voeg hem toe in een authenticator-app of bereken de code met
 `otpauth` (zoals de E2E-tests doen). Alleen voor lokaal gebruik — deze seed is publiek.
 
