@@ -7,6 +7,9 @@ export const E2E_JAAR_TOT = 2099;
 /** Fixed measurement year used by the fase-B auth journeys (recreated by global setup). */
 export const FASE_B_JAAR = 2041;
 
+/** Two years seeded for the start-screen journeys: a rise for belastingen, a fall for R&O (concept). */
+export const OVERZICHT_JAREN = [2043, 2044] as const;
+
 /** Platform of FASE_B_JAAR that the invuller is linked to. */
 export const PLATFORM_INVULLER = 'belastingen';
 /** Platform of FASE_B_JAAR seeded as concept by someone else (journey 4). */

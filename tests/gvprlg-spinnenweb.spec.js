@@ -34,7 +34,7 @@ test.describe('Spinnenweb, kruimelpad en status per BU', () => {
 
     await page.goto(`/metingen/${jaar}/burgerzaken/resultaat`);
     const kruimelpad = page.getByRole('navigation', { name: 'Kruimelpad' });
-    await expect(kruimelpad).toContainText('Metingen');
+    await expect(kruimelpad).toContainText('Overzicht');
     await expect(kruimelpad.locator('[aria-current="page"]')).toHaveText('Resultaat');
     await expect(page.getByRole('img', { name: new RegExp(`Spinnenweb Burgerzaken ${jaar}`) })).toBeVisible();
 

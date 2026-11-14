@@ -4,12 +4,13 @@ import { test, expect } from '@playwright/test';
 import { willekeurigJaar } from './e2e-data';
 
 // Runs with the beheerder session from auth.setup.js (real Keycloak TOTP login): creating a meting needs that role.
+// "Nieuwe meting" lives on /beheer.
 
 test.describe('GVPRLG backend fase A — happy flow', () => {
   test('maakt een meting aan, vult een platform in met opmerkingen, rondt af, toont resultaat', async ({ page }) => {
     const jaar = willekeurigJaar(); // uniek per testrun: 2050-2099, buiten de geseede jaren en het vaste fase-B-jaar
 
-    await page.goto('/');
+    await page.goto('/beheer');
     await page.fill('#nieuw-jaar', String(jaar));
     await page.click('text=Meting aanmaken');
     await expect(page.locator(`text=Meting ${jaar}`)).toBeVisible();
@@ -51,7 +52,7 @@ test.describe('GVPRLG backend fase A — happy flow', () => {
 
   test('weigert afronden met ontbrekende scores', async ({ page }) => {
     const jaar = willekeurigJaar();
-    await page.goto('/');
+    await page.goto('/beheer');
     await page.fill('#nieuw-jaar', String(jaar));
     await page.click('text=Meting aanmaken');
     await page.click(`a[href="/metingen/${jaar}"]`);
@@ -66,7 +67,7 @@ test.describe('GVPRLG backend fase A — happy flow', () => {
 
   test('resultaatpagina toont een duidelijke melding voor een platform dat nog niet is ingevuld', async ({ page }) => {
     const jaar = willekeurigJaar();
-    await page.goto('/');
+    await page.goto('/beheer');
     await page.fill('#nieuw-jaar', String(jaar));
     await page.click('text=Meting aanmaken');
 

@@ -5,6 +5,7 @@ import {
   E2E_JAAR_VAN,
   FASE_B_JAAR,
   GEBRUIKERS,
+  OVERZICHT_JAREN,
   PLATFORM_CONCEPT,
   PLATFORM_DEFINITIEF,
   PLATFORM_INVULLER,
@@ -64,6 +65,22 @@ async function _maakFaseBJaar(repos: Repos, beheerderId: string, invullerId: str
   await repos.savePlatformScore({ ...basis, platformId: PLATFORM_DEFINITIEF, status: 'definitief', vraagScores: _vraagScores(4) });
 }
 
+// Two consecutive years for the start screen: belastingen 3 -> 4 (definitief), R&O 3 -> 2 (concept in the second year).
+async function _maakOverzichtJaren(repos: Repos, beheerderId: string): Promise<void> {
+  const [eerste, tweede] = OVERZICHT_JAREN;
+  const scores: Array<[number, string, 'concept' | 'definitief', number]> = [
+    [eerste, 'belastingen', 'definitief', 3], [eerste, 'ro', 'definitief', 3],
+    [tweede, 'belastingen', 'definitief', 4], [tweede, 'ro', 'concept', 2],
+  ];
+  const metingen = new Map<number, string>();
+  for (const jaar of OVERZICHT_JAREN) metingen.set(jaar, (await repos.createMeting(jaar)).id);
+  for (const [jaar, platformId, status, score] of scores) {
+    await repos.savePlatformScore({
+      metingId: metingen.get(jaar)!, jaar, platformId, status, algemeneToelichting: '', laatstGewijzigdDoor: beheerderId, vraagScores: _vraagScores(score),
+    });
+  }
+}
+
 async function _leegMailpit(): Promise<void> {
   const query = new URLSearchParams({ query: `to:${GEBRUIKERS.nieuweVoorzitter.email}` });
   const response = await fetch(`${MAILPIT_URL}/api/v1/search?${query.toString()}`, { method: 'DELETE' });
@@ -91,13 +108,14 @@ export default async function globalSetup(): Promise<void> {
     await prisma.platformInvuller.deleteMany({ where: { gebruiker: lezerId } });
     await _verwijderAppGebruiker(prisma, GEBRUIKERS.wordtLezer.email);
     await _maakFaseBJaar(repos, beheerderId, invullerId);
+    await _maakOverzichtJaren(repos, beheerderId);
 
     await _verwijderAppGebruiker(prisma, GEBRUIKERS.nieuweVoorzitter.email);
     await resetNaarTotpInstellen(GEBRUIKERS.nieuweVoorzitter.email);
     await _verwijderAppGebruiker(prisma, GEBRUIKERS.zonderAppGebruiker.email);
     await zorgVoorGebruikerMetTotp(GEBRUIKERS.zonderAppGebruiker.email, { voornaam: 'Geen', achternaam: 'App' });
     await _leegMailpit();
-    console.log(`E2E setup: users reset, meting ${FASE_B_JAAR} prepared`);
+    console.log(`E2E setup: users reset, metingen ${FASE_B_JAAR} and ${OVERZICHT_JAREN.join(', ')} prepared`);
   } finally {
     await prisma.$disconnect();
   }

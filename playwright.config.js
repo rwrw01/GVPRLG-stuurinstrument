@@ -24,7 +24,7 @@ export default defineConfig({
     { name: 'auth-setup', testMatch: 'auth.setup.js', use: { baseURL: APP_URL } },
     {
       name: 'backend-fase-a',
-      testMatch: ['gvprlg-backend-fase-a.spec.js', 'gvprlg-spinnenweb.spec.js'],
+      testMatch: ['gvprlg-backend-fase-a.spec.js', 'gvprlg-spinnenweb.spec.js', 'gvprlg-overzicht.spec.js'],
       dependencies: ['auth-setup'],
       use: { baseURL: APP_URL, storageState: 'playwright/.auth/beheerder.json' },
     },

@@ -129,6 +129,15 @@ test.describe('GVPRLG fase B — lezer', () => {
       });
       expect(response.status()).toBe(403);
       expect((await response.json()).detail).toContain('alleen leesrechten');
+
+      // The start screen is for every active user, the lezer (supplier management) included.
+      await page.goto('/');
+      await expect(page.getByRole('heading', { name: 'Overzicht', level: 2 })).toBeVisible();
+      await expect(page.locator('.openingszin')).not.toBeEmpty();
+      await expect(page.getByRole('table', { name: 'Gemiddelde score per platform en jaar' })).toBeVisible();
+      const hoofdmenu = page.getByRole('navigation', { name: 'Hoofdmenu' });
+      await expect(hoofdmenu.getByRole('link', { name: 'Auditlog' })).toBeVisible();
+      await expect(hoofdmenu.getByRole('link', { name: 'Gebruikers' })).toHaveCount(0);
     } finally {
       await page.context().close();
     }
