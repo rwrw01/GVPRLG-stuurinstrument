@@ -94,7 +94,8 @@ TBD — nog geen adres opgegeven.
    bevat al de drie benodigde secrets.
 5. Terzijde uit de mox-log: geautomatiseerde wachtwoordpogingen op submission met gebruikersnamen
    `ralph.wagter@athide.nl` en `ralph.wagter` vanaf twee externe IP's, alle `badcreds`;
-   mox rate-limit actief. Geen actie binnen deze taak.
+   Correctie: mox heeft hier geen rate limiting en CrowdSec leest de mox-log niet; zie
+   "Hardening" hieronder.
 
 ## Vervolg — eerste deploy van de app (2026-11-14, middag)
 
@@ -111,3 +112,38 @@ Per stap akkoord van de beheerder. Bewijs: uitvoer van `scripts/deploy.sh` en lo
 
 Bijvangst: de app-log toonde een afgewezen verzoek met een ongeldige `Next-Action`-header,
 het patroon van scanners op de recente Next.js-RCE-advisories; de gepatchte versie weigerde het.
+
+## Hardening (2026-11-14, middag)
+
+Per maatregel akkoord van de beheerder.
+
+**Mox-submission niet meer publiek (B).** Mox-log vóór de wijziging: 1148 mislukte logins in
+24 uur vanaf 767 IP's (max. 7 per IP), 8585 in 7 dagen, alle op submission; geen enkele
+geslaagde login van buiten Docker. Gebruikersnamen: `ralph@athide.nl`, `ralph`,
+`ralph.wagter@athide.nl`, `ralph.wagter` (geen daarvan bestaat in mox). CrowdSec leest de
+mox-log niet; fail2ban staat uit. Maatregel in `/opt/scripts/egress-filter.sh` (backup
+`egress-filter.sh.bak-gvprlg-20261114-130524`): DROP van `eth0` naar de mox-bridge op 465 en
+993. Poort 25 blijft open. Bewijs: vanaf internet 465/993 timeout; vanuit de container
+`keycloak` 465 open; DROP-teller loopt op; 0 mislukte logins na de wijziging.
+
+**Egress-filter voor `net-fe-gvprlg` (B2).** Alleen DNS en 443. Bewijs: app → Keycloak-discovery
+200; app → `1.1.1.1:80` timeout. Bijeffect: het opnieuw draaien van het script activeerde ook de
+al in het script staande egress-regels van `net-fe-soevereinscan` (DNS, 80, 443), die niet in de
+live keten stonden; soevereinscan bleef healthy.
+
+**Script-eigendom (B3).** `egress-filter.sh` was `ralph:ralph 0775` en draait bij boot als root;
+nu `root:root 0755`. Terzijde: `netfilter-persistent` staat sinds 2026-07-05 op failed; de regels
+komen uitsluitend uit `egress-filter.service`.
+
+**Lockout in realm `gvprlg` (A).** Was: 30 foute codes per ronde, oplopend tot 15 min, nooit
+permanent; met 3 geldige codes per moment (look-ahead 1) circa 0,9% kans per dag voor een
+aanvaller die een e-mailadres kent. Nu: `failureFactor=10`, `permanentLockout=true`,
+`maxTemporaryLockouts=2`: na 30 foute codes is het account uitgeschakeld (kans ≤ 0,009%).
+Dev-test: na 10 foute codes `numTemporaryLockouts=1`, `disabled=true` (tijdelijk). De
+permanente stap is niet doorlopen. Prijs: wie een e-mailadres kent, kan een account laten
+blokkeren; runbook "Account geblokkeerd" in de README.
+
+**Open.** De gebruikersnaamstap verraadt of een e-mailadres een account heeft
+("Gebruikersnaam of e-mailadres ongeldig" tegenover het codeveld). CrowdSec-collectie
+`inherent-io/keycloak` bestaat in de hub, nog niet gelezen of geïnstalleerd (vereist
+login-events in Keycloak).

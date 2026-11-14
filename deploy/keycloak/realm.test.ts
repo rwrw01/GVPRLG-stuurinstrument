@@ -96,7 +96,8 @@ describe('realm-gvprlg', () => {
     expect(prod).toMatchObject({
       realm: 'gvprlg', registrationAllowed: false, resetPasswordAllowed: false,
       loginWithEmailAllowed: true, duplicateEmailsAllowed: false, verifyEmail: false,
-      bruteForceProtected: true, permanentLockout: false,
+      bruteForceProtected: true, permanentLockout: true, maxTemporaryLockouts: 2,
+      bruteForceStrategy: 'MULTIPLE', failureFactor: 10, waitIncrementSeconds: 60, maxFailureWaitSeconds: 900,
       ssoSessionIdleTimeout: 1800, ssoSessionMaxLifespan: 28800,
       actionTokenGeneratedByAdminLifespan: 259200,
       otpPolicyType: 'totp', otpPolicyAlgorithm: 'HmacSHA1', otpPolicyDigits: 6,

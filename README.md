@@ -265,6 +265,20 @@ Rollen en platformtoegang staan in de app (`/beheer`); Keycloak levert alleen de
 2. *Details* → *Required user actions*: **Configure OTP** zetten → *Save*.
 3. **Send email** (execute actions, *Configure OTP*, lifespan 72 uur). In de app hoeft niets.
 
+### Account geblokkeerd (te veel foute codes)
+
+Realm `gvprlg` blokkeert een account na 10 foute codes 60 s, na de volgende 10 langer
+(oplopend, maximaal 15 min). Na de derde reeks van 10 (2 tijdelijke blokkades voorbij) wordt het
+account **permanent** uitgeschakeld. De gebruiker ziet alleen "Ongeldige authenticatiecode".
+
+1. Eerst vaststellen wat er gebeurde: Keycloak-console → *Users* → gebruiker → bovenaan staat
+   "temporarily locked" of het account staat op *Disabled*. Vraag de gebruiker of hij zelf
+   codes fout typte (klok van de telefoon) of dat het niet van hem kwam.
+2. Kwam het niet van de gebruiker: behandel het als aanval op dat account. Laat de
+   authenticator opnieuw koppelen (runbook hierboven) voordat je het account vrijgeeft.
+3. Vrijgeven: *Details* → **Enabled** aan → *Save* (bij een tijdelijke blokkade: wachten of
+   *Unlock user*). De teller staat daarna weer op nul.
+
 ### Toegang intrekken
 
 1. In de app: `/beheer` → gebruiker → **Toegang intrekken** (de volgende request wordt
