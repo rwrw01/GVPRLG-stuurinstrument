@@ -4,6 +4,7 @@
 # (/opt/gvprlg/docker-compose.yml, entrypoint scripts, .env, secrets/) is never touched here.
 # Usage (Git Bash on the dev laptop): bash scripts/deploy.sh
 set -euo pipefail
+export MSYS_NO_PATHCONV=1   # Git Bash must not rewrite /mnt/c/... paths passed to wsl
 
 APP_NAME="gvprlg-app"
 MIGRATE_NAME="gvprlg-migrate"
