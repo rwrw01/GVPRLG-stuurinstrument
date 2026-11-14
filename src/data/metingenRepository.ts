@@ -19,7 +19,7 @@ export interface MetingWithPlatformen {
 }
 
 export async function listMetingen() {
-  return prisma.meting.findMany({ orderBy: { jaar: 'desc' } });
+  return prisma.meting.findMany({ orderBy: { jaar: 'asc' } });
 }
 
 export async function createMeting(jaar: number) {

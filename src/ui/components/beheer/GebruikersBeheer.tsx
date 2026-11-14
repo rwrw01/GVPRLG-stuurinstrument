@@ -19,8 +19,14 @@ function JaarKeuze({ jaren, jaar, onChange }: { jaren: number[]; jaar: number; o
   );
 }
 
+// Years are listed oldest first; open on the current calendar year, else the newest year.
+function startJaar(jaren: number[]): number {
+  const ditJaar = new Date().getFullYear();
+  return jaren.includes(ditJaar) ? ditJaar : (jaren.at(-1) ?? 0);
+}
+
 function GebruikersVoorJaar({ jaren }: { jaren: number[] }) {
-  const [jaar, setJaar] = useState(jaren[0] ?? 0);
+  const [jaar, setJaar] = useState(() => startJaar(jaren));
   const [gebruikers, setGebruikers] = useState<BeheerGebruiker[]>([]);
   const [fout, setFout] = useState<string | null>(null);
 

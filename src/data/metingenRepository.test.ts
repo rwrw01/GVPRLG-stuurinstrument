@@ -21,11 +21,11 @@ describe('metingenRepository', () => {
     expect(meting?.platformen).toEqual({});
   });
 
-  it('lijst alle metingen, meest recent eerst', async () => {
-    await createMeting(2026);
+  it('lijst alle metingen, oudste eerst', async () => {
     await createMeting(2027);
+    await createMeting(2026);
     const metingen = await listMetingen();
-    expect(metingen.map((m) => m.jaar)).toEqual([2027, 2026]);
+    expect(metingen.map((m) => m.jaar)).toEqual([2026, 2027]);
   });
 
   it('slaat een platform-score op en leest die terug met scores per as', async () => {

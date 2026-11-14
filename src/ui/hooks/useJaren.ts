@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 /**
  * Loads the measurement years once from `GET /api/metingen`.
- * @returns the years, newest first (empty on error), or null while loading
+ * @returns the years, oldest first (empty on error), or null while loading
  */
 export function useJaren(): number[] | null {
   const [jaren, setJaren] = useState<number[] | null>(null);
@@ -12,7 +12,7 @@ export function useJaren(): number[] | null {
     let actief = true;
     fetch('/api/metingen')
       .then((r) => (r.ok ? r.json() : { metingen: [] }))
-      .then((data: { metingen: { jaar: number }[] }) => data.metingen.map((m) => m.jaar).sort((a, b) => b - a))
+      .then((data: { metingen: { jaar: number }[] }) => data.metingen.map((m) => m.jaar).sort((a, b) => a - b))
       .catch(() => [])
       .then((lijst) => {
         if (actief) setJaren(lijst);
