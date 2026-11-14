@@ -1,4 +1,6 @@
-import { schrijfAudit, type AuditActie } from '../data/auditRepository';
+import type { Prisma } from '@prisma/client';
+
+import { platformDetail, schrijfAudit, type AuditActie } from '../data/auditRepository';
 import {
   telActieveBeheerders,
   vindGebruikerOpId,
@@ -6,6 +8,7 @@ import {
   wijzigRolEnWisKoppelingen,
   type GebruikerRecord,
   type Rol,
+  type VerwijderdeKoppeling,
 } from '../data/gebruikersRepository';
 import { fail, ok, type Result } from '../service/result';
 
@@ -38,20 +41,39 @@ async function controleerBescherming(
   return null;
 }
 
-async function audit(actor: GebruikerRecord, doel: GebruikerRecord, actie: AuditActie, detail: string): Promise<void> {
-  await schrijfAudit({ actor: actor.id, actie, doelType: 'gebruiker', doelId: doel.id, detail });
+async function audit(
+  actor: GebruikerRecord,
+  doel: GebruikerRecord,
+  actie: AuditActie,
+  detail: string,
+  tx?: Prisma.TransactionClient,
+): Promise<void> {
+  await schrijfAudit({ actor: actor.id, actie, doelType: 'gebruiker', doelId: doel.id, detail }, tx);
 }
 
-// A lezer never holds platform assignments: becoming one removes them all (every year) in the
-// same transaction, and the audit detail records how many were removed.
+// Same detail format as the koppelingen endpoint; an orphaned row (meting gone) has no year.
+function koppelingDetail(k: VerwijderdeKoppeling, doel: GebruikerRecord): string {
+  const plaats = k.jaar === null ? `platform=${k.platformId}` : platformDetail(k.platformId, k.jaar);
+  return `${plaats};gebruiker=${doel.email}`;
+}
+
+// A lezer never holds platform assignments: becoming one removes them all (every year). The
+// removal, the role change and all audit rows commit in one transaction.
+async function wordLezer(actor: GebruikerRecord, doel: GebruikerRecord, detail: string): Promise<GebruikerRecord> {
+  const { gebruiker } = await wijzigRolEnWisKoppelingen(doel.id, 'lezer', async (tx, verwijderd) => {
+    await audit(actor, doel, 'rol_gewijzigd', `${detail};koppelingenVerwijderd=${verwijderd.length}`, tx);
+    for (const k of verwijderd) {
+      const regel = { actor: actor.id, actie: 'koppeling_verwijderd' as const, doelType: 'platform_invuller' };
+      await schrijfAudit({ ...regel, doelId: doel.id, detail: koppelingDetail(k, doel) }, tx);
+    }
+  });
+  return gebruiker;
+}
+
 async function wijzigRol(actor: GebruikerRecord, doel: GebruikerRecord, rol: Rol): Promise<GebruikerRecord> {
   if (doel.rol === rol) return doel;
   const detail = `van=${doel.rol};naar=${rol};email=${doel.email}`;
-  if (rol === 'lezer') {
-    const { gebruiker, verwijderdeKoppelingen } = await wijzigRolEnWisKoppelingen(doel.id, rol);
-    await audit(actor, doel, 'rol_gewijzigd', `${detail};koppelingenVerwijderd=${verwijderdeKoppelingen}`);
-    return gebruiker;
-  }
+  if (rol === 'lezer') return wordLezer(actor, doel, detail);
   const gewijzigd = await wijzigGebruiker(doel.id, { rol });
   await audit(actor, doel, 'rol_gewijzigd', detail);
   return gewijzigd;

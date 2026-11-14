@@ -73,6 +73,7 @@ export async function voegVoorzitterToe(
     detail: `email=${gebruiker.email};rol=${gebruiker.rol}`,
   });
   const wijziging = await zetKoppelingen(gebruiker.id, meting.id, invoer.platformIds);
+  if (!wijziging.ok) return fail('lezer-koppeling');
   await auditKoppelingen(actor, gebruiker, invoer.jaar, wijziging);
   return ok(gebruiker);
 }
@@ -97,7 +98,11 @@ export async function zetKoppelingenDoorBeheerder(
   const meting = await getMetingByJaar(jaar);
   if (!meting) return fail('meting-onbekend');
 
-  const wijziging = await zetKoppelingen(doel.id, meting.id, platformIds);
+  // The role is checked again under a row lock inside zetKoppelingen: a concurrent change to
+  // lezer cannot slip in between the check above and the write.
+  const resultaat = await zetKoppelingen(doel.id, meting.id, platformIds);
+  if (!resultaat.ok) return fail('lezer-koppeling');
+  const wijziging = { toegevoegd: resultaat.toegevoegd, verwijderd: resultaat.verwijderd };
   await auditKoppelingen(actor, doel, jaar, wijziging);
   return ok(wijziging);
 }

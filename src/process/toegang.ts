@@ -32,15 +32,23 @@ export function vereisRol(g: GebruikerRecord, rol: Rol): Result<GebruikerRecord,
  * @param g - Active user
  * @param metingId - Meting id
  * @param platformId - Platform id
- * @returns The user, 403 `alleen-lezen` for a reader, or 403 `geen-koppeling` for an unassigned filler
+ * @returns The user, 403 `alleen-lezen` for a reader, 403 `geen-koppeling` for an unassigned filler,
+ *   or 403 `rol` for any other role value (deny by default)
  */
 export async function vereisPlatformSchrijfrecht(
   g: GebruikerRecord,
   metingId: string,
   platformId: string,
 ): Promise<Result<GebruikerRecord, Weigering>> {
-  if (g.rol === 'lezer') return fail({ status: 403, reden: 'alleen-lezen' });
-  if (g.rol === 'beheerder') return ok(g);
-  if (await heeftKoppeling(g.id, metingId, platformId)) return ok(g);
-  return fail({ status: 403, reden: 'geen-koppeling' });
+  // Allowlist per role; an unknown role value (the DB column is a plain string) is denied.
+  switch (g.rol) {
+    case 'beheerder':
+      return ok(g);
+    case 'invuller':
+      return (await heeftKoppeling(g.id, metingId, platformId)) ? ok(g) : fail({ status: 403, reden: 'geen-koppeling' });
+    case 'lezer':
+      return fail({ status: 403, reden: 'alleen-lezen' });
+    default:
+      return fail({ status: 403, reden: 'rol' });
+  }
 }

@@ -1,4 +1,4 @@
-import type { Gebruiker } from '@prisma/client';
+import type { Gebruiker, Prisma } from '@prisma/client';
 
 import { prisma } from './prismaClient';
 
@@ -21,6 +21,24 @@ function normaliseerEmail(email: string): string {
 // The DB columns are plain strings; writes only ever go through the typed functions below.
 function naarRecord(rij: Gebruiker): GebruikerRecord {
   return rij as GebruikerRecord;
+}
+
+/** A platform assignment removed when a user becomes `lezer`; `jaar` is null for an orphaned row. */
+export interface VerwijderdeKoppeling {
+  platformId: string;
+  jaar: number | null;
+}
+
+/** Outcome of `zetKoppelingen`: the diff, or a refusal because the (locked) user is a `lezer`. */
+export type KoppelingenResultaat =
+  | { ok: true; toegevoegd: string[]; verwijderd: string[] }
+  | { ok: false; reden: 'lezer' };
+
+// Locks the user's row until the transaction ends, so assignment changes and a role change to
+// `lezer` serialize. Returns the locked role, or null when the user does not exist.
+async function _vergrendelRol(tx: Prisma.TransactionClient, id: string): Promise<string | null> {
+  const rijen = await tx.$queryRaw<Array<{ rol: string }>>`SELECT rol FROM gebruikers WHERE id = ${id} FOR UPDATE`;
+  return rijen[0]?.rol ?? null;
 }
 
 function naarRecordOfNull(rij: Gebruiker | null): GebruikerRecord | null {
@@ -120,20 +138,30 @@ export async function wijzigGebruiker(id: string, wijziging: GebruikerWijziging)
 }
 
 /**
- * Changes the role and, in the same transaction, removes all platform assignments of the user
- * (every meting). Used when a user becomes a `lezer`, who may never hold assignments.
+ * Changes the role and, in one transaction with a row lock on the user, removes all platform
+ * assignments of the user (every meting). `auditInTx` runs inside the same transaction, so the
+ * audit rows commit or roll back together with the change. Used when a user becomes a `lezer`.
  * @param id - User id
  * @param rol - New role
- * @returns The updated user and the number of removed assignments
+ * @param auditInTx - Writes the audit rows through the given transaction client
+ * @returns The updated user and the removed assignments (with their year)
  */
 export async function wijzigRolEnWisKoppelingen(
   id: string,
   rol: Rol,
-): Promise<{ gebruiker: GebruikerRecord; verwijderdeKoppelingen: number }> {
+  auditInTx: (tx: Prisma.TransactionClient, verwijderd: VerwijderdeKoppeling[]) => Promise<void>,
+): Promise<{ gebruiker: GebruikerRecord; verwijderd: VerwijderdeKoppeling[] }> {
   return prisma.$transaction(async (tx) => {
-    const { count } = await tx.platformInvuller.deleteMany({ where: { gebruiker: id } });
+    await _vergrendelRol(tx, id);
+    const rijen = await tx.platformInvuller.findMany({ where: { gebruiker: id } });
+    const metingIds = [...new Set(rijen.map((r) => r.metingId))];
+    const metingen = await tx.meting.findMany({ where: { id: { in: metingIds } }, select: { id: true, jaar: true } });
+    const jaarVan = new Map(metingen.map((m) => [m.id, m.jaar]));
+    await tx.platformInvuller.deleteMany({ where: { id: { in: rijen.map((r) => r.id) } } });
     const rij = await tx.gebruiker.update({ where: { id }, data: { rol } });
-    return { gebruiker: naarRecord(rij), verwijderdeKoppelingen: count };
+    const verwijderd = rijen.map((r) => ({ platformId: r.platformId, jaar: jaarVan.get(r.metingId) ?? null }));
+    await auditInTx(tx, verwijderd);
+    return { gebruiker: naarRecord(rij), verwijderd };
   });
 }
 
@@ -193,19 +221,22 @@ export async function platformIdsVanGebruiker(gebruikerId: string): Promise<stri
 }
 
 /**
- * Replaces the user's platform assignments for one meting with the requested set (one transaction).
- * Assignments for other metingen are untouched. Writes no audit rows.
+ * Replaces the user's platform assignments for one meting with the requested set (one transaction
+ * holding a row lock on the user). Assignments for other metingen are untouched. Writes no audit rows.
+ * A `lezer` (role read under the lock) can only get an empty set.
  * @param gebruikerId - User id
  * @param metingId - Meting id
  * @param platformIds - Desired platform ids for this meting
- * @returns Platform ids that were added and removed
+ * @returns Platform ids that were added and removed, or `{ ok: false, reden: 'lezer' }`
  */
 export async function zetKoppelingen(
   gebruikerId: string,
   metingId: string,
   platformIds: string[],
-): Promise<{ toegevoegd: string[]; verwijderd: string[] }> {
+): Promise<KoppelingenResultaat> {
   return prisma.$transaction(async (tx) => {
+    const rol = await _vergrendelRol(tx, gebruikerId);
+    if (rol === 'lezer' && platformIds.length > 0) return { ok: false, reden: 'lezer' } as const;
     const bestaand = await tx.platformInvuller.findMany({ where: { metingId, gebruiker: gebruikerId } });
     const huidig = new Set(bestaand.map((k) => k.platformId));
     const gewenst = new Set(platformIds);
@@ -219,6 +250,6 @@ export async function zetKoppelingen(
     if (verwijderd.length > 0) {
       await tx.platformInvuller.deleteMany({ where: { metingId, gebruiker: gebruikerId, platformId: { in: verwijderd } } });
     }
-    return { toegevoegd, verwijderd };
+    return { ok: true, toegevoegd, verwijderd } as const;
   });
 }

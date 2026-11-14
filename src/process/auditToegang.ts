@@ -7,8 +7,8 @@ export type AuditVerzoek = Omit<AuditFilter, 'platformIds'> & { platformId?: str
 /**
  * Scopes an audit search to what the user may see. A beheerder sees everything. An invuller only
  * sees rows of platforms he is assigned to in any year (an empty set yields no rows), cannot pick
- * a foreign platform and cannot filter on actor. A lezer gets exactly the invuller view; since a
- * lezer never holds assignments, that is an empty result.
+ * a foreign platform and cannot filter on actor. A lezer gets the invuller view without any
+ * platform (`platformIds: []`, so no rows), regardless of any assignment rows.
  * @param gebruiker - Active user behind the session
  * @param verzoek - Requested filter
  * @returns Filter for `zoekAudit`
@@ -21,6 +21,8 @@ export async function beperkAuditFilterTotGebruiker(
   if (gebruiker.rol === 'beheerder') {
     return { ...rest, actor, platformIds: platformId ? [platformId] : undefined };
   }
+  // Defence in depth: a lezer sees no platform rows, even if a stray assignment exists.
+  if (gebruiker.rol === 'lezer') return { ...rest, platformIds: [] };
   const eigen = await platformIdsVanGebruiker(gebruiker.id);
   const platformIds = platformId && eigen.includes(platformId) ? [platformId] : eigen;
   return { ...rest, platformIds };

@@ -66,6 +66,16 @@ describe('POST /api/metingen', () => {
   });
 });
 
+describe('POST /api/metingen as lezer', () => {
+  it('should answer 403 to a lezer without creating a meting', async () => {
+    mockSessie(await maakGebruiker({ email: 'lea@test.local', naam: 'Lea', rol: 'lezer', status: 'actief' }));
+    const response = await POST(jsonRequest({ jaar: 2027 }));
+    expect(response.status).toBe(403);
+    expect(await prisma.meting.count()).toBe(0);
+    expect(await prisma.auditLogEntry.count({ where: { actie: 'toegang_geweigerd' } })).toBe(1);
+  });
+});
+
 describe('GET /api/metingen', () => {
   it('geeft een lijst metingen terug', async () => {
     await POST(jsonRequest({ jaar: 2027 }));

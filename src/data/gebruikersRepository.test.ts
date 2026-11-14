@@ -6,6 +6,7 @@ import {
   platformIdsVanGebruiker,
   telActieveBeheerders,
   vindGebruikerOpEmail,
+  wijzigRolEnWisKoppelingen,
   zetKoppelingen,
 } from './gebruikersRepository';
 
@@ -51,17 +52,56 @@ describe('gebruikersRepository', () => {
     await zetKoppelingen(g.id, m2028.id, ['ro']);
 
     const eerste = await zetKoppelingen(g.id, m2027.id, ['ro', 'belastingen']);
+    if (!eerste.ok) throw new Error('expected ok');
     expect(eerste.toegevoegd.sort()).toEqual(['belastingen', 'ro']);
     expect(eerste.verwijderd).toEqual([]);
 
     const tweede = await zetKoppelingen(g.id, m2027.id, ['belastingen', 'sociaal']);
-    expect(tweede.toegevoegd).toEqual(['sociaal']);
-    expect(tweede.verwijderd).toEqual(['ro']);
+    expect(tweede).toEqual({ ok: true, toegevoegd: ['sociaal'], verwijderd: ['ro'] });
 
     const rijen2027 = await prisma.platformInvuller.findMany({ where: { metingId: m2027.id, gebruiker: g.id } });
     expect(rijen2027.map((r) => r.platformId).sort()).toEqual(['belastingen', 'sociaal']);
     const rijen2028 = await prisma.platformInvuller.findMany({ where: { metingId: m2028.id, gebruiker: g.id } });
     expect(rijen2028.map((r) => r.platformId)).toEqual(['ro']);
+  });
+
+  it('should refuse assignments for a lezer under the row lock but allow an empty set', async () => {
+    const m2027 = await prisma.meting.create({ data: { jaar: 2027 } });
+    const lezer = await maakGebruiker({ email: 'l@test.local', naam: 'L', rol: 'lezer' });
+
+    expect(await zetKoppelingen(lezer.id, m2027.id, ['ro'])).toEqual({ ok: false, reden: 'lezer' });
+    expect(await zetKoppelingen(lezer.id, m2027.id, [])).toEqual({ ok: true, toegevoegd: [], verwijderd: [] });
+    expect(await prisma.platformInvuller.count()).toBe(0);
+  });
+
+  it('should serialize a concurrent role change to lezer and an assignment write', async () => {
+    const m2027 = await prisma.meting.create({ data: { jaar: 2027 } });
+    const g = await maakGebruiker({ email: 'c@test.local', naam: 'C', rol: 'invuller' });
+
+    // Whichever transaction takes the lock first, the user never ends up as lezer with assignments.
+    const [, koppel] = await Promise.all([
+      wijzigRolEnWisKoppelingen(g.id, 'lezer', async () => {}),
+      zetKoppelingen(g.id, m2027.id, ['ro']),
+    ]);
+
+    const rijen = await prisma.platformInvuller.count({ where: { gebruiker: g.id } });
+    expect(koppel.ok || rijen === 0).toBe(true);
+    expect(rijen).toBe(0);
+    expect((await prisma.gebruiker.findUnique({ where: { id: g.id } }))?.rol).toBe('lezer');
+  });
+
+  it('should roll back the role change and the removal when the audit callback fails', async () => {
+    const m2027 = await prisma.meting.create({ data: { jaar: 2027 } });
+    const g = await maakGebruiker({ email: 'r@test.local', naam: 'R', rol: 'invuller' });
+    await zetKoppelingen(g.id, m2027.id, ['ro', 'belastingen']);
+
+    const mislukt = wijzigRolEnWisKoppelingen(g.id, 'lezer', async () => {
+      throw new Error('audit insert failed');
+    });
+
+    await expect(mislukt).rejects.toThrow('audit insert failed');
+    expect((await prisma.gebruiker.findUnique({ where: { id: g.id } }))?.rol).toBe('invuller');
+    expect(await prisma.platformInvuller.count({ where: { gebruiker: g.id } })).toBe(2);
   });
 
   it('platformIdsVanGebruiker geeft de unieke platformen over alle jaren', async () => {

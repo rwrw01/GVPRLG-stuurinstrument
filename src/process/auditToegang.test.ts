@@ -66,6 +66,9 @@ describe('beperkAuditFilterTotGebruiker', () => {
 
   it('should give a lezer the invuller view: no actor filter and only own (no) platforms', async () => {
     const lezer = await maakGebruiker({ email: 'lea@test.local', naam: 'Lea', rol: 'lezer', status: 'actief' });
+    const meting = await createMeting(2026);
+    // Even a stray assignment row must not widen a lezer's view.
+    await prisma.platformInvuller.create({ data: { metingId: meting.id, platformId: 'ro', gebruiker: lezer.id } });
 
     expect(await beperkAuditFilterTotGebruiker(lezer, { platformId: 'ro', actor: beheerder.id, limiet: 200 })).toEqual({
       limiet: 200,

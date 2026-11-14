@@ -86,6 +86,17 @@ describe('POST /api/metingen/[jaar]/platformen/[platformId]/heropenen', () => {
     expect(await prisma.auditLogEntry.count({ where: { actie: 'platform_heropend' } })).toBe(0);
   });
 
+  it('should answer 403 to a lezer and keep the platform definitief', async () => {
+    await maakPlatform('definitief');
+    mockSessie(await maakGebruiker({ email: 'lea@test.local', naam: 'Lea', rol: 'lezer', status: 'actief' }));
+
+    const response = await POST(postRequest(), PARAMS);
+
+    expect(response.status).toBe(403);
+    expect(await platformStatus()).toBe('definitief');
+    expect(await prisma.auditLogEntry.count({ where: { actie: 'toegang_geweigerd' } })).toBe(1);
+  });
+
   it('409 voor een concept', async () => {
     await maakPlatform('concept');
 

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { prisma } from '../data/prismaClient';
 import {
@@ -154,6 +154,32 @@ describe('wijzigGebruikerDoorBeheerder', () => {
     const audit = await prisma.auditLogEntry.findMany({ where: { actie: 'rol_gewijzigd' } });
     expect(audit).toHaveLength(1);
     expect(audit[0]?.detail).toBe('van=invuller;naar=lezer;email=jan@test.local;koppelingenVerwijderd=3');
+    const koppelAudit = await prisma.auditLogEntry.findMany({ where: { actie: 'koppeling_verwijderd' } });
+    expect(koppelAudit.map((a) => [a.actor, a.doelType, a.doelId, a.detail]).sort()).toEqual([
+      [beheerder.id, 'platform_invuller', jan.id, 'platform=belastingen;jaar=2027;gebruiker=jan@test.local'],
+      [beheerder.id, 'platform_invuller', jan.id, 'platform=ro;jaar=2026;gebruiker=jan@test.local'],
+      [beheerder.id, 'platform_invuller', jan.id, 'platform=ro;jaar=2027;gebruiker=jan@test.local'],
+    ]);
+  });
+
+  it('should commit nothing when an audit insert fails during the change to lezer', async () => {
+    const meting = await createMeting(2027);
+    const jan = await maakGebruiker({ email: 'jan@test.local', naam: 'Jan', rol: 'invuller' });
+    await zetKoppelingen(jan.id, meting.id, ['ro']);
+    const create = vi.fn().mockRejectedValue(new Error('audit insert failed'));
+    const spy = vi.spyOn(prisma, '$transaction').mockImplementationOnce(async (fn: unknown) =>
+      prisma.$transaction(async (tx) => {
+        const get = (doel: typeof tx, sleutel: string | symbol) => (sleutel === 'auditLogEntry' ? { create } : Reflect.get(doel, sleutel));
+        return (fn as (t: typeof tx) => Promise<unknown>)(new Proxy(tx, { get }));
+      }),
+    );
+
+    await expect(wijzigGebruikerDoorBeheerder(beheerder, jan.id, { actie: 'rol', rol: 'lezer' })).rejects.toThrow('audit insert failed');
+    spy.mockRestore();
+    expect(create).toHaveBeenCalled();
+    expect(await vindGebruikerOpId(jan.id)).toMatchObject({ rol: 'invuller' });
+    expect(await prisma.platformInvuller.count({ where: { gebruiker: jan.id } })).toBe(1);
+    expect(await prisma.auditLogEntry.count()).toBe(0);
   });
 
   it('should apply self-protection and last-beheerder protection to beheerder -> lezer', async () => {

@@ -177,7 +177,8 @@ describe('PUT /api/metingen/[jaar]/platformen/[platformId]', () => {
   it('should refuse a lezer with 403 alleen-lezen (audited) even with an assignment', async () => {
     const meting = await createMeting(2027);
     const lezer = await maakGebruiker({ email: 'lea@test.local', naam: 'Lea', rol: 'lezer', status: 'actief' });
-    await zetKoppelingen(lezer.id, meting.id, ['belastingen']);
+    // Stray assignment inserted directly: the repository refuses links for a lezer.
+    await prisma.platformInvuller.create({ data: { metingId: meting.id, platformId: 'belastingen', gebruiker: lezer.id } });
     mockSessie(lezer);
 
     const response = await PUT(putRequest(CONCEPT), { params: Promise.resolve({ jaar: '2027', platformId: 'belastingen' }) });

@@ -65,6 +65,15 @@ describe('PATCH /api/beheer/gebruikers/[id]', () => {
     expect(audit?.detail).toContain('koppelingenVerwijderd=2');
   });
 
+  it('should answer 403 to a lezer acting as beheerder', async () => {
+    mockSessie(await maakGebruiker({ email: 'lea@test.local', naam: 'Lea', rol: 'lezer', status: 'actief' }));
+
+    const response = await patch(jan.id, { actie: 'intrekken' });
+
+    expect(response.status).toBe(403);
+    expect(await vindGebruikerOpId(jan.id)).toMatchObject({ status: 'actief' });
+  });
+
   it('should answer 400 for an unknown rol', async () => {
     const response = await patch(jan.id, { actie: 'rol', rol: 'kijker' });
 
