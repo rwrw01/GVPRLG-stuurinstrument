@@ -17,3 +17,5 @@ secrets
 secrets-dev
 *.xlsx
 *.jpeg
+docker-compose.yml
+scripts/deploy.sh

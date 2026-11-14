@@ -1,5 +1,7 @@
 services:
   migrate:
+    # On VPS-001 the image is built locally and piped in (scripts/deploy.sh); never built there.
+    image: ${MIGRATE_IMAGE:-gvprlg-migrate:latest}
     build:
       context: .
       dockerfile: Dockerfile
@@ -23,6 +25,7 @@ services:
         condition: service_healthy
 
   app:
+    image: ${APP_IMAGE:-gvprlg-app:latest}
     build:
       context: .
       dockerfile: Dockerfile
