@@ -64,7 +64,7 @@
 .heropenen { margin-top: 0.75rem; }
 
 /* Tables never widen the page: they scroll inside their card. */
-.tabel-scroll { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.tabel-scroll { position: relative; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .cel-detail { overflow-wrap: anywhere; }
 
 /* Narrow screens (phone, iPad portrait in split view): one card per row.

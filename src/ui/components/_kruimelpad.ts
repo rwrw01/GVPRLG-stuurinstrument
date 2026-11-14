@@ -18,7 +18,7 @@ function beheerKruimels(sub: string | undefined): Kruimel[] {
  * @returns crumbs from the home page down to the current page
  */
 export function bouwKruimelpad(pathname: string): Kruimel[] {
-  const crumbs: Kruimel[] = [{ label: 'Metingen', href: '/' }];
+  const crumbs: Kruimel[] = [{ label: 'Overzicht', href: '/' }];
   const [eerste, jaar, platformId, sub] = pathname.split('/').filter(Boolean);
   if (eerste === 'beheer') return [...crumbs, ...beheerKruimels(jaar)];
   if (eerste !== 'metingen' || !jaar) return crumbs;

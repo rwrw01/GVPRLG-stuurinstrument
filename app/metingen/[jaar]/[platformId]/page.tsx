@@ -133,7 +133,7 @@ export default function InvulformulierPage() {
                       checked={scores[v.id] === s.waarde}
                       disabled={alleenLezen}
                       onChange={() => setScores((prev) => ({ ...prev, [v.id]: s.waarde }))}
-                      aria-label={`${s.waarde} - ${s.label}: ${s.beschrijving}`}
+                      aria-label={`${s.waarde} - ${s.naam} (${s.label}): ${s.beschrijving}`}
                     />
                     <span className="score-btn">{s.waarde}</span>
                   </label>

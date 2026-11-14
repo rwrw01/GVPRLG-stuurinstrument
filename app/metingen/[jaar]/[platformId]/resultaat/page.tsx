@@ -96,7 +96,7 @@ export default function ResultaatPage() {
             spaken={VRAAG_SPAKEN}
             groepen={AS_GROEPEN}
             grootte={420}
-            series={[{ label: `${platform?.naam} ${params.jaar}`, waarden: naarSpaakWaarden(berekenGemiddeldePerVraag([data.scoresPerAs])), kleur: '#E2007A', gestippeld: data.status === 'concept' }]}
+            series={[{ label: `${platform?.naam} ${params.jaar}`, waarden: naarSpaakWaarden(berekenGemiddeldePerVraag([data.scoresPerAs])), kleur: '#2c7fa0', gestippeld: data.status === 'concept' }]}
           />
           <p className="totaalscore">Totaal: {totaal?.toFixed(1) ?? '-'} / 5</p>
           <table aria-label="Scores per as">

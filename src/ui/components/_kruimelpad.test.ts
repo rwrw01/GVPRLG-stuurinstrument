@@ -3,19 +3,19 @@ import { bouwKruimelpad } from './_kruimelpad';
 
 describe('bouwKruimelpad', () => {
   it('should return only the home crumb when on the home page', () => {
-    expect(bouwKruimelpad('/')).toEqual([{ label: 'Metingen', href: '/' }]);
+    expect(bouwKruimelpad('/')).toEqual([{ label: 'Overzicht', href: '/' }]);
   });
 
   it('should add the measurement year when on a meting page', () => {
     expect(bouwKruimelpad('/metingen/2026')).toEqual([
-      { label: 'Metingen', href: '/' },
+      { label: 'Overzicht', href: '/' },
       { label: 'Meting 2026', href: '/metingen/2026' },
     ]);
   });
 
   it('should use the platform name from config when on the invulformulier', () => {
     expect(bouwKruimelpad('/metingen/2026/ro')).toEqual([
-      { label: 'Metingen', href: '/' },
+      { label: 'Overzicht', href: '/' },
       { label: 'Meting 2026', href: '/metingen/2026' },
       { label: 'R&O', href: '/metingen/2026/ro' },
     ]);
@@ -23,7 +23,7 @@ describe('bouwKruimelpad', () => {
 
   it('should end with the result crumb when on a result page', () => {
     const crumbs = bouwKruimelpad('/metingen/2026/belastingen/resultaat');
-    expect(crumbs.map((c) => c.label)).toEqual(['Metingen', 'Meting 2026', 'Belastingen', 'Resultaat']);
+    expect(crumbs.map((c) => c.label)).toEqual(['Overzicht', 'Meting 2026', 'Belastingen', 'Resultaat']);
     expect(crumbs[3]?.href).toBe('/metingen/2026/belastingen/resultaat');
   });
 
@@ -33,14 +33,14 @@ describe('bouwKruimelpad', () => {
 
   it('should add the beheer crumb when on the administration page', () => {
     expect(bouwKruimelpad('/beheer')).toEqual([
-      { label: 'Metingen', href: '/' },
+      { label: 'Overzicht', href: '/' },
       { label: 'Beheer', href: '/beheer' },
     ]);
   });
 
   it('should end with the audit crumb when on the audit page', () => {
     expect(bouwKruimelpad('/beheer/audit')).toEqual([
-      { label: 'Metingen', href: '/' },
+      { label: 'Overzicht', href: '/' },
       { label: 'Beheer', href: '/beheer' },
       { label: 'Audit', href: '/beheer/audit' },
     ]);

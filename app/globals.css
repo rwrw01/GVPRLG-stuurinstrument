@@ -1,24 +1,27 @@
-/* css/style.css — PinkRoccade Local Government huisstijl */
+/* gvprlg.nl huisstijl (design 2026-11-14, section 2) */
 :root {
-  /* PinkRoccade brand */
-  --color-primary: #000041;
-  --color-accent: #E2007A;
-  --color-accent-hover: #B80164;
-  --color-secondary: #3786D2;
-  --color-cyan: #40CEE2;
+  /* gvprlg brand */
+  --color-primary: #2a5b70;
+  --color-deep: #1c3f4f;
+  --color-accent: #2c7fa0; /* white text on it: 4.5:1 */
+  --color-accent-hover: #2a5b70;
+  --color-light: #437e9d;
+  --gradient: linear-gradient(90deg, #2a5b70, #437e9d);
+  --gradient-menu: linear-gradient(180deg, #2a5b70, #1c3f4f);
+  --color-secondary: #2a5b70; /* links: 7:1 on white */
   /* Semantic (WCAG AA contrast op wit) */
   --color-success: #15803D;
   --color-warning: #C2410C;
   --color-danger: #B91C1C;
   /* Surfaces */
-  --color-bg: #F0F0F2;
+  --color-bg: #f3f6f7;
   --color-surface: #FFFFFF;
-  --color-text: #000041;
-  --color-muted: #64748b;
-  --color-border: #e2e8f0;
+  --color-text: #16242b;
+  --color-muted: #4d5f68; /* 6:1 on the background */
+  --color-border: #dbe3e6;
   --radius: 8px;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  --focus-ring: 0 0 0 3px rgba(226, 0, 122, 0.4);
+  --focus-ring: 0 0 0 2px #ffffff, 0 0 0 4px #1c3f4f;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -30,16 +33,6 @@ body {
   line-height: 1.6;
 }
 
-header {
-  background: var(--color-primary);
-  color: white;
-  padding: 1.5rem 2rem;
-}
-
-header h1 { font-size: 1.4rem; font-weight: 600; }
-.subtitle { color: rgba(255, 255, 255, 0.7); font-size: 0.9rem; }
-
-main { max-width: 1200px; margin: 0 auto; padding: 2rem; }
 
 /* Navigation tabs */
 .nav-tabs {
@@ -356,8 +349,8 @@ th { font-weight: 600; background: var(--color-bg); }
 /* NDS tag */
 .nds-tag {
   display: inline-block;
-  background: rgba(226, 0, 122, 0.1);
-  color: var(--color-accent);
+  background: #e3eff4;
+  color: var(--color-primary);
   font-size: 0.7rem;
   font-weight: 600;
   padding: 0.1rem 0.4rem;
@@ -367,15 +360,13 @@ th { font-weight: 600; background: var(--color-bg); }
 
 /* Responsive */
 @media (max-width: 768px) {
-  header { padding: 1rem; }
-  main { padding: 1rem; }
   .nav-tab { padding: 0.5rem 0.75rem; font-size: 0.85rem; }
   .dashboard-grid { grid-template-columns: 1fr; }
 }
 
 /* Print */
 @media print {
-  header { background: white; color: black; border-bottom: 2px solid black; }
+  .kop { background: white; color: black; border-bottom: 2px solid black; }
   .btn, .nav-tabs, .alert-warning { display: none; }
   .card { break-inside: avoid; box-shadow: none; border: 1px solid #ccc; }
 }
@@ -401,7 +392,7 @@ th { font-weight: 600; background: var(--color-bg); }
 }
 .inlog-hulp-knop:hover,
 .inlog-hulp-knop[aria-expanded="true"] { color: var(--color-primary); border-color: var(--color-primary); }
-.inlog-hulp-knop:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.inlog-hulp-knop:focus-visible { outline: 2px solid var(--color-deep); outline-offset: 2px; }
 .inlog-hulp-tekst {
   margin-top: 1rem;
   padding: 0.75rem 1rem;
