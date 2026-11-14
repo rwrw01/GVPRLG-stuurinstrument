@@ -9,6 +9,7 @@ import {
   PLATFORM_CONCEPT,
   PLATFORM_DEFINITIEF,
   PLATFORM_INVULLER,
+  wisJaarClaims,
 } from './e2e-data';
 import { keycloakId, resetNaarTotpInstellen, zorgVoorGebruikerMetTotp } from './keycloak-admin';
 
@@ -101,6 +102,7 @@ export default async function globalSetup(): Promise<void> {
     ...(await import('../src/data/metingenRepository')),
   };
   try {
+    wisJaarClaims();
     await _ruimJarenOp(prisma);
     const beheerderId = await _zorgVoorActief(repos, GEBRUIKERS.beheerder, 'beheerder');
     const invullerId = await _zorgVoorActief(repos, GEBRUIKERS.invuller, 'invuller');

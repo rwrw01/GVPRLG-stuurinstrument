@@ -26,7 +26,10 @@ test.describe('Startscherm Overzicht en zijmenu', () => {
 
     // Keyboard focus on a point shows its tooltip.
     await trend.getByRole('img', { name: `Belastingen, ${TWEEDE}: 4,0` }).focus();
-    await expect(trend.locator('.trend-tooltip')).toContainText(`Belastingen, ${TWEEDE}: 4,0`);
+    await expect(trend.getByTestId('trend-tooltip')).toContainText(`Belastingen, ${TWEEDE}: 4,0`);
+    await page.keyboard.press('Escape');
+    await expect(trend.getByTestId('trend-tooltip')).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Naar de tabel met alle jaren' })).toHaveAttribute('href', '#jaren-tabel');
 
     await expect(page.locator('#nieuw-jaar')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Meting aanmaken' })).toHaveCount(0);
@@ -87,7 +90,16 @@ test.describe('Startscherm Overzicht en zijmenu', () => {
     await expect(knop).toHaveAttribute('aria-expanded', 'false');
     await expect(hoofdmenu).toBeHidden();
 
-    // Escape folds it as well and returns focus to the button; following a link folds it too.
+    // A click on the link of the current page folds it too, as does Escape on the button itself.
+    await knop.click();
+    await hoofdmenu.getByRole('link', { name: 'Overzicht' }).click();
+    await expect(hoofdmenu).toBeHidden();
+    await knop.click();
+    await knop.focus();
+    await page.keyboard.press('Escape');
+    await expect(knop).toHaveAttribute('aria-expanded', 'false');
+
+    // Escape inside the menu folds it and returns focus to the button; following a link folds it too.
     await knop.click();
     await hoofdmenu.getByRole('link', { name: 'Overzicht' }).focus();
     await page.keyboard.press('Escape');
