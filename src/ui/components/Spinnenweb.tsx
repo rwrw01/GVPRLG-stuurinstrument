@@ -5,6 +5,8 @@ export interface SpinnenwebSerie {
   waarden: Array<number | null>;
   kleur: string;
   gestippeld?: boolean;
+  /** False draws only the outline (e.g. the previous year); default true. */
+  vulling?: boolean;
 }
 
 export interface Spaak {
@@ -75,8 +77,9 @@ export function Spinnenweb({ spaken, series, titel, grootte = 320, toonLabels = 
           <text key={ring} className="spinnenweb-tick" x={midden + 3} y={midden - (straal * ring) / MAX - 2}>{ring}</text>
         ))}
         {series.map((s) => (
-          <polygon key={s.label} points={radarPolygoon(s.waarden, schaal)} fill={s.kleur} fillOpacity={0.18}
-            stroke={s.kleur} strokeWidth={2} strokeLinejoin="round" strokeDasharray={s.gestippeld ? '5 4' : undefined} />
+          <polygon key={s.label} points={radarPolygoon(s.waarden, schaal)} fill={s.vulling === false ? 'none' : s.kleur}
+            fillOpacity={0.18} stroke={s.kleur} strokeWidth={s.vulling === false ? 1.5 : 2} strokeLinejoin="round"
+            strokeDasharray={s.gestippeld ? '5 4' : undefined} />
         ))}
       </svg>
       {groepen && <Legenda items={groepen} swatch={false} />}
