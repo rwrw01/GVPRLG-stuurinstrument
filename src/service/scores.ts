@@ -22,14 +22,27 @@ export function berekenGemiddeldePerAs(lijst: AssenLijst, rij: ScoresPerAs): Rec
 }
 
 /**
- * Mean of the axis averages of one business unit row.
+ * Scores of the answered questions of one business unit row, in list order. Unanswered questions
+ * and questions outside the year's list are left out.
+ * @param lijst - Questionnaire of the year
+ * @param rij - Scores per axis of one business unit
+ * @returns the answered scores
+ */
+export function beantwoordeScores(lijst: AssenLijst, rij: ScoresPerAs): number[] {
+  return lijst.assen.flatMap((as) => as.vragen.map((v) => rij[as.id]?.[v.id]).filter((s): s is number => s != null));
+}
+
+/**
+ * Total of one business unit row: the mean over all its answered questions, so an axis with more
+ * questions weighs more. Unanswered questions do not count. The one rule for a total score on
+ * every screen.
  * @param lijst - Questionnaire of the year
  * @param rij - Scores per axis of one business unit
  * @returns the total, or null without answered questions
  */
 export function berekenTotaalGemiddelde(lijst: AssenLijst, rij: ScoresPerAs): number | null {
-  const waarden = Object.values(berekenGemiddeldePerAs(lijst, rij)).filter((v): v is number => v != null);
-  return waarden.length > 0 ? waarden.reduce((sum, v) => sum + v, 0) / waarden.length : null;
+  const scores = beantwoordeScores(lijst, rij);
+  return scores.length > 0 ? scores.reduce((sum, s) => sum + s, 0) / scores.length : null;
 }
 
 /**

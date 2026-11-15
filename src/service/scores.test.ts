@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { standaardLijst } from '@/tests/support/vragenlijst-testdata';
 
-import { berekenGemiddeldePerAs, berekenGemiddeldePerVraag, berekenOrganisatieGemiddelde, berekenTotaalGemiddelde, type ScoresPerAs } from './scores';
+import { beantwoordeScores, berekenGemiddeldePerAs, berekenGemiddeldePerVraag, berekenOrganisatieGemiddelde, berekenTotaalGemiddelde, type ScoresPerAs } from './scores';
 
 const LIJST = standaardLijst();
 
@@ -25,13 +25,28 @@ describe('berekenGemiddeldePerAs', () => {
 });
 
 describe('berekenTotaalGemiddelde', () => {
-  it('berekent het gemiddelde over de as-gemiddelden, niet over individuele vragen', () => {
+  it('should take the mean over all answered questions when the axes have 4/4/8 questions', () => {
     const data: ScoresPerAs = {
-      techniek: { 'common-ground-standaarden': 4, 'cloud-data': 4, 'ai-integratie': 4, 'digitale-weerbaarheid': 4 },
-      mens: { 'capaciteit-kennis': 2, 'digitaal-vakmanschap': 2, 'klantbetrokkenheid': 2, 'opleiding-continuiteit': 2 },
+      techniek: Object.fromEntries(LIJST.assen[0]!.vragen.map((v) => [v.id, 4])),
+      mens: Object.fromEntries(LIJST.assen[1]!.vragen.map((v) => [v.id, 4])),
+      proces: Object.fromEntries(LIJST.assen[2]!.vragen.map((v) => [v.id, 1])),
+    };
+    expect(LIJST.assen.map((a) => a.vragen.length)).toEqual([4, 4, 8]);
+    const asGemiddelden = Object.values(berekenGemiddeldePerAs(LIJST, data)) as number[];
+    // The former result page method (mean of the axis means) gives (4 + 4 + 1) / 3 = 3.
+    expect(asGemiddelden.reduce((som, v) => som + v, 0) / asGemiddelden.length).toBe(3);
+    // The one rule: (4 x 4 + 4 x 4 + 8 x 1) / 16 = 2.5.
+    expect(berekenTotaalGemiddelde(LIJST, data)).toBe(2.5);
+  });
+
+  it('should leave unanswered questions out of the total', () => {
+    const data: ScoresPerAs = {
+      techniek: { 'common-ground-standaarden': 4, 'cloud-data': 4, 'ai-integratie': null },
+      mens: { 'capaciteit-kennis': 1 },
       proces: {},
     };
     expect(berekenTotaalGemiddelde(LIJST, data)).toBe(3);
+    expect(beantwoordeScores(LIJST, data)).toEqual([4, 4, 1]);
   });
 
   it('geeft null als geen enkele as een score heeft', () => {

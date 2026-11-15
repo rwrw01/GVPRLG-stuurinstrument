@@ -1,5 +1,5 @@
 import type { LijstBusinessUnit, Vragenlijst } from '../data/vragenlijstRepository';
-import type { ScoresPerAs } from './scores';
+import { beantwoordeScores, berekenGemiddeldePerAs, berekenTotaalGemiddelde, type ScoresPerAs } from './scores';
 
 /** Status of one business unit within one measurement year on the start screen. */
 export type OverzichtStatus = 'definitief' | 'concept' | 'niet-gestart';
@@ -59,31 +59,23 @@ export function gemiddelde(waarden: number[]): number | null {
   return waarden.length > 0 ? waarden.reduce((som, v) => som + v, 0) / waarden.length : null;
 }
 
-function antwoorden(scores: ScoresPerAs, asId: string, vraagIds: string[]): number[] {
-  return vraagIds.map((id) => scores[asId]?.[id]).filter((v): v is number => v != null);
-}
-
 /**
  * Figures of one business unit: per axis the mean of its answered questions, the total as the mean
- * of all answered questions (so an axis with more questions weighs more). Unanswered questions and
- * questions outside the year's list do not count.
+ * of all answered questions (`berekenTotaalGemiddelde`, so an axis with more questions weighs more).
+ * Unanswered questions and questions outside the year's list do not count.
  * @param lijst - Questionnaire of the year
  * @param unit - The business unit of that year
  * @param rij - Stored row, or undefined when the unit has none (status `niet-gestart`)
  * @returns the business unit figures
  */
 export function berekenBusinessUnitCijfers(lijst: Vragenlijst, unit: LijstBusinessUnit, rij: BusinessUnitRij | undefined): BusinessUnitCijfers {
-  const perAs: Record<string, number | null> = {};
-  const alle: number[] = [];
-  for (const as of lijst.assen) {
-    const waarden = rij ? antwoorden(rij.scoresPerAs, as.id, as.vragen.map((v) => v.id)) : [];
-    perAs[as.id] = gemiddelde(waarden);
-    alle.push(...waarden);
-  }
+  const scores = rij?.scoresPerAs ?? {};
+  const perAs = berekenGemiddeldePerAs(lijst, scores);
   const platformNaam = lijst.platformen.find((p) => p.id === unit.platformId)?.naam ?? unit.platformId;
   const basis = { businessUnitId: unit.id, naam: unit.naam, kleur: unit.kleur, platformId: unit.platformId, platformNaam, perAs };
   if (!rij) return { ...basis, status: 'niet-gestart', totaal: null, beantwoord: 0 };
-  return { ...basis, status: rij.status === 'definitief' ? 'definitief' : 'concept', totaal: gemiddelde(alle), beantwoord: alle.length };
+  const status = rij.status === 'definitief' ? 'definitief' : 'concept';
+  return { ...basis, status, totaal: berekenTotaalGemiddelde(lijst, scores), beantwoord: beantwoordeScores(lijst, scores).length };
 }
 
 /**
