@@ -13,7 +13,7 @@ async function vulPlatformIn(request, jaar, platformId) {
     'dienstverlening-nps', 'release-incident', 'roadmap-transparantie', 'burgers-ondernemers-centraal',
     'prijsbeleid', 'lifecyclemanagement', 'partner-productontwikkeling', 'partner-dienstverlening',
   ];
-  const response = await request.put(`/api/metingen/${jaar}/platformen/${platformId}`, {
+  const response = await request.put(`/api/metingen/${jaar}/businessunits/${platformId}`, {
     data: { status: 'definitief', algemeneToelichting: '', vraagScores: vraagIds.map((vraagId) => ({ vraagId, score: 4, toelichting: '' })) },
   });
   expect(response.ok()).toBeTruthy();

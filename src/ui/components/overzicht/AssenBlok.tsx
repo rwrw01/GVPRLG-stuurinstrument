@@ -29,8 +29,8 @@ function AsRij({ as, nuJaar, vorigeJaar }: { as: AsVergelijking; nuJaar: number;
 }
 
 /**
- * The three axes: a bar with the score, and when compared a marker at the comparison year and
- * the difference, all over the platforms definitief in both years.
+ * The axes: a bar with the score, and when compared a marker at the comparison year and
+ * the difference, all over the business units definitief in both years.
  * @param props.assen - Axis comparison from the overview
  * @param props.nuJaar - Newest year with scores
  * @param props.vorigeJaar - Comparison year, or null

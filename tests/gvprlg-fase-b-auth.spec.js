@@ -16,7 +16,7 @@ import {
 import { verstuurUitnodiging } from './keycloak-admin';
 
 const MENU = { name: 'Gebruikersmenu' };
-const NIET_GEKOPPELD = 'U bent niet gekoppeld aan dit platform voor dit meetjaar.';
+const NIET_GEKOPPELD = 'U bent niet gekoppeld aan het platform van deze businessunit voor dit meetjaar.';
 const INGETROKKEN = 'Uw toegang is ingetrokken of nog niet geactiveerd.';
 const ALLEEN_LEZEN = 'Je hebt alleen leesrechten. Wijzigingen opslaan is niet mogelijk.';
 
@@ -89,14 +89,14 @@ test.describe('GVPRLG fase B — invuller', () => {
     const opgeslagen = page.waitForEvent('dialog');
     await slaEersteVraagOpAlsConcept(page);
     expect((await opgeslagen).message()).toBe('Opgeslagen als concept.');
-    const eigen = await (await page.request.get(`/api/metingen/${FASE_B_JAAR}/platformen/${PLATFORM_INVULLER}`)).json();
-    expect(eigen.platform.status).toBe('concept');
+    const eigen = await (await page.request.get(`/api/metingen/${FASE_B_JAAR}/businessunits/${PLATFORM_INVULLER}`)).json();
+    expect(eigen.businessUnit.status).toBe('concept');
 
     await page.goto(`/metingen/${FASE_B_JAAR}/informatievoorziening`);
     await slaEersteVraagOpAlsConcept(page);
     await expect(page.getByRole('alert').filter({ hasText: NIET_GEKOPPELD })).toBeVisible();
-    const leeg = await (await page.request.get(`/api/metingen/${FASE_B_JAAR}/platformen/informatievoorziening`)).json();
-    expect(leeg.platform).toBeNull();
+    const leeg = await (await page.request.get(`/api/metingen/${FASE_B_JAAR}/businessunits/informatievoorziening`)).json();
+    expect(leeg.businessUnit).toBeNull();
   });
 
   test('invuller ziet concepten van andere platformen', async ({ page }) => {
@@ -124,7 +124,7 @@ test.describe('GVPRLG fase B — lezer', () => {
       await expect(page.getByRole('button', { name: 'Opslaan als concept' })).toHaveCount(0);
       await expect(page.getByRole('button', { name: /Afronden/ })).toHaveCount(0);
 
-      const response = await page.request.put(`/api/metingen/${FASE_B_JAAR}/platformen/${PLATFORM_CONCEPT}`, {
+      const response = await page.request.put(`/api/metingen/${FASE_B_JAAR}/businessunits/${PLATFORM_CONCEPT}`, {
         data: { status: 'concept', algemeneToelichting: 'lezer', vraagScores: [] },
       });
       expect(response.status()).toBe(403);
@@ -134,7 +134,7 @@ test.describe('GVPRLG fase B — lezer', () => {
       await page.goto('/');
       await expect(page.getByRole('heading', { name: 'Overzicht', level: 2 })).toBeVisible();
       await expect(page.locator('.openingszin')).not.toBeEmpty();
-      await expect(page.getByRole('table', { name: 'Gemiddelde score per platform en jaar' })).toBeVisible();
+      await expect(page.getByRole('table', { name: 'Gemiddelde score per businessunit en jaar' })).toBeVisible();
       const hoofdmenu = page.getByRole('navigation', { name: 'Hoofdmenu' });
       await expect(hoofdmenu.getByRole('link', { name: 'Auditlog' })).toBeVisible();
       await expect(hoofdmenu.getByRole('link', { name: 'Gebruikers' })).toHaveCount(0);
@@ -190,8 +190,8 @@ test.describe('GVPRLG fase B — beheer', () => {
       await invullerPagina.locator('#algemene-toelichting').fill(marker);
       await slaEersteVraagOpAlsConcept(invullerPagina);
       await expect(invullerPagina.getByRole('alert').filter({ hasText: INGETROKKEN })).toBeVisible();
-      const opgeslagen = await (await page.request.get(`/api/metingen/${FASE_B_JAAR}/platformen/${PLATFORM_INVULLER}`)).json();
-      expect(opgeslagen.platform?.algemeneToelichting ?? '').not.toBe(marker);
+      const opgeslagen = await (await page.request.get(`/api/metingen/${FASE_B_JAAR}/businessunits/${PLATFORM_INVULLER}`)).json();
+      expect(opgeslagen.businessUnit?.algemeneToelichting ?? '').not.toBe(marker);
 
       // The revoked user's cookie is still valid: the home page must not crash but leave for /geen-toegang.
       const paginaFouten = [];

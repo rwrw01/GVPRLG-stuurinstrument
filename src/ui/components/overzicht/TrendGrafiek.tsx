@@ -3,13 +3,13 @@
 import { useState, type KeyboardEvent } from 'react';
 
 import { nl } from './_formatteer';
-import type { JaarCijfers, OverzichtPlatform } from './_overzichtTypen';
+import type { JaarCijfers, OverzichtBusinessUnit } from './_overzichtTypen';
 import { bouwTrend, MAAT, verbonden, xVoor, yVoor, type TrendLijn, type TrendPunt } from './_trendGeometrie';
 
 /**
  * Accessible and tooltip text of a point.
  * @param punt - The point
- * @param naam - Platform name
+ * @param naam - Business unit name
  * @returns e.g. "Belastingen, 2025: 3,3 (concept)"
  */
 function puntTekst(punt: TrendPunt, naam: string): string {
@@ -39,12 +39,12 @@ function Raster({ jaren }: { jaren: number[] }) {
 }
 
 /**
- * One platform line: segments only between adjacent years, dashed into a concept, open dot for a concept.
+ * One business unit line: segments only between adjacent years, dashed into a concept, open dot for a concept.
  * @param props.lijn - The line
  * @returns the line group
  */
 function Lijn({ lijn }: { lijn: TrendLijn }) {
-  const { kleur } = lijn.platform;
+  const { kleur } = lijn.unit;
   return (
     <g aria-hidden="true">
       {lijn.punten.slice(1).map((p, i) => {
@@ -75,9 +75,9 @@ function EindLabel({ lijn, laatsteJaar }: { lijn: TrendLijn; laatsteJaar: number
   const x = MAAT.breedte - MAAT.rechts + 8;
   return (
     <g aria-hidden="true">
-      <line x1={laatste.x + 7} y1={laatste.y} x2={x} y2={lijn.eindLabelY} stroke={lijn.platform.kleur} strokeOpacity={0.5} />
+      <line x1={laatste.x + 7} y1={laatste.y} x2={x} y2={lijn.eindLabelY} stroke={lijn.unit.kleur} strokeOpacity={0.5} />
       <text x={x + 5} y={lijn.eindLabelY + 4} fontSize="14" fill="#16242b">
-        {laatste.jaar === laatsteJaar ? lijn.platform.naam : `${lijn.platform.naam} ${laatste.jaar}:`}{' '}
+        {laatste.jaar === laatsteJaar ? lijn.unit.naam : `${lijn.unit.naam} ${laatste.jaar}:`}{' '}
         <tspan fontWeight="700">{nl(laatste.waarde)}</tspan>
       </text>
     </g>
@@ -104,27 +104,27 @@ function Tooltip({ punt, tekst }: { punt: TrendPunt; tekst: string }) {
 
 interface TrendGrafiekProps {
   jaren: JaarCijfers[];
-  platformen: OverzichtPlatform[];
+  businessUnits: OverzichtBusinessUnit[];
   titel: string;
 }
 
 /**
- * Line chart of the platform totals per year (y axis 1-5) with an end label per line and a
+ * Line chart of the business unit totals per year (y axis 1-5) with an end label per line and a
  * tooltip per point on hover and keyboard focus (Escape hides it). A concept is an open dot with a
  * dashed line; a year without a score breaks the line.
  * @param props.jaren - Years with scores, oldest first
- * @param props.platformen - Platforms with their fixed colour
+ * @param props.businessUnits - Business units with their fixed colour
  * @param props.titel - Accessible name of the chart
  * @returns the chart
  */
-export function TrendGrafiek({ jaren, platformen, titel }: TrendGrafiekProps) {
+export function TrendGrafiek({ jaren, businessUnits, titel }: TrendGrafiekProps) {
   // Hover and focus are tracked apart: leaving with the mouse keeps the tooltip of the focused point.
   const [gehoverd, setGehoverd] = useState<TrendPunt | null>(null);
   const [gefocust, setGefocust] = useState<TrendPunt | null>(null);
   const actief = gehoverd ?? gefocust;
-  const lijnen = bouwTrend(jaren, platformen);
+  const lijnen = bouwTrend(jaren, businessUnits);
   const laatsteJaar = jaren.at(-1)?.jaar ?? 0;
-  const naamVan = (id: string) => platformen.find((p) => p.id === id)?.naam ?? id;
+  const naamVan = (id: string) => businessUnits.find((p) => p.id === id)?.naam ?? id;
   function verberg(event: KeyboardEvent) {
     if (event.key !== 'Escape') return;
     setGehoverd(null);
@@ -135,15 +135,15 @@ export function TrendGrafiek({ jaren, platformen, titel }: TrendGrafiekProps) {
       <svg className="trend-svg" viewBox={`0 0 ${MAAT.breedte} ${MAAT.hoogte}`} role="group" aria-label={titel}
         onMouseLeave={() => setGehoverd(null)} onKeyDown={verberg}>
         <Raster jaren={jaren.map((j) => j.jaar)} />
-        {lijnen.map((l) => <Lijn key={l.platform.id} lijn={l} />)}
-        {lijnen.map((l) => <EindLabel key={l.platform.id} lijn={l} laatsteJaar={laatsteJaar} />)}
+        {lijnen.map((l) => <Lijn key={l.unit.id} lijn={l} />)}
+        {lijnen.map((l) => <EindLabel key={l.unit.id} lijn={l} laatsteJaar={laatsteJaar} />)}
         {lijnen.flatMap((l) => l.punten).map((p) => (
-          <circle key={`${p.platformId}-${p.jaar}`} className="trend-punt" cx={p.x} cy={p.y} r={12} fill="transparent"
-            tabIndex={0} role="img" aria-label={puntTekst(p, naamVan(p.platformId))}
+          <circle key={`${p.businessUnitId}-${p.jaar}`} className="trend-punt" cx={p.x} cy={p.y} r={12} fill="transparent"
+            tabIndex={0} role="img" aria-label={puntTekst(p, naamVan(p.businessUnitId))}
             onMouseEnter={() => setGehoverd(p)} onMouseLeave={() => setGehoverd(null)}
             onFocus={() => setGefocust(p)} onBlur={() => setGefocust(null)} />
         ))}
-        {actief && <Tooltip punt={actief} tekst={puntTekst(actief, naamVan(actief.platformId))} />}
+        {actief && <Tooltip punt={actief} tekst={puntTekst(actief, naamVan(actief.businessUnitId))} />}
       </svg>
     </div>
   );

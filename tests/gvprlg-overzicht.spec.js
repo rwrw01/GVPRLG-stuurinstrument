@@ -6,7 +6,7 @@ import { OVERZICHT_JAREN } from './e2e-data';
 // Runs with the beheerder session from auth.setup.js. Global setup seeds OVERZICHT_JAREN; other
 // specs may add random years (2050-2099) in parallel, so the assertions only rely on the seeded years.
 const [EERSTE, TWEEDE] = OVERZICHT_JAREN;
-const TABEL = { name: 'Gemiddelde score per platform en jaar' };
+const TABEL = { name: 'Gemiddelde score per businessunit en jaar' };
 
 test.describe('Startscherm Overzicht en zijmenu', () => {
   test('toont de openingszin, de trend en de tabel met de geseede jaren', async ({ page }) => {
@@ -14,7 +14,7 @@ test.describe('Startscherm Overzicht en zijmenu', () => {
     await expect(page.getByRole('heading', { name: 'Overzicht', level: 2 })).toBeVisible();
     await expect(page.locator('.openingszin')).toHaveText(/^(In \d{4} .+\.|Er zijn nog geen scores ingevuld\.)$/);
 
-    const trend = page.getByRole('group', { name: /^Gemiddelde score per platform/ });
+    const trend = page.getByRole('group', { name: /^Gemiddelde score per businessunit/ });
     await expect(trend).toBeVisible();
     await expect(trend.getByRole('img', { name: `Belastingen, ${EERSTE}: 3,0` })).toHaveCount(1);
     await expect(trend.getByRole('img', { name: `R&O, ${TWEEDE}: 2,0 (concept)` })).toHaveCount(1);

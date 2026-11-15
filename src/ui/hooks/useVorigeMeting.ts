@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from 'react';
 
-import type { PlatformScoresByAs } from '@/src/service/scores';
+import type { UiVragenlijst } from '@/src/ui/components/_vragenlijstTypen';
 import { useJaren } from '@/src/ui/hooks/useJaren';
 
-/** The measurement year before the current one, with its stored platform rows. */
+/** The measurement year before the current one, with its stored business unit rows and its list. */
 export interface VorigeMeting {
   jaar: number;
-  platformen: Record<string, { status: string; scoresPerAs: PlatformScoresByAs }>;
+  lijst: UiVragenlijst;
+  businessUnits: Record<string, { status: string; scoresPerAs: Record<string, Record<string, number | null>> }>;
 }
 
 /**
@@ -26,10 +27,10 @@ export function useVorigeMeting(jaar: number): VorigeMeting | null {
     setMeting(null);
     if (vorig === null) return;
     let actief = true;
-    fetch(`/api/metingen/${vorig}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((body: { meting: VorigeMeting } | null) => {
-        if (actief && body) setMeting({ jaar: body.meting.jaar, platformen: body.meting.platformen });
+    const json = (url: string) => fetch(url).then((r) => (r.ok ? r.json() : null));
+    Promise.all([json(`/api/metingen/${vorig}`), json(`/api/metingen/${vorig}/vragenlijst`)])
+      .then(([body, lijst]: [{ meting: VorigeMeting } | null, { vragenlijst: UiVragenlijst } | null]) => {
+        if (actief && body && lijst) setMeting({ jaar: body.meting.jaar, lijst: lijst.vragenlijst, businessUnits: body.meting.businessUnits });
       })
       .catch(() => undefined);
     return () => {

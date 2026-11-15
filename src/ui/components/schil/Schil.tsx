@@ -19,7 +19,7 @@ function Kop({ menuKnop }: { menuKnop: ReactNode }) {
     <header className="kop">
       <div className="kop-merk">
         <h1>Spinnenweb</h1>
-        <p className="kop-ondertitel">Jaarlijkse meting van de PinkRoccade-platformen door de gebruikersvereniging</p>
+        <p className="kop-ondertitel">Jaarlijkse meting van de PinkRoccade-businessunits door de gebruikersvereniging</p>
       </div>
       {menuKnop}
     </header>

@@ -2,8 +2,12 @@
 
 export type OverzichtStatus = 'definitief' | 'concept' | 'niet-gestart';
 
-export interface PlatformCijfers {
+export interface BusinessUnitCijfers {
+  businessUnitId: string;
+  naam: string;
+  kleur: string;
   platformId: string;
+  platformNaam: string;
   status: OverzichtStatus;
   perAs: Record<string, number | null>;
   totaal: number | null;
@@ -12,15 +16,18 @@ export interface PlatformCijfers {
 
 export interface JaarCijfers {
   jaar: number;
+  vastgelegd: boolean;
   voortgang: string;
   aantalDefinitief: number;
+  aantalVragen: number;
   gemiddelde: number | null;
   perAs: Record<string, number | null>;
-  platformen: PlatformCijfers[];
+  assen: Array<{ id: string; naam: string; kleur: string }>;
+  businessUnits: BusinessUnitCijfers[];
 }
 
 export interface AsScore {
-  platformId: string;
+  businessUnitId: string;
   asId: string;
   waarde: number;
   vorige: number | null;
@@ -33,11 +40,11 @@ export interface Kerncijfers {
   aantalGemiddelde: number;
   vorigeJaar: number | null;
   vergelijking: { nu: number; vorige: number; aantal: number } | null;
-  aantalPlatformen: number;
+  aantalBusinessUnits: number;
   aantalDefinitief: number;
   aantalConcept: number;
   aantalNietGestart: number;
-  stijger: { platformId: string; waarde: number; vorige: number; verschil: number } | null;
+  stijger: { businessUnitId: string; waarde: number; vorige: number; verschil: number } | null;
   groeikans: AsScore | null;
 }
 
@@ -47,10 +54,11 @@ export interface Gespreksonderwerp {
   toelichting: string;
 }
 
-export interface OverzichtPlatform {
+export interface OverzichtBusinessUnit {
   id: string;
   naam: string;
   kleur: string;
+  platformNaam: string;
 }
 
 export interface AsVergelijking {
@@ -63,7 +71,7 @@ export interface AsVergelijking {
 }
 
 export interface Overzicht {
-  platformen: OverzichtPlatform[];
+  businessUnits: OverzichtBusinessUnit[];
   jaren: JaarCijfers[];
   nuJaar: number | null;
   vorigeJaar: number | null;

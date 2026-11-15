@@ -1,11 +1,11 @@
-import type { JaarCijfers, OverzichtPlatform, OverzichtStatus } from './_overzichtTypen';
+import type { JaarCijfers, OverzichtBusinessUnit, OverzichtStatus } from './_overzichtTypen';
 
 /** Chart size in SVG units; the right margin holds the end labels. */
 export const MAAT = { breedte: 680, hoogte: 300, links: 34, rechts: 250, boven: 16, onder: 30 };
 const LABEL_AFSTAND = 18;
 
 export interface TrendPunt {
-  platformId: string;
+  businessUnitId: string;
   /** Position of the year in the plotted years; a gap between indexes breaks the line. */
   index: number;
   jaar: number;
@@ -16,7 +16,7 @@ export interface TrendPunt {
 }
 
 export interface TrendLijn {
-  platform: OverzichtPlatform;
+  unit: OverzichtBusinessUnit;
   punten: TrendPunt[];
   eindLabelY: number | null;
 }
@@ -74,20 +74,20 @@ export function verbonden(van: TrendPunt, naar: TrendPunt): boolean {
 }
 
 /**
- * Lines of the trend chart: one per platform with a point per year that has a total.
+ * Lines of the trend chart: one per business unit with a point per year that has a total.
  * @param jaren - Years to plot, oldest first
  * @param platformen - Platforms in fixed order with their colour
  * @returns the lines with coordinates and spread end-label positions
  */
-export function bouwTrend(jaren: JaarCijfers[], platformen: OverzichtPlatform[]): TrendLijn[] {
-  const lijnen = platformen.map((platform) => {
+export function bouwTrend(jaren: JaarCijfers[], units: OverzichtBusinessUnit[]): TrendLijn[] {
+  const lijnen = units.map((unit) => {
     const punten: TrendPunt[] = [];
     jaren.forEach((jaar, index) => {
-      const p = jaar.platformen.find((c) => c.platformId === platform.id);
+      const p = jaar.businessUnits.find((c) => c.businessUnitId === unit.id);
       if (!p || p.totaal == null) return;
-      punten.push({ platformId: platform.id, index, jaar: jaar.jaar, waarde: p.totaal, status: p.status, x: xVoor(index, jaren.length), y: yVoor(p.totaal) });
+      punten.push({ businessUnitId: unit.id, index, jaar: jaar.jaar, waarde: p.totaal, status: p.status, x: xVoor(index, jaren.length), y: yVoor(p.totaal) });
     });
-    return { platform, punten, eindLabelY: punten.at(-1)?.y ?? null };
+    return { unit, punten, eindLabelY: punten.at(-1)?.y ?? null };
   });
   spreidLabels(lijnen);
   return lijnen;

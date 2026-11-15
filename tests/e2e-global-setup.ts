@@ -15,7 +15,8 @@ import { keycloakId, resetNaarTotpInstellen, zorgVoorGebruikerMetTotp } from './
 
 const MAILPIT_URL = process.env.E2E_MAILPIT_URL ?? 'http://127.0.0.1:8025';
 
-type Repos = typeof import('../src/data/gebruikersRepository') & typeof import('../src/data/metingenRepository');
+type Repos = typeof import('../src/data/gebruikersRepository') &
+  typeof import('../src/data/metingenRepository') & { bewaar: typeof import('./support/score-testdata')['bewaarTestScore'] };
 type Prisma = (typeof import('../src/data/prismaClient'))['prisma'];
 
 // Removes the reserved E2E years; platform links have no foreign key, so drop those explicitly.
@@ -25,6 +26,22 @@ async function _ruimJarenOp(prisma: Prisma): Promise<void> {
   await prisma.platformInvuller.deleteMany({ where: { metingId: { in: ids } } });
   const { count } = await prisma.meting.deleteMany({ where });
   console.log(`E2E setup: removed ${count} leftover test measurement(s)`);
+}
+
+// Hard-deletes the catalogue items the catalogue journeys created (names start with "E2E "), so
+// their colours are free again and reruns start from the migrated list. Only after the E2E years
+// are gone, and never an item that a remaining (real) year's copy still references.
+async function _ruimCatalogusOp(prisma: Prisma): Promise<void> {
+  const e2e = { naam: { startsWith: 'E2E ' } };
+  const vragen = await prisma.vraag.findMany({ where: { OR: [{ tekst: { startsWith: 'E2E ' } }, { as: e2e }], metingVragen: { none: {} } }, select: { id: true } });
+  await prisma.vraag.deleteMany({ where: { id: { in: vragen.map((v) => v.id) } } });
+  const units = await prisma.businessUnit.findMany({ where: { OR: [e2e, { platform: e2e }], metingBusinessUnits: { none: {} } }, select: { id: true } });
+  await prisma.businessUnit.deleteMany({ where: { id: { in: units.map((u) => u.id) } } });
+  await prisma.as.deleteMany({ where: { ...e2e, vragen: { none: {} }, metingAssen: { none: {} } } });
+  const platformen = await prisma.platform.findMany({ where: { ...e2e, businessUnits: { none: {} }, metingPlatformen: { none: {} } }, select: { id: true } });
+  await prisma.platformInvuller.deleteMany({ where: { platformId: { in: platformen.map((p) => p.id) } } });
+  const { count } = await prisma.platform.deleteMany({ where: { id: { in: platformen.map((p) => p.id) } } });
+  console.log(`E2E setup: removed ${vragen.length} question(s), ${units.length} business unit(s) and ${count} platform(s) left by catalogue journeys`);
 }
 
 // Ensures an active app user with the given role, bound to its current Keycloak subject.
@@ -62,8 +79,8 @@ async function _maakFaseBJaar(repos: Repos, beheerderId: string, invullerId: str
   const wordtLezer = await repos.maakGebruiker({ ...GEBRUIKERS.wordtLezer, rol: 'invuller' });
   await repos.zetKoppelingen(wordtLezer.id, meting.id, [PLATFORM_INVULLER]);
   const basis = { metingId: meting.id, jaar: FASE_B_JAAR, algemeneToelichting: '', laatstGewijzigdDoor: beheerderId };
-  await repos.savePlatformScore({ ...basis, platformId: PLATFORM_CONCEPT, status: 'concept', vraagScores: _vraagScores(2) });
-  await repos.savePlatformScore({ ...basis, platformId: PLATFORM_DEFINITIEF, status: 'definitief', vraagScores: _vraagScores(4) });
+  await repos.bewaar({ ...basis, businessUnitId: PLATFORM_CONCEPT, status: 'concept', vraagScores: _vraagScores(2) });
+  await repos.bewaar({ ...basis, businessUnitId: PLATFORM_DEFINITIEF, status: 'definitief', vraagScores: _vraagScores(4) });
 }
 
 // Two consecutive years for the start screen: belastingen 3 -> 4 (definitief), R&O 3 -> 2 (concept in the second year).
@@ -76,8 +93,8 @@ async function _maakOverzichtJaren(repos: Repos, beheerderId: string): Promise<v
   const metingen = new Map<number, string>();
   for (const jaar of OVERZICHT_JAREN) metingen.set(jaar, (await repos.createMeting(jaar)).id);
   for (const [jaar, platformId, status, score] of scores) {
-    await repos.savePlatformScore({
-      metingId: metingen.get(jaar)!, jaar, platformId, status, algemeneToelichting: '', laatstGewijzigdDoor: beheerderId, vraagScores: _vraagScores(score),
+    await repos.bewaar({
+      metingId: metingen.get(jaar)!, jaar, businessUnitId: platformId, status, algemeneToelichting: '', laatstGewijzigdDoor: beheerderId, vraagScores: _vraagScores(score),
     });
   }
 }
@@ -100,10 +117,12 @@ export default async function globalSetup(): Promise<void> {
   const repos: Repos = {
     ...(await import('../src/data/gebruikersRepository')),
     ...(await import('../src/data/metingenRepository')),
+    bewaar: (await import('./support/score-testdata')).bewaarTestScore,
   };
   try {
     wisJaarClaims();
     await _ruimJarenOp(prisma);
+    await _ruimCatalogusOp(prisma);
     const beheerderId = await _zorgVoorActief(repos, GEBRUIKERS.beheerder, 'beheerder');
     const invullerId = await _zorgVoorActief(repos, GEBRUIKERS.invuller, 'invuller');
     const lezerId = await _zorgVoorActief(repos, GEBRUIKERS.lezer, 'lezer');

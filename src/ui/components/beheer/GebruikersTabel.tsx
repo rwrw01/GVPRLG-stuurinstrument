@@ -1,8 +1,8 @@
 'use client';
 
 import { Fragment, useState } from 'react';
-import { CONFIG } from '@/src/service/config';
 import { KoppelingenEditor } from './KoppelingenEditor';
+import { useJaarPlatformen, type JaarPlatform } from './_jaarPlatformen';
 import { BEHEER_ROLLEN, type BeheerGebruiker, type BeheerRol, type GebruikerWijziging } from './_beheerTypen';
 
 interface Acties {
@@ -10,8 +10,8 @@ interface Acties {
   onKoppelingen: (id: string, platformIds: string[]) => void;
 }
 
-function platformNamen(ids: string[]): string {
-  const namen = ids.map((id) => CONFIG.platformen.find((p) => p.id === id)?.naam ?? id);
+function platformNamen(platformen: JaarPlatform[], ids: string[]): string {
+  const namen = ids.map((id) => platformen.find((p) => p.id === id)?.naam ?? id);
   return namen.length > 0 ? namen.join(', ') : '-';
 }
 
@@ -82,6 +82,7 @@ function RijActies({ g, acties, onKoppelingen }: { g: BeheerGebruiker; acties: A
  */
 export function GebruikersTabel({ gebruikers, jaar, ...acties }: { gebruikers: BeheerGebruiker[]; jaar: number } & Acties) {
   const [editorVoor, setEditorVoor] = useState<string | null>(null);
+  const platformen = useJaarPlatformen();
 
   function opslaan(id: string, platformIds: string[]) {
     setEditorVoor(null);
@@ -100,7 +101,7 @@ export function GebruikersTabel({ gebruikers, jaar, ...acties }: { gebruikers: B
         {gebruikers.map((g) => (
           <Fragment key={g.id}>
             <tr role="row">
-              <td role="cell" data-label="Naam">{g.naam}</td><td role="cell" data-label="E-mail">{g.email}</td><td role="cell" data-label="Rol">{g.rol}</td><td role="cell" data-label="Status">{g.status}</td><td role="cell" data-label={`Platformen ${jaar}`}>{platformNamen(g.platformIds)}</td>
+              <td role="cell" data-label="Naam">{g.naam}</td><td role="cell" data-label="E-mail">{g.email}</td><td role="cell" data-label="Rol">{g.rol}</td><td role="cell" data-label="Status">{g.status}</td><td role="cell" data-label={`Platformen ${jaar}`}>{platformNamen(platformen, g.platformIds)}</td>
               <td role="cell" data-label="Acties" className="cel-acties"><RijActies g={g} acties={acties} onKoppelingen={() => setEditorVoor(g.id)} /></td>
             </tr>
             {editorVoor === g.id && (

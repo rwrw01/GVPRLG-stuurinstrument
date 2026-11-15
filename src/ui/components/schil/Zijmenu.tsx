@@ -41,7 +41,7 @@ function MenuLink({ href, pathname, ookOnder = false, onKies, children }: MenuLi
  * @returns the label
  */
 function Voortgang({ jaar }: { jaar: JaarCijfers }) {
-  const tekst = jaar.voortgang === 'afgerond' ? 'afgerond' : `${jaar.aantalDefinitief} van ${jaar.platformen.length} definitief`;
+  const tekst = jaar.voortgang === 'afgerond' ? 'afgerond' : `${jaar.aantalDefinitief} van ${jaar.businessUnits.length} businessunits definitief`;
   return (
     <span className="zijmenu-voortgang">
       <span aria-hidden="true">{jaar.voortgang}</span>

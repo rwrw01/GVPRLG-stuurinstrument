@@ -2,16 +2,16 @@ import Link from 'next/link';
 
 import { celKleur } from './_kleurschaal';
 import { nl } from './_formatteer';
-import type { JaarCijfers, OverzichtPlatform, PlatformCijfers } from './_overzichtTypen';
+import type { BusinessUnitCijfers, JaarCijfers, OverzichtBusinessUnit } from './_overzichtTypen';
 
 /**
  * One table cell: the score on the blue ramp, a concept outlined, no scores hatched.
- * @param props.cijfers - Platform figures of the year, if any
+ * @param props.cijfers - Business unit figures of the year, if any
  * @param props.jaar - Year
- * @param props.naam - Platform name
+ * @param props.naam - Business unit name
  * @returns the cell
  */
-function Cel({ cijfers, jaar, naam }: { cijfers: PlatformCijfers | undefined; jaar: number; naam: string }) {
+function Cel({ cijfers, jaar, naam }: { cijfers: BusinessUnitCijfers | undefined; jaar: number; naam: string }) {
   if (!cijfers || cijfers.totaal === null) {
     const tekst = cijfers?.status === 'concept' ? 'concept, nog geen scores' : 'niet gestart';
     return (
@@ -32,40 +32,50 @@ function Cel({ cijfers, jaar, naam }: { cijfers: PlatformCijfers | undefined; ja
   );
 }
 
+/**
+ * Newest year with scores in which the business unit took part, the target of its link.
+ * @param jaren - All years, oldest first
+ * @param id - Business unit id
+ * @returns the year, or null when it has no scores in any year
+ */
+function laatsteJaar(jaren: JaarCijfers[], id: string): number | null {
+  return [...jaren].reverse().find((j) => j.businessUnits.some((b) => b.businessUnitId === id && b.totaal !== null))?.jaar ?? null;
+}
+
 interface JarenTabelProps {
   jaren: JaarCijfers[];
-  platformen: OverzichtPlatform[];
+  businessUnits: OverzichtBusinessUnit[];
   nuJaar: number | null;
 }
 
 /**
- * Platform x year table with one blue colour ramp (darker is further developed), the number in
- * every cell, a concept outlined and a platform without scores hatched. Also the table view of the
- * trend chart. The platform name links to its result in the newest year with scores.
+ * Business unit x year table with one blue colour ramp (darker is further developed), the number in
+ * every cell, a concept outlined and a business unit without scores hatched. Also the table view of the
+ * trend chart. The name links to its result in the newest year in which it has scores.
  * @param props.jaren - All years, oldest first
- * @param props.platformen - Platforms in fixed order
- * @param props.nuJaar - Newest year with scores, the target of the platform links
+ * @param props.businessUnits - Business units of all years
+ * @param props.nuJaar - Newest year with scores
  * @returns the table with its scale legend
  */
-export function JarenTabel({ jaren, platformen, nuJaar }: JarenTabelProps) {
+export function JarenTabel({ jaren, businessUnits, nuJaar }: JarenTabelProps) {
   return (
     <>
       <div className="tabel-scroll" id="jaren-tabel" tabIndex={-1}>
-        <table className="jaren-tabel" aria-label="Gemiddelde score per platform en jaar">
+        <table className="jaren-tabel" aria-label="Gemiddelde score per businessunit en jaar">
           <thead>
             <tr>
-              <th scope="col">Platform</th>
+              <th scope="col">Businessunit</th>
               {jaren.map((j) => <th scope="col" key={j.jaar} className="jaren-kolom">{j.jaar}</th>)}
             </tr>
           </thead>
           <tbody>
-            {platformen.map((p) => (
+            {businessUnits.map((p) => (
               <tr key={p.id}>
                 <th scope="row">
-                  {nuJaar ? <Link href={`/metingen/${nuJaar}/${p.id}/resultaat`}>{p.naam}</Link> : p.naam}
+                  {laatsteJaar(jaren, p.id) ? <Link href={`/metingen/${laatsteJaar(jaren, p.id)}/${p.id}/resultaat`}>{p.naam}</Link> : p.naam}
                 </th>
                 {jaren.map((j) => (
-                  <Cel key={j.jaar} jaar={j.jaar} naam={p.naam} cijfers={j.platformen.find((c) => c.platformId === p.id)} />
+                  <Cel key={j.jaar} jaar={j.jaar} naam={p.naam} cijfers={j.businessUnits.find((c) => c.businessUnitId === p.id)} />
                 ))}
               </tr>
             ))}

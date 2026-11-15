@@ -6,8 +6,9 @@ import { describe, expect, it } from 'vitest';
 import { CONFIG } from '@/src/service/config';
 import { kiesGespreksonderwerpen } from '@/src/service/gespreksonderwerpen';
 import { maakOpeningszin } from '@/src/service/openingszin';
-import { berekenJaarCijfers, type MetingInvoer } from '@/src/service/overzichtCijfers';
-import { gelijk, meting, rij } from '@/tests/support/overzicht-testdata';
+import type { MetingInvoer } from '@/src/service/overzichtCijfers';
+import { cijfers, gelijk, meting, rij } from '@/tests/support/overzicht-testdata';
+import { STANDAARD } from '@/tests/support/vragenlijst-testdata';
 
 // The board and the supplier read the same screens: "volwassen(heid)" reads as a judgement,
 // so the word may not appear in any UI text (design 2026-11-14, section 1). "voorzitter" is gone
@@ -68,19 +69,20 @@ describe('woordkeuze', () => {
     expect(metVerboden(paden)).toEqual([]);
   });
 
-  it('should not contain "volwassen" or "voorzitter" in any text of the configuration', () => {
+  it('should not contain "volwassen" or "voorzitter" in any text of the configuration or the migrated questionnaire', () => {
     expect(teksten(CONFIG).filter((t) => VERBODEN.test(t))).toEqual([]);
+    expect(teksten(STANDAARD).filter((t) => VERBODEN.test(t))).toEqual([]);
   });
 
   it('should not produce "volwassen" or "voorzitter" in any generated sentence or talking point', () => {
     const uitvoer = Object.values(SCENARIOS).flatMap((metingen) => {
-      const jaren = metingen.map(berekenJaarCijfers);
+      const jaren = metingen.map((j) => cijfers(j));
       return [maakOpeningszin(jaren), ...kiesGespreksonderwerpen(jaren).flatMap((o) => [o.titel, o.toelichting])];
     });
-    const soorten = new Set(Object.values(SCENARIOS).flatMap((m) => kiesGespreksonderwerpen(m.map(berekenJaarCijfers)).map((o) => o.soort)));
+    const soorten = new Set(Object.values(SCENARIOS).flatMap((m) => kiesGespreksonderwerpen(m.map((j) => cijfers(j))).map((o) => o.soort)));
     expect([...soorten].sort()).toEqual(['concept', 'daling', 'niet-gestart', 'stijging']);
     // Every scenario reaches a different sentence, except the two without any answered question.
-    const zinnen = new Set(Object.values(SCENARIOS).map((m) => maakOpeningszin(m.map(berekenJaarCijfers))));
+    const zinnen = new Set(Object.values(SCENARIOS).map((m) => maakOpeningszin(m.map((j) => cijfers(j)))));
     expect(zinnen.size).toBe(Object.keys(SCENARIOS).length - 1);
     expect(uitvoer.filter((t) => VERBODEN.test(t))).toEqual([]);
   });

@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useOverzicht } from '@/src/ui/hooks/useOverzicht';
+
 import { bouwKruimelpad } from './_kruimelpad';
 
 /**
@@ -9,7 +11,10 @@ import { bouwKruimelpad } from './_kruimelpad';
  * @returns nav landmark with the trail; the last crumb is the current page
  */
 export function Kruimelpad() {
-  const crumbs = bouwKruimelpad(usePathname());
+  const { staat } = useOverzicht();
+  const jaren = staat.status === 'ok' ? staat.overzicht.jaren : [];
+  const crumbs = bouwKruimelpad(usePathname(), (jaar, id) =>
+    jaren.find((j) => j.jaar === jaar)?.businessUnits.find((b) => b.businessUnitId === id)?.naam);
   return (
     <nav aria-label="Kruimelpad" className="kruimelpad">
       <ol>

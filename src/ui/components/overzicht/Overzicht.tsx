@@ -7,7 +7,7 @@ import { Gespreksonderwerpen } from './Gespreksonderwerpen';
 import { JarenTabel } from './JarenTabel';
 import { Kerncijfers } from './Kerncijfers';
 import { TrendGrafiek } from './TrendGrafiek';
-import type { Overzicht as OverzichtData, OverzichtPlatform } from './_overzichtTypen';
+import type { Overzicht as OverzichtData, OverzichtBusinessUnit } from './_overzichtTypen';
 
 /**
  * Card with a heading and an optional sub line.
@@ -27,14 +27,14 @@ function Kaart({ titel, sub, children }: { titel: string; sub?: string; children
 }
 
 /**
- * Legend of the trend chart: platform colours and the concept marking.
- * @param props.platformen - Platforms with their colour
+ * Legend of the trend chart: business unit colours and the concept marking.
+ * @param props.businessUnits - Business units with their colour
  * @returns the legend
  */
-function Legenda({ platformen }: { platformen: OverzichtPlatform[] }) {
+function Legenda({ businessUnits }: { businessUnits: OverzichtBusinessUnit[] }) {
   return (
     <ul className="trend-legenda">
-      {platformen.map((p) => (
+      {businessUnits.map((p) => (
         <li key={p.id}><i aria-hidden="true" style={{ background: p.kleur }} />{p.naam}</li>
       ))}
       <li>Open stip en stippellijn: concept</li>
@@ -48,16 +48,16 @@ function Legenda({ platformen }: { platformen: OverzichtPlatform[] }) {
  * @returns the card
  */
 function Trend({ data }: { data: OverzichtData }) {
-  const metScores = data.jaren.filter((j) => j.platformen.some((p) => p.totaal !== null));
+  const metScores = data.jaren.filter((j) => j.businessUnits.some((p) => p.totaal !== null));
   return (
-    <Kaart titel="Trend per platform" sub="Gemiddelde score per jaar, schaal 1 tot 5.">
+    <Kaart titel="Trend per businessunit" sub="Gemiddelde score per jaar, schaal 1 tot 5.">
       {metScores.length < 2 && <p className="trend-leeg">Een trend verschijnt zodra er twee jaren met scores zijn.</p>}
       {metScores.length >= 2 && (
         <>
           <a className="naar-tabel" href="#jaren-tabel">Naar de tabel met alle jaren</a>
-          <Legenda platformen={data.platformen} />
-          <TrendGrafiek jaren={metScores} platformen={data.platformen}
-            titel={`Gemiddelde score per platform, ${metScores[0]!.jaar} tot en met ${metScores.at(-1)!.jaar}`} />
+          <Legenda businessUnits={data.businessUnits} />
+          <TrendGrafiek jaren={metScores} businessUnits={data.businessUnits}
+            titel={`Gemiddelde score per businessunit, ${metScores[0]!.jaar} tot en met ${metScores.at(-1)!.jaar}`} />
         </>
       )}
     </Kaart>
@@ -75,15 +75,15 @@ function Kopregel({ data }: { data: OverzichtData }) {
     <div className="overzicht-kop">
       <h2>Overzicht</h2>
       <p>
-        {nu ? `Stand van de meting ${nu.jaar}: ${nu.aantalDefinitief} van ${nu.platformen.length} platformen definitief.` : 'Nog geen meting met scores.'}
+        {nu ? `Stand van de meting ${nu.jaar}: ${nu.aantalDefinitief} van ${nu.businessUnits.length} businessunits definitief.` : 'Nog geen meting met scores.'}
       </p>
     </div>
   );
 }
 
 /**
- * Start screen for the board: opening sentence, key figures, trend per platform, talking points,
- * all years side by side and the three axes. Shows what there is when data is missing.
+ * Start screen for the board: opening sentence, key figures, trend per business unit, talking points,
+ * all years side by side and the axes. Shows what there is when data is missing.
  * @param props.data - Response of GET /api/overzicht
  * @returns the start screen
  */
@@ -93,7 +93,7 @@ export function Overzicht({ data }: { data: OverzichtData }) {
     <div className="overzicht">
       <Kopregel data={data} />
       <p className="openingszin">{data.openingszin}</p>
-      {data.kerncijfers && <Kerncijfers cijfers={data.kerncijfers} platformen={data.platformen} asNaam={asNaam} />}
+      {data.kerncijfers && <Kerncijfers cijfers={data.kerncijfers} businessUnits={data.businessUnits} asNaam={asNaam} />}
       <div className="raster">
         <Trend data={data} />
         <Kaart titel="Gespreksonderwerpen" sub={data.nuJaar ? `Afgeleid uit de cijfers van ${data.nuJaar}.` : undefined}>
@@ -101,10 +101,10 @@ export function Overzicht({ data }: { data: OverzichtData }) {
         </Kaart>
       </div>
       <div className="raster">
-        <Kaart titel="Alle jaren naast elkaar" sub="Donkerder is verder ontwikkeld. Kies een platform voor het resultaat van het nieuwste jaar.">
-          {data.jaren.length === 0 ? <p>Er zijn nog geen metingen.</p> : <JarenTabel jaren={data.jaren} platformen={data.platformen} nuJaar={data.nuJaar} />}
+        <Kaart titel="Alle jaren naast elkaar" sub="Donkerder is verder ontwikkeld. Kies een businessunit voor haar nieuwste resultaat.">
+          {data.jaren.length === 0 ? <p>Er zijn nog geen metingen.</p> : <JarenTabel jaren={data.jaren} businessUnits={data.businessUnits} nuJaar={data.nuJaar} />}
         </Kaart>
-        <Kaart titel={data.nuJaar ? `De drie assen in ${data.nuJaar}` : 'De drie assen'}>
+        <Kaart titel={data.nuJaar ? `De assen in ${data.nuJaar}` : 'De assen'}>
           {data.nuJaar ? <AssenBlok assen={data.assen} nuJaar={data.nuJaar} vorigeJaar={data.vorigeJaar} /> : <p>Nog geen scores.</p>}
         </Kaart>
       </div>

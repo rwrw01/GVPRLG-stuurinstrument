@@ -45,9 +45,9 @@ test.describe('GVPRLG backend fase A — happy flow', () => {
     const xssTriggered = await page.evaluate(() => window.__xss);
     expect(xssTriggered).toBeUndefined();
 
-    const apiResponse = await page.request.get(`/api/metingen/${jaar}/platformen/belastingen`);
+    const apiResponse = await page.request.get(`/api/metingen/${jaar}/businessunits/belastingen`);
     const body = await apiResponse.json();
-    expect(body.platform.status).toBe('definitief');
+    expect(body.businessUnit.status).toBe('definitief');
   });
 
   test('weigert afronden met ontbrekende scores', async ({ page }) => {

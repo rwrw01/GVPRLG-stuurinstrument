@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { CONFIG } from '@/src/service/config';
+import { useCatalogus } from '@/src/ui/hooks/useCatalogus';
 import { AUDIT_ACTIES } from './_beheerTypen';
 
 /** Filter values as typed; empty strings mean "no filter". */
@@ -36,6 +36,9 @@ function Keuze(props: { id: string; label: string; waarde: string; opties: { val
  */
 export function AuditFilters({ jaren, onZoek }: { jaren: number[]; onZoek: (filter: AuditFilterWaarden) => void }) {
   const [f, setF] = useState<AuditFilterWaarden>(LEEG_FILTER);
+  // Every platform that ever existed, removed ones included, so old rows stay findable.
+  const { staat } = useCatalogus();
+  const platformen = staat.status === 'ok' ? staat.catalogus.platformen : [];
   const zet = (veld: keyof AuditFilterWaarden) => (waarde: string) => setF((oud) => ({ ...oud, [veld]: waarde }));
 
   function verstuur(event: FormEvent) {
@@ -46,7 +49,7 @@ export function AuditFilters({ jaren, onZoek }: { jaren: number[]; onZoek: (filt
   return (
     <form className="card audit-filters" onSubmit={verstuur} aria-label="Auditfilters">
       <Keuze id="audit-jaar" label="Meetjaar" waarde={f.jaar} onChange={zet('jaar')} opties={jaren.map((j) => ({ value: String(j), label: String(j) }))} />
-      <Keuze id="audit-platform" label="Platform" waarde={f.platformId} onChange={zet('platformId')} opties={CONFIG.platformen.map((p) => ({ value: p.id, label: p.naam }))} />
+      <Keuze id="audit-platform" label="Platform" waarde={f.platformId} onChange={zet('platformId')} opties={platformen.map((p) => ({ value: p.id, label: p.vervallen ? `${p.naam} (vervallen)` : p.naam }))} />
       <div className="form-group">
         <label htmlFor="audit-actor">Actor</label>
         <input id="audit-actor" maxLength={64} value={f.actor} onChange={(e) => zet('actor')(e.target.value)} />

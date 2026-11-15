@@ -2,7 +2,7 @@
 // Refuses to run with NODE_ENV=production. Platforms that are already definitief are reported and skipped.
 // Usage: npx tsx --env-file=.env scripts/seed-voorbeeldwaardes-2026.ts   (or: npm run seed:voorbeeld)
 
-import { getMetingByJaar, savePlatformScore } from '../src/data/metingenRepository';
+import { bewaarBusinessUnitScore, getMetingByJaar } from '../src/data/metingenRepository';
 import { prisma } from '../src/data/prismaClient';
 
 const JAAR = 2026;
@@ -81,18 +81,21 @@ async function seedPlatform(
     console.log(`${voorbeeld.platformId}: already definitief, skipped`);
     return 'skipped';
   }
-  await savePlatformScore({
+  // No check: the example ids are the migrated business units; the first save freezes 2026.
+  const resultaat = await bewaarBusinessUnitScore({
     metingId,
     jaar: JAAR,
-    platformId: voorbeeld.platformId,
+    businessUnitId: voorbeeld.platformId,
     status: voorbeeld.status,
     algemeneToelichting: voorbeeld.toelichting,
+    aanwezigen: '',
     laatstGewijzigdDoor: SEED_ACTOR,
     vraagScores: VRAGEN.map((vraagId, i) => {
       const score = voorbeeld.scores[i] ?? null;
       return { vraagId, score, toelichting: toelichtingVoor(score) };
     }),
-  });
+  }, () => null);
+  if (!resultaat.ok) throw new Error(`Save refused: ${String(resultaat.fout)}`);
   console.log(`${voorbeeld.platformId}: saved as ${voorbeeld.status}`);
   return 'saved';
 }
@@ -114,7 +117,7 @@ async function main(): Promise<number> {
   let failures = 0;
   for (const voorbeeld of VOORBEELDEN) {
     try {
-      await seedPlatform(meting.id, meting.platformen[voorbeeld.platformId]?.status, voorbeeld);
+      await seedPlatform(meting.id, meting.businessUnits[voorbeeld.platformId]?.status, voorbeeld);
     } catch (error: unknown) {
       failures += 1;
       console.error(`${voorbeeld.platformId}: failed to save`, error);

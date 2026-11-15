@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useJaren } from '@/src/ui/hooks/useJaren';
+import { useVragenlijst } from '@/src/ui/hooks/useVragenlijst';
 import { leesDetail, verstuurJson } from '../_verstuurJson';
 import { GebruikersTabel } from './GebruikersTabel';
 import { GebruikerToevoegenForm } from './GebruikerToevoegenForm';
 import type { BeheerGebruiker, GebruikerWijziging } from './_beheerTypen';
+import { jaarPlatformen, JaarPlatformenProvider } from './_jaarPlatformen';
 
 function JaarKeuze({ jaren, jaar, onChange }: { jaren: number[]; jaar: number; onChange: (jaar: number) => void }) {
   return (
@@ -29,6 +31,8 @@ function GebruikersVoorJaar({ jaren }: { jaren: number[] }) {
   const [jaar, setJaar] = useState(() => startJaar(jaren));
   const [gebruikers, setGebruikers] = useState<BeheerGebruiker[]>([]);
   const [fout, setFout] = useState<string | null>(null);
+  const lijst = useVragenlijst(jaar);
+  const platformen = jaarPlatformen(lijst.status === 'ok' ? lijst.lijst : null);
 
   const laad = useCallback(async () => {
     const response = await fetch(`/api/beheer/gebruikers?jaar=${jaar}`).catch(() => null);
@@ -50,7 +54,7 @@ function GebruikersVoorJaar({ jaren }: { jaren: number[] }) {
   }
 
   return (
-    <>
+    <JaarPlatformenProvider platformen={platformen}>
       <JaarKeuze
         jaren={jaren}
         jaar={jaar}
@@ -69,7 +73,7 @@ function GebruikersVoorJaar({ jaren }: { jaren: number[] }) {
         />
       </div>
       <GebruikerToevoegenForm jaar={jaar} onToegevoegd={() => void laad()} />
-    </>
+    </JaarPlatformenProvider>
   );
 }
 
