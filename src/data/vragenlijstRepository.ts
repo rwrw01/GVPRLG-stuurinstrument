@@ -219,17 +219,26 @@ export async function legVast(tx: Prisma.TransactionClient, metingId: string): P
   return 'vastgelegd';
 }
 
+/** What an unfreeze removed, for the audit row. */
+export interface Vrijgave {
+  /** Business units whose (empty) rows were removed, with who last saved each. */
+  rijen: Array<{ businessUnitId: string; laatstGewijzigdDoor: string }>;
+  /** Filler links of this meting to platforms that lapsed while the year was frozen. */
+  koppelingen: Array<{ platformId: string; gebruiker: string }>;
+}
+
 /**
  * Unfreezes a meting when it holds nothing that would be lost: no score, no question comment, no
- * general comment and no aanwezigen. Removes the empty rows and the copy, in one transaction with a
- * row lock on the meting; `auditInTx` writes the audit row in the same transaction.
+ * general comment and no aanwezigen. Removes the empty rows, the copy and the filler links to
+ * platforms that lapsed in the meantime (the year follows the catalogue again), in one
+ * transaction with a row lock on the meting; `auditInTx` writes the audit rows in it.
  * @param metingId - Meting id
- * @param auditInTx - Writes the audit row through the given transaction client
+ * @param auditInTx - Writes the audit rows through the given transaction client
  * @returns `vrijgegeven`, `niet-vastgelegd` or `heeft-inhoud`
  */
 export async function geefVrij(
   metingId: string,
-  auditInTx: (tx: Prisma.TransactionClient) => Promise<void>,
+  auditInTx: (tx: Prisma.TransactionClient, vrijgave: Vrijgave) => Promise<void>,
 ): Promise<'vrijgegeven' | 'niet-vastgelegd' | 'heeft-inhoud'> {
   return prisma.$transaction(async (tx) => {
     const rijen = await tx.$queryRaw<Array<{ vastgelegdOp: Date | null }>>`SELECT "vastgelegdOp" FROM metingen WHERE id = ${metingId} FOR UPDATE`;
@@ -239,14 +248,24 @@ export async function geefVrij(
       tx.businessUnitScore.count({ where: { metingId, OR: [{ algemeneToelichting: { not: '' } }, { aanwezigen: { not: '' } }] } }),
     ]);
     if (vragen + units > 0) return 'heeft-inhoud';
-    await tx.vraagScore.deleteMany({ where: { metingId } });
-    await tx.businessUnitScore.deleteMany({ where: { metingId } });
-    await tx.metingBusinessUnit.deleteMany({ where: { metingId } });
-    await tx.metingPlatform.deleteMany({ where: { metingId } });
-    await tx.metingVraag.deleteMany({ where: { metingId } });
-    await tx.metingAs.deleteMany({ where: { metingId } });
-    await tx.meting.update({ where: { id: metingId }, data: { vastgelegdOp: null } });
-    await auditInTx(tx);
+    const vrijgave = await wisKopie(tx, metingId);
+    await auditInTx(tx, vrijgave);
     return 'vrijgegeven';
   });
+}
+
+// Removes the empty rows, the copy and the links to lapsed platforms of one meting.
+async function wisKopie(tx: Prisma.TransactionClient, metingId: string): Promise<Vrijgave> {
+  const rijen = await tx.businessUnitScore.findMany({ where: { metingId }, select: { businessUnitId: true, laatstGewijzigdDoor: true }, orderBy: { businessUnitId: 'asc' } });
+  const koppelingWhere = { metingId, platform: { vervallen: true } };
+  const koppelingen = await tx.platformInvuller.findMany({ where: koppelingWhere, select: { platformId: true, gebruiker: true } });
+  await tx.platformInvuller.deleteMany({ where: koppelingWhere });
+  await tx.vraagScore.deleteMany({ where: { metingId } });
+  await tx.businessUnitScore.deleteMany({ where: { metingId } });
+  await tx.metingBusinessUnit.deleteMany({ where: { metingId } });
+  await tx.metingPlatform.deleteMany({ where: { metingId } });
+  await tx.metingVraag.deleteMany({ where: { metingId } });
+  await tx.metingAs.deleteMany({ where: { metingId } });
+  await tx.meting.update({ where: { id: metingId }, data: { vastgelegdOp: null } });
+  return { rijen, koppelingen };
 }

@@ -76,6 +76,13 @@ describe('metingenRepository', () => {
     expect(rij?.toelichtingen['common-ground-standaarden']).toBe('onderbouwing');
   });
 
+  it('should save aanwezigen with a definitief row and read it back', async () => {
+    const meting = await createMeting(2027);
+    await bewaarBusinessUnitScore(opslag(meting.id, { status: 'definitief', aanwezigen: 'Jan, Piet en Klaas' }), geenControle);
+    const rij = (await getMetingByJaar(2027))?.businessUnits.belastingen;
+    expect(rij).toMatchObject({ status: 'definitief', aanwezigen: 'Jan, Piet en Klaas' });
+  });
+
   it('should freeze the year on a concept without any score', async () => {
     const meting = await createMeting(2027);
     await bewaarBusinessUnitScore(opslag(meting.id, { aanwezigen: 'Alleen aanwezigen' }), geenControle);

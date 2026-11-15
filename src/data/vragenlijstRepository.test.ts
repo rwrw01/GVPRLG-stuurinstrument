@@ -98,6 +98,15 @@ describe('vragenlijstRepository', () => {
     await expect(prisma.vraagScore.create({ data: { businessUnitScoreId: rij.id, metingId: tweede.id, vraagId: 'cloud-data', score: 3 } })).rejects.toThrow();
   });
 
+  it('should refuse to unfreeze a year whose only content is a comment on one question', async () => {
+    const meting = await vastgelegdeMeting(2027);
+    const rij = await prisma.businessUnitScore.create({ data: { metingId: meting.id, businessUnitId: 'ro', laatstGewijzigdDoor: 't' } });
+    await prisma.vraagScore.create({ data: { businessUnitScoreId: rij.id, metingId: meting.id, vraagId: 'cloud-data', score: null, toelichting: 'Alleen een opmerking' } });
+    expect(await geefVrij(meting.id, async () => undefined)).toBe('heeft-inhoud');
+    expect((await leesVragenlijst(2027))?.vastgelegd).toBe(true);
+    expect(await prisma.vraagScore.count()).toBe(1);
+  });
+
   it('should unfreeze a year whose rows are empty and refuse a year with any content', async () => {
     const meting = await vastgelegdeMeting(2027);
     const rij = await prisma.businessUnitScore.create({ data: { metingId: meting.id, businessUnitId: 'ro', laatstGewijzigdDoor: 't' } });

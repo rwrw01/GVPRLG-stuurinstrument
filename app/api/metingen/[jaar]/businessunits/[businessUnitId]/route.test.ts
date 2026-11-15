@@ -261,6 +261,15 @@ describe('PUT /api/metingen/[jaar]/businessunits/[businessUnitId]', () => {
     expect((await response.json()).businessUnit.aanwezigen).toBe('Jan, Piet en Klaas');
   });
 
+  it('should save aanwezigen when finalising (definitief) and return it on GET', async () => {
+    await createMeting(2027);
+    const params = () => ({ params: Promise.resolve({ jaar: '2027', businessUnitId: 'ro' }) });
+    const vraagScores = STANDAARD_VRAAG_IDS.map((id) => ({ vraagId: id, score: 4, toelichting: '' }));
+    expect((await PUT(putRequest({ status: 'definitief', aanwezigen: 'Jan en Piet', vraagScores }), params())).status).toBe(200);
+    const body = await (await GET(new Request('http://localhost') as unknown as import('next/server').NextRequest, params())).json();
+    expect(body.businessUnit).toMatchObject({ status: 'definitief', aanwezigen: 'Jan en Piet' });
+  });
+
   it('should answer 404 for a business unit that is not in the list of the year', async () => {
     await createMeting(2027);
     await prisma.businessUnit.update({ where: { id: 'ro' }, data: { vervallen: true } });

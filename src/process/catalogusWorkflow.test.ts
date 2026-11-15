@@ -117,8 +117,30 @@ describe('catalogusWorkflow changes', () => {
       ['catalogus_verplaatst', 'as', 'proces', bea.id],
     ]);
     expect(regels[0]!.detail).toBe('soort=businessunit;oud={"naam":"R&O"};nieuw={"naam":"Ruimte en Omgeving"}');
-    expect(regels[1]!.detail).toBe('soort=as;richting=omhoog;oud=2;nieuw=1');
+    expect(regels[1]!.detail).toBe('soort=as;richting=omhoog;oud=["techniek","mens","proces"];nieuw=["techniek","proces","mens"]');
     expect((await haalCatalogus()).assen.map((a) => a.id)).toEqual(['techniek', 'proces', 'mens']);
+  });
+
+  it('should audit an addition with all its new values', async () => {
+    const r = await voegToe(bea, 'vraag', { naam: 'Een nieuwe vraag', kort: 'Nieuw', ouderId: 'mens', nds: 'Open' });
+    if (!r.ok) throw new Error('vraag');
+    const audit = await prisma.auditLogEntry.findFirstOrThrow({ where: { actie: 'catalogus_toegevoegd' } });
+    expect(audit).toMatchObject({ doelType: 'vraag', doelId: r.data.id, actor: bea.id });
+    expect(audit.detail.startsWith('soort=vraag;nieuw=')).toBe(true);
+    expect(JSON.parse(audit.detail.slice('soort=vraag;nieuw='.length))).toEqual({
+      id: r.data.id, ouderId: 'mens', naam: 'Een nieuwe vraag', kort: 'Nieuw', nds: 'Open', kleur: null, volgorde: 4, vervallen: false,
+    });
+  });
+
+  it('should keep free text in an audit detail from matching the year or platform filter', async () => {
+    const tekst = 'Valse sporen;jaar=2027;platform=ro;';
+    const r = await voegToe(bea, 'vraag', { naam: tekst, kort: 'jaar=2027;', ouderId: 'mens' });
+    if (!r.ok) throw new Error('vraag');
+    await wijzig(bea, 'vraag', r.data.id, { naam: `${tekst} gewijzigd` });
+    expect(await zoekAudit({ jaar: 2027, limiet: 50 })).toEqual([]);
+    expect(await zoekAudit({ platformIds: ['ro'], limiet: 50 })).toEqual([]);
+    const regel = await prisma.auditLogEntry.findFirstOrThrow({ where: { actie: 'catalogus_toegevoegd' } });
+    expect(JSON.parse(regel.detail.slice('soort=vraag;nieuw='.length)).naam).toBe(tekst);
   });
 
   it('should keep links, audit filter and URLs working after renaming a platform and its business unit', async () => {
@@ -163,11 +185,28 @@ describe('catalogusWorkflow changes', () => {
 });
 
 describe('geefMetingVrij', () => {
-  it('should unfreeze a year with only an empty concept and audit it', async () => {
-    await vastgelegdJaar(2027);
+  it('should unfreeze a year with only an empty concept and audit the removed rows and who saved them', async () => {
+    const meting = await vastgelegdJaar(2027);
     expect((await geefMetingVrij(bea, 2027)).ok).toBe(true);
     expect((await leesVragenlijst(2027))?.vastgelegd).toBe(false);
-    expect(await prisma.auditLogEntry.count({ where: { actie: 'meting_vrijgegeven', detail: 'jaar=2027' } })).toBe(1);
+    const audit = await prisma.auditLogEntry.findMany({ where: { actie: 'meting_vrijgegeven' } });
+    expect(audit.map((a) => a.detail)).toEqual([`meting=${meting.id};jaar=2027;rijen=[{"businessUnitId":"ro","laatstGewijzigdDoor":"t"}]`]);
+  });
+
+  it('should drop the links of this year to platforms that lapsed while it was frozen, audited', async () => {
+    const meting = await vastgelegdJaar(2027);
+    const jan = await maakGebruiker({ email: 'jan@test.local', naam: 'Jan', rol: 'invuller', status: 'actief' });
+    const tijdelijk = await voegToe(bea, 'platform', { naam: 'Tijdelijk' });
+    if (!tijdelijk.ok) throw new Error('platform');
+    await prisma.platformInvuller.createMany({ data: [tijdelijk.data.id, 'ro'].map((platformId) => ({ metingId: meting.id, platformId, gebruiker: jan.id })) });
+    await wijzig(bea, 'platform', tijdelijk.data.id, { vervallen: true });
+    expect(await heeftKoppeling(jan.id, meting.id, tijdelijk.data.id)).toBe(true);
+
+    expect((await geefMetingVrij(bea, 2027)).ok).toBe(true);
+    expect(await heeftKoppeling(jan.id, meting.id, tijdelijk.data.id)).toBe(false);
+    expect(await heeftKoppeling(jan.id, meting.id, 'ro')).toBe(true);
+    const audit = await prisma.auditLogEntry.findMany({ where: { actie: 'koppeling_verwijderd' } });
+    expect(audit.map((a) => [a.doelId, a.detail])).toEqual([[jan.id, `platform=${tijdelijk.data.id};jaar=2027;reden=platform-vervallen`]]);
   });
 
   it('should refuse a year with a score, an open year and an unknown year', async () => {

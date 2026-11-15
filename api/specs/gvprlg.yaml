@@ -756,8 +756,10 @@ paths:
       summary: Zet de vragenlijst van een vastgelegd meetjaar weer open; alleen beheerder
       description: >
         Alleen zolang het jaar geen enkele score, toelichting, algemene toelichting of aanwezigen
-        bevat. De lege rijen en de kopie vervallen; het jaar volgt weer de actuele lijst. Geaudit als
-        meting_vrijgegeven.
+        bevat. De lege rijen en de kopie vervallen; het jaar volgt weer de actuele lijst. Koppelingen
+        van invullers in dat jaar aan platformen die intussen vervallen zijn, vervallen mee (geaudit als
+        koppeling_verwijderd). Geaudit als meting_vrijgegeven met de verwijderde businessunit-rijen en
+        wie ze het laatst opsloeg.
       parameters:
         - $ref: '#/components/parameters/Jaar'
       responses:

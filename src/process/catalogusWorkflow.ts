@@ -1,6 +1,6 @@
 import type { Prisma } from '@prisma/client';
 
-import { schrijfAudit, platformDetail } from '../data/auditRepository';
+import { auditJson, platformDetail, schrijfAudit } from '../data/auditRepository';
 import {
   inCatalogusTransactie,
   leesRijen,
@@ -73,7 +73,7 @@ export async function voegToe(actor: GebruikerRecord, soort: CatalogusSoort, inv
     const rij = await maakRij(tx, soort, {
       ouderId, naam: invoer.naam, kort: invoer.kort ?? null, nds: invoer.nds ?? null, kleur: kleur.kleur, volgorde: volgendeVolgorde(rijen, ouderId),
     });
-    await audit(tx, actor, 'catalogus_toegevoegd', soort, rij.id, `nieuw=${JSON.stringify(rij)}`);
+    await audit(tx, actor, 'catalogus_toegevoegd', soort, rij.id, `nieuw=${auditJson(rij)}`);
     return ok(rij);
   });
 }
@@ -127,7 +127,7 @@ export async function wijzig(actor: GebruikerRecord, soort: CatalogusSoort, id: 
     const volgorde = nieuweOuder || herstel ? volgendeVolgorde(rijen.filter((r) => r.id !== id), w.ouderId ?? item.ouderId) : undefined;
     const nieuw = await wijzigRij(tx, soort, id, { ...w, volgorde });
     const { oud, nieuw: na } = verschil(item, nieuw);
-    if (Object.keys(na).length > 0) await audit(tx, actor, 'catalogus_gewijzigd', soort, id, `oud=${JSON.stringify(oud)};nieuw=${JSON.stringify(na)}`);
+    if (Object.keys(na).length > 0) await audit(tx, actor, 'catalogus_gewijzigd', soort, id, `oud=${auditJson(oud)};nieuw=${auditJson(na)}`);
     if (soort === 'platform' && w.vervallen === true && !item.vervallen) await ontkoppelOpenJaren(tx, actor, id);
     return ok(nieuw);
   });
@@ -149,20 +149,23 @@ export async function verplaats(actor: GebruikerRecord, soort: CatalogusSoort, i
     if (!item) return fail(nietGevonden(soort));
     const volgorde = nieuweVolgorde(rijen, item, richting);
     if (isFout(volgorde)) return fail(volgorde);
+    const voor = rijen.filter((r) => r.ouderId === item.ouderId && !r.vervallen).sort((a, b) => a.volgorde - b.volgorde).map((r) => r.id);
     let verplaatst = item;
     for (const [i, r] of volgorde.entries()) {
       if (r.volgorde === i) continue;
       const nieuw = await wijzigRij(tx, soort, r.id, { volgorde: i });
       if (r.id === id) verplaatst = nieuw;
     }
-    await audit(tx, actor, 'catalogus_verplaatst', soort, id, `richting=${richting};oud=${item.volgorde};nieuw=${verplaatst.volgorde}`);
+    await audit(tx, actor, 'catalogus_verplaatst', soort, id, `richting=${richting};oud=${auditJson(voor)};nieuw=${auditJson(volgorde.map((r) => r.id))}`);
     return ok(verplaatst);
   });
 }
 
 /**
  * Unfreezes the questionnaire of a year that holds nothing that would be lost (§10.2). Audited as
- * `meting_vrijgegeven` in the same transaction.
+ * `meting_vrijgegeven` (with the removed empty rows and who saved them) in the same transaction;
+ * filler links to platforms that lapsed while the year was frozen go too, audited as
+ * `koppeling_verwijderd`.
  * @param actor - The acting beheerder
  * @param jaar - Measurement year
  * @returns ok, or 404 (no meting) / 409 (not frozen, or content present)
@@ -170,8 +173,18 @@ export async function verplaats(actor: GebruikerRecord, soort: CatalogusSoort, i
 export async function geefMetingVrij(actor: GebruikerRecord, jaar: number): Promise<Result<void, CatalogusFout>> {
   const metingId = await metingIdVanJaar(jaar);
   if (!metingId) return fail({ status: 404, detail: `Geen meting voor jaar ${jaar}.` });
-  const uitkomst = await geefVrij(metingId, (tx) =>
-    schrijfAudit({ actor: actor.id, actie: 'meting_vrijgegeven', doelType: 'meting', doelId: metingId, detail: `jaar=${jaar}` }, tx));
+  const uitkomst = await geefVrij(metingId, async (tx, vrijgave) => {
+    await schrijfAudit({
+      actor: actor.id, actie: 'meting_vrijgegeven', doelType: 'meting', doelId: metingId,
+      detail: `meting=${metingId};jaar=${jaar};rijen=${auditJson(vrijgave.rijen)}`,
+    }, tx);
+    for (const k of vrijgave.koppelingen) {
+      await schrijfAudit({
+        actor: actor.id, actie: 'koppeling_verwijderd', doelType: 'platform_invuller', doelId: k.gebruiker,
+        detail: `${platformDetail(k.platformId, jaar)};reden=platform-vervallen`,
+      }, tx);
+    }
+  });
   if (uitkomst === 'niet-vastgelegd') return fail({ status: 409, detail: `De vragenlijst van ${jaar} ligt nog niet vast.` });
   if (uitkomst === 'heeft-inhoud') {
     return fail({ status: 409, detail: `De vragenlijst van ${jaar} blijft vastliggen: er zijn al scores, toelichtingen of aanwezigen opgeslagen.` });

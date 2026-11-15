@@ -66,6 +66,17 @@ export function businessUnitDetail(platformId: string, businessUnitId: string, j
 }
 
 /**
+ * JSON for a free-text part of an audit detail. `;` and `=` are written as JSON escapes (still
+ * valid JSON, they only ever occur inside strings), so text such as a question that contains
+ * ";jaar=2027" can never make the year or platform filter of `zoekAudit` match.
+ * @param waarde - Value to serialise
+ * @returns JSON without a raw `;` or `=`
+ */
+export function auditJson(waarde: unknown): string {
+  return JSON.stringify(waarde).replace(/;/g, '\\u003b').replace(/=/g, '\\u003d');
+}
+
+/**
  * Writes one audit row, through the given transaction client when provided.
  * @param entry - Actor, action, target and optional detail
  * @param tx - Optional transaction client so the row commits with the caller's changes
