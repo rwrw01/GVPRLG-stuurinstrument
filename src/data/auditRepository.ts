@@ -18,6 +18,10 @@ export const AUDIT_ACTIES = [
   'account_ontkoppeld',
   'platform_opgeslagen_concept',
   'platform_afgerond',
+  'catalogus_toegevoegd',
+  'catalogus_gewijzigd',
+  'catalogus_verplaatst',
+  'meting_vrijgegeven',
 ] as const;
 
 /** One of the audit actions in `AUDIT_ACTIES`. */
@@ -47,6 +51,18 @@ export interface AuditFilter {
  */
 export function platformDetail(platformId: string, jaar: number): string {
   return `platform=${platformId};jaar=${jaar}`;
+}
+
+/**
+ * Builds the `detail` string for an audit entry about one business unit row; the platform part keeps
+ * the platform and year filters of `zoekAudit` working.
+ * @param platformId - Platform the business unit belongs to in that year
+ * @param businessUnitId - Business unit id
+ * @param jaar - Measurement year
+ * @returns Detail string in the form `platform=<id>;businessunit=<id>;jaar=<jaar>`
+ */
+export function businessUnitDetail(platformId: string, businessUnitId: string, jaar: number): string {
+  return `platform=${platformId};businessunit=${businessUnitId};jaar=${jaar}`;
 }
 
 /**

@@ -7,46 +7,187 @@ generator client {
 }
 
 model Meting {
-  id         String          @id @default(cuid())
-  jaar       Int             @unique
-  aangemaakt DateTime        @default(now())
-  isOefening Boolean         @default(false)
-  platformen PlatformScore[]
+  id                 String               @id @default(cuid())
+  jaar               Int                  @unique
+  aangemaakt         DateTime             @default(now())
+  isOefening         Boolean              @default(false)
+  /// Moment the questionnaire of this year was frozen; null while the year follows the catalogue.
+  vastgelegdOp       DateTime?
+  businessUnitScores BusinessUnitScore[]
+  assen              MetingAs[]
+  vragen             MetingVraag[]
+  platformen         MetingPlatform[]
+  businessUnits      MetingBusinessUnit[]
 
   @@map("metingen")
 }
 
-model PlatformScore {
-  id                  String       @id @default(cuid())
-  metingId            String
-  meting              Meting       @relation(fields: [metingId], references: [id], onDelete: Cascade)
+// ---- Catalogue: the current, managed lists. Rows are never hard-deleted (vervallen). ----
+
+model As {
+  id          String     @id @default(cuid())
+  naam        String
+  /// Never reused, also not after vervallen.
+  kleur       String     @unique
+  volgorde    Int
+  vervallen   Boolean    @default(false)
+  aangemaakt  DateTime   @default(now())
+  gewijzigd   DateTime   @updatedAt
+  vragen      Vraag[]
+  metingAssen MetingAs[]
+
+  @@map("assen")
+}
+
+model Vraag {
+  id           String        @id @default(cuid())
+  asId         String
+  as           As            @relation(fields: [asId], references: [id])
+  /// Spoke label in the spinnenweb, at most 22 characters.
+  kort         String
+  tekst        String
+  nds          String?
+  volgorde     Int
+  vervallen    Boolean       @default(false)
+  aangemaakt   DateTime      @default(now())
+  gewijzigd    DateTime      @updatedAt
+  metingVragen MetingVraag[]
+
+  @@map("vragen")
+}
+
+model Platform {
+  id               String             @id @default(cuid())
+  naam             String
+  volgorde         Int
+  vervallen        Boolean            @default(false)
+  aangemaakt       DateTime           @default(now())
+  gewijzigd        DateTime           @updatedAt
+  businessUnits    BusinessUnit[]
+  invullers        PlatformInvuller[]
+  metingPlatformen MetingPlatform[]
+
+  @@map("platformen")
+}
+
+model BusinessUnit {
+  id                  String               @id @default(cuid())
   platformId          String
-  status              String       @default("concept")
-  algemeneToelichting String       @default("")
+  platform            Platform             @relation(fields: [platformId], references: [id])
+  naam                String
+  /// Never reused, also not after vervallen.
+  kleur               String               @unique
+  volgorde            Int
+  vervallen           Boolean              @default(false)
+  aangemaakt          DateTime             @default(now())
+  gewijzigd           DateTime             @updatedAt
+  metingBusinessUnits MetingBusinessUnit[]
+
+  @@map("business_units")
+}
+
+// ---- Snapshot per meting, filled in the transaction of the first save of that year. ----
+
+model MetingAs {
+  metingId String
+  asId     String
+  naam     String
+  kleur    String
+  volgorde Int
+  meting   Meting        @relation(fields: [metingId], references: [id], onDelete: Cascade)
+  as       As            @relation(fields: [asId], references: [id])
+  vragen   MetingVraag[]
+
+  @@id([metingId, asId])
+  @@map("meting_assen")
+}
+
+model MetingVraag {
+  metingId    String
+  vraagId     String
+  asId        String
+  kort        String
+  tekst       String
+  nds         String?
+  volgorde    Int
+  meting      Meting       @relation(fields: [metingId], references: [id], onDelete: Cascade)
+  vraag       Vraag        @relation(fields: [vraagId], references: [id])
+  metingAs    MetingAs     @relation(fields: [metingId, asId], references: [metingId, asId], onDelete: Cascade)
+  vraagScores VraagScore[]
+
+  @@id([metingId, vraagId])
+  @@map("meting_vragen")
+}
+
+model MetingPlatform {
+  metingId      String
+  platformId    String
+  naam          String
+  volgorde      Int
+  meting        Meting               @relation(fields: [metingId], references: [id], onDelete: Cascade)
+  platform      Platform             @relation(fields: [platformId], references: [id])
+  businessUnits MetingBusinessUnit[]
+
+  @@id([metingId, platformId])
+  @@map("meting_platformen")
+}
+
+model MetingBusinessUnit {
+  metingId       String
+  businessUnitId String
+  platformId     String
+  naam           String
+  kleur          String
+  volgorde       Int
+  meting         Meting              @relation(fields: [metingId], references: [id], onDelete: Cascade)
+  businessUnit   BusinessUnit        @relation(fields: [businessUnitId], references: [id])
+  metingPlatform MetingPlatform      @relation(fields: [metingId, platformId], references: [metingId, platformId], onDelete: Cascade)
+  scores         BusinessUnitScore[]
+
+  @@id([metingId, businessUnitId])
+  @@map("meting_business_units")
+}
+
+// ---- Scores, referencing the snapshot of their year. ----
+
+model BusinessUnitScore {
+  id                  String             @id @default(cuid())
+  metingId            String
+  meting              Meting             @relation(fields: [metingId], references: [id], onDelete: Cascade)
+  businessUnitId      String
+  metingBusinessUnit  MetingBusinessUnit @relation(fields: [metingId, businessUnitId], references: [metingId, businessUnitId], onDelete: NoAction)
+  status              String             @default("concept")
+  algemeneToelichting String             @default("")
+  /// Free text: who took part when this business unit was filled in.
+  aanwezigen          String             @default("")
   laatstGewijzigdDoor String
-  laatstGewijzigdOp   DateTime     @default(now())
+  laatstGewijzigdOp   DateTime           @default(now())
   vraagScores         VraagScore[]
 
-  @@unique([metingId, platformId])
-  @@map("platform_scores")
+  @@unique([metingId, businessUnitId])
+  @@unique([id, metingId])
+  @@map("business_unit_scores")
 }
 
 model VraagScore {
-  id              String        @id @default(cuid())
-  platformScoreId String
-  platformScore   PlatformScore @relation(fields: [platformScoreId], references: [id], onDelete: Cascade)
-  vraagId         String
-  score           Int?
-  toelichting     String        @default("")
+  id                  String            @id @default(cuid())
+  businessUnitScoreId String
+  metingId            String
+  businessUnitScore   BusinessUnitScore @relation(fields: [businessUnitScoreId, metingId], references: [id, metingId], onDelete: Cascade)
+  vraagId             String
+  metingVraag         MetingVraag       @relation(fields: [metingId, vraagId], references: [metingId, vraagId], onDelete: NoAction)
+  score               Int?
+  toelichting         String            @default("")
 
-  @@unique([platformScoreId, vraagId])
+  @@unique([businessUnitScoreId, vraagId])
   @@map("vraag_scores")
 }
 
 model PlatformInvuller {
-  id         String @id @default(cuid())
+  id         String   @id @default(cuid())
   metingId   String
   platformId String
+  platform   Platform @relation(fields: [platformId], references: [id])
   gebruiker  String
 
   @@unique([metingId, platformId, gebruiker])

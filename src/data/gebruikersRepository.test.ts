@@ -56,11 +56,11 @@ describe('gebruikersRepository', () => {
     expect(eerste.toegevoegd.sort()).toEqual(['belastingen', 'ro']);
     expect(eerste.verwijderd).toEqual([]);
 
-    const tweede = await zetKoppelingen(g.id, m2027.id, ['belastingen', 'sociaal']);
-    expect(tweede).toEqual({ ok: true, toegevoegd: ['sociaal'], verwijderd: ['ro'] });
+    const tweede = await zetKoppelingen(g.id, m2027.id, ['belastingen', 'sociaal-domein']);
+    expect(tweede).toEqual({ ok: true, toegevoegd: ['sociaal-domein'], verwijderd: ['ro'] });
 
     const rijen2027 = await prisma.platformInvuller.findMany({ where: { metingId: m2027.id, gebruiker: g.id } });
-    expect(rijen2027.map((r) => r.platformId).sort()).toEqual(['belastingen', 'sociaal']);
+    expect(rijen2027.map((r) => r.platformId).sort()).toEqual(['belastingen', 'sociaal-domein']);
     const rijen2028 = await prisma.platformInvuller.findMany({ where: { metingId: m2028.id, gebruiker: g.id } });
     expect(rijen2028.map((r) => r.platformId)).toEqual(['ro']);
   });
