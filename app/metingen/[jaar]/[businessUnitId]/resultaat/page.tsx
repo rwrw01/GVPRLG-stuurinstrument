@@ -46,6 +46,42 @@ function ResultaatKaart({ lijst, rij, titel }: { lijst: UiVragenlijst; rij: UiBu
   );
 }
 
+/**
+ * The general comment (when given) and who took part.
+ * @param props.rij - The stored row
+ * @returns the cards
+ */
+function Toelichtingen({ rij }: { rij: UiBusinessUnitRij }) {
+  return (
+    <>
+      {rij.algemeneToelichting && (
+        <div className="card">
+          <h3>Algemene toelichting</h3>
+          <p>{rij.algemeneToelichting}</p>
+        </div>
+      )}
+      <div className="card" aria-labelledby="aanwezigen-kop">
+        <h3 id="aanwezigen-kop">Aanwezigen</h3>
+        <p className="aanwezigen">{rij.aanwezigen || 'Niet ingevuld.'}</p>
+      </div>
+    </>
+  );
+}
+
+/**
+ * A heading with one message (load error or not filled in yet).
+ * @param props - Heading text, alert kind and message
+ * @returns the block
+ */
+function Melding({ kop, soort, tekst }: { kop: string; soort: 'warning' | 'info'; tekst: string }) {
+  return (
+    <div>
+      <h2>{kop}</h2>
+      <div className={`alert alert-${soort}`} role="alert">{tekst}</div>
+    </div>
+  );
+}
+
 export default function ResultaatPage() {
   const params = useParams<{ jaar: string; businessUnitId: string }>();
   // Bumped after a reopen to re-fetch the row.
@@ -54,24 +90,10 @@ export default function ResultaatPage() {
   const { ik } = useIk();
 
   if (staat.status === 'laden') return <p>Laden...</p>;
-  if (staat.status === 'fout') {
-    return (
-      <div>
-        <h2>Resultaat {params.jaar}</h2>
-        <div className="alert alert-warning" role="alert">{staat.melding}</div>
-      </div>
-    );
-  }
+  if (staat.status === 'fout') return <Melding kop={`Resultaat ${params.jaar}`} soort="warning" tekst={staat.melding} />;
   const { lijst, unit, rij } = staat;
   const kop = <h2>{unit.naam} — Resultaat {params.jaar}</h2>;
-  if (!rij) {
-    return (
-      <div>
-        {kop}
-        <div className="alert alert-info" role="alert">Deze businessunit is nog niet ingevuld.</div>
-      </div>
-    );
-  }
+  if (!rij) return <Melding kop={`${unit.naam} — Resultaat ${params.jaar}`} soort="info" tekst="Deze businessunit is nog niet ingevuld." />;
 
   return (
     <div>
@@ -87,16 +109,7 @@ export default function ResultaatPage() {
           <VraagDetail lijst={lijst} scoresPerAs={rij.scoresPerAs} toelichtingen={rij.toelichtingen ?? {}} />
         </div>
       </div>
-      {rij.algemeneToelichting && (
-        <div className="card">
-          <h3>Algemene toelichting</h3>
-          <p>{rij.algemeneToelichting}</p>
-        </div>
-      )}
-      <div className="card" aria-labelledby="aanwezigen-kop">
-        <h3 id="aanwezigen-kop">Aanwezigen</h3>
-        <p className="aanwezigen">{rij.aanwezigen || 'Niet ingevuld.'}</p>
-      </div>
+      <Toelichtingen rij={rij} />
     </div>
   );
 }
