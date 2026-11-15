@@ -42,7 +42,8 @@ paths:
           description: Meting voor dit jaar bestaat al (problem+json)
   /api/metingen/{jaar}:
     get:
-      summary: Haal één meting op met status en scores van alle ingevulde platformen
+      summary: Haal één meting op met status, scores en aanwezigen van alle ingevulde businessunits
+      description: Antwoord { meting { id, jaar, aangemaakt, vastgelegd, businessUnits } }; businessUnits per businessunit-id een BusinessUnitRij.
       parameters:
         - name: jaar
           in: path
@@ -59,40 +60,70 @@ paths:
           description: Ongeldig jaar (problem+json)
         '404':
           description: Meting niet gevonden (problem+json)
-  /api/metingen/{jaar}/platformen/{platformId}:
+  /api/metingen/{jaar}/vragenlijst:
     get:
-      summary: Haal de scores van één platform binnen een meting op
+      summary: De vragenlijst van één meetjaar, voor elke actieve gebruiker
+      description: >
+        Een vastgelegd jaar geeft zijn eigen kopie (assen, vragen, platformen en businessunits zoals
+        bij de eerste opslag van dat jaar), een open jaar de actuele niet-vervallen lijst (alleen
+        assen met actieve vragen). Elk item draagt zijn stabiele id.
       parameters:
-        - name: jaar
-          in: path
-          required: true
-          schema: { type: integer }
-        - name: platformId
-          in: path
-          required: true
-          schema: { type: string }
+        - $ref: '#/components/parameters/Jaar'
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [vragenlijst]
+                properties:
+                  vragenlijst: { $ref: '#/components/schemas/Vragenlijst' }
+        '400':
+          description: Ongeldig jaar (problem+json)
+        '401':
+          $ref: '#/components/responses/NietIngelogd'
+        '403':
+          $ref: '#/components/responses/GeenToegang'
+        '404':
+          description: Meting niet gevonden (problem+json)
+  /api/metingen/{jaar}/businessunits/{businessUnitId}:
+    get:
+      summary: Haal de ingevulde rij van één businessunit binnen een meting op
+      parameters:
+        - $ref: '#/components/parameters/Jaar'
+        - $ref: '#/components/parameters/BusinessUnitId'
+      responses:
+        '200':
+          description: OK; businessUnit is null zolang de businessunit nog niet is ingevuld
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [businessUnit, unit]
+                properties:
+                  businessUnit:
+                    oneOf:
+                      - $ref: '#/components/schemas/BusinessUnitRij'
+                      - type: 'null'
+                  unit: { $ref: '#/components/schemas/LijstBusinessUnit' }
         '401':
           $ref: '#/components/responses/NietIngelogd'
         '403':
           $ref: '#/components/responses/GeenToegang'
         '400':
-          description: Ongeldig jaar of platform-id (problem+json)
+          description: Ongeldig jaar of businessunit-id (problem+json)
         '404':
-          description: Meting of platform niet gevonden (problem+json)
+          description: Meting niet gevonden, of de businessunit hoort niet bij de vragenlijst van dat jaar (problem+json)
     put:
-      summary: Sla scores en opmerkingen op voor één platform (concept of definitief)
+      summary: Sla scores, opmerkingen en aanwezigen op voor één businessunit (concept of definitief)
+      description: >
+        De eerste opslag van een meetjaar (ook een concept zonder scores) legt in dezelfde transactie
+        de vragenlijst van dat jaar vast. Vraag-ids worden gecontroleerd tegen de lijst op het moment
+        van opslaan.
       parameters:
-        - name: jaar
-          in: path
-          required: true
-          schema: { type: integer }
-        - name: platformId
-          in: path
-          required: true
-          schema: { type: string }
+        - $ref: '#/components/parameters/Jaar'
+        - $ref: '#/components/parameters/BusinessUnitId'
       requestBody:
         required: true
         content:
@@ -106,15 +137,22 @@ paths:
                   enum: [concept, definitief]
                 algemeneToelichting:
                   type: string
+                  maxLength: 5000
+                aanwezigen:
+                  type: string
+                  maxLength: 2000
+                  description: Vrije tekst, wie erbij waren
                 vraagScores:
                   type: array
+                  maxItems: 200
+                  description: Elke vraag hoogstens één keer
                   items:
                     type: object
                     required: [vraagId, score]
                     properties:
-                      vraagId: { type: string }
-                      score: { type: integer, minimum: 1, maximum: 5, nullable: true }
-                      toelichting: { type: string }
+                      vraagId: { type: string, maxLength: 64 }
+                      score: { type: [integer, 'null'], minimum: 1, maximum: 5 }
+                      toelichting: { type: string, maxLength: 2000 }
       responses:
         '200':
           description: Opgeslagen
@@ -123,34 +161,28 @@ paths:
         '403':
           description: >-
             Geen schrijfrecht (problem+json, geaudit als toegang_geweigerd): account niet actief,
-            invuller niet gekoppeld aan dit platform (reden geen-koppeling) of rol lezer
-            (reden alleen-lezen, altijd, ook met een koppeling).
+            invuller niet gekoppeld aan het platform van deze businessunit (reden geen-koppeling) of
+            rol lezer (reden alleen-lezen, altijd, ook met een koppeling).
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
         '400':
-          description: Ongeldige invoer (problem+json)
+          description: Ongeldige invoer, of "Deze vraag hoort niet bij de vragenlijst van {jaar}." (problem+json)
         '404':
-          description: Meting of platform niet gevonden (problem+json)
+          description: Meting niet gevonden, of de businessunit hoort niet bij de vragenlijst van dat jaar (problem+json)
         '409':
-          description: Platform is al definitief; een beheerder moet het eerst heropenen (problem+json)
+          description: >-
+            Businessunit is al definitief (een beheerder moet eerst heropenen), de indeling is net
+            gewijzigd, of de vragenlijst heeft minder dan 3 vragen om vast te leggen (problem+json)
         '422':
-          description: Niet alle vragen ingevuld bij afronden (problem+json)
-  /api/metingen/{jaar}/platformen/{platformId}/heropenen:
+          description: Niet alle vragen van de vragenlijst van dat jaar ingevuld bij afronden (problem+json)
+  /api/metingen/{jaar}/businessunits/{businessUnitId}/heropenen:
     post:
-      summary: Heropen een definitief platform (terug naar concept); alleen beheerder
+      summary: Heropen een definitieve businessunit (terug naar concept); alleen beheerder
       description: Wordt geaudit als platform_heropend.
-      security:
-        - cookieAuth: []
       parameters:
-        - name: jaar
-          in: path
-          required: true
-          schema: { type: integer }
-        - name: platformId
-          in: path
-          required: true
-          schema: { type: string }
+        - $ref: '#/components/parameters/Jaar'
+        - $ref: '#/components/parameters/BusinessUnitId'
       responses:
         '200':
           description: Heropend
@@ -162,7 +194,7 @@ paths:
                 properties:
                   ok: { type: boolean, const: true }
         '400':
-          description: Ongeldig jaar of platform-id (problem+json)
+          description: Ongeldig jaar of businessunit-id (problem+json)
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
@@ -171,12 +203,12 @@ paths:
         '403':
           $ref: '#/components/responses/GeenToegang'
         '404':
-          description: Onbekend platform, meting niet gevonden of platform nog niet ingevuld (problem+json)
+          description: Meting niet gevonden, businessunit niet in de lijst van dat jaar of nog niet ingevuld (problem+json)
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
         '409':
-          description: Platform is niet definitief (problem+json)
+          description: Businessunit is niet definitief (problem+json)
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
@@ -184,7 +216,8 @@ paths:
     get:
       summary: Startscherm met de trend over alle meetjaren, voor elke actieve gebruiker
       description: >
-        Per meetjaar (oudste eerst) en per platform de status, het gemiddelde per as (van de
+        Per meetjaar (oudste eerst) en per businessunit van de vragenlijst van dat jaar (met naam,
+        kleur en platformnaam van dat jaar) de status, het gemiddelde per as (van de
         beantwoorde vragen van die as), het totaal (gemiddelde over alle beantwoorde vragen) en het
         aantal beantwoorde vragen; plus de afgeleide openingszin, kerncijfers, gespreksonderwerpen
         en de drie assen ten opzichte van het vorige jaar met scores. Concepten tellen mee.
@@ -420,6 +453,22 @@ components:
         next-auth sessiecookie (HttpOnly, SameSite=Strict), gezet na inloggen via Keycloak.
         Op https heet de cookie `__Secure-next-auth.session-token`. Status, rol en
         platformkoppeling worden per verzoek uit de database gecontroleerd.
+  parameters:
+    Jaar:
+      name: jaar
+      in: path
+      required: true
+      schema: { type: integer, minimum: 2020, maximum: 2100 }
+    BusinessUnitId:
+      name: businessUnitId
+      in: path
+      required: true
+      schema: { type: string, maxLength: 64 }
+    CatalogusId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, maxLength: 64 }
   responses:
     NietIngelogd:
       description: Geen geldige sessie (problem+json)
@@ -441,19 +490,88 @@ components:
         application/problem+json:
           schema: { $ref: '#/components/schemas/Problem' }
   schemas:
-    Overzicht:
+    Vragenlijst:
       type: object
-      required: [platformen, jaren, nuJaar, vorigeJaar, openingszin, kerncijfers, gespreksonderwerpen, assen]
+      description: De vragenlijst van één meetjaar, alles in volgorde.
+      required: [jaar, vastgelegd, assen, platformen, businessUnits]
       properties:
+        jaar: { type: integer }
+        vastgelegd: { type: boolean, description: True zodra de eerste rij van het jaar is opgeslagen }
+        assen:
+          type: array
+          items:
+            type: object
+            required: [id, naam, kleur, vragen]
+            properties:
+              id: { type: string }
+              naam: { type: string }
+              kleur: { type: string }
+              vragen:
+                type: array
+                items:
+                  type: object
+                  required: [id, asId, kort, tekst]
+                  properties:
+                    id: { type: string }
+                    asId: { type: string }
+                    kort: { type: string, maxLength: 22 }
+                    tekst: { type: string }
+                    nds: { type: string }
         platformen:
           type: array
           items:
             type: object
-            required: [id, naam, kleur]
+            required: [id, naam, businessUnitIds]
+            properties:
+              id: { type: string }
+              naam: { type: string }
+              businessUnitIds: { type: array, items: { type: string } }
+        businessUnits:
+          type: array
+          items: { $ref: '#/components/schemas/LijstBusinessUnit' }
+    LijstBusinessUnit:
+      type: object
+      required: [id, platformId, naam, kleur]
+      properties:
+        id: { type: string }
+        platformId: { type: string }
+        naam: { type: string }
+        kleur: { type: string }
+    BusinessUnitRij:
+      type: object
+      required: [status, algemeneToelichting, aanwezigen, laatstGewijzigdDoor, laatstGewijzigdOp, scoresPerAs, toelichtingen]
+      properties:
+        status: { type: string, enum: [concept, definitief] }
+        algemeneToelichting: { type: string }
+        aanwezigen: { type: string }
+        laatstGewijzigdDoor: { type: string }
+        laatstGewijzigdOp: { type: string, format: date-time }
+        scoresPerAs:
+          type: object
+          description: Per as-id per vraag-id de score (of null)
+          additionalProperties:
+            type: object
+            additionalProperties: { type: [integer, 'null'] }
+        toelichtingen:
+          type: object
+          additionalProperties: { type: string }
+    Overzicht:
+      type: object
+      required: [businessUnits, jaren, nuJaar, vorigeJaar, openingszin, kerncijfers, gespreksonderwerpen, assen]
+      properties:
+        businessUnits:
+          type: array
+          description: >
+            Elke businessunit die in minstens één jaar meedoet: eerst die van het nieuwste jaar in
+            volgorde, daarna die alleen in oudere jaren meededen (met naam en kleur van hun laatste jaar).
+          items:
+            type: object
+            required: [id, naam, kleur, platformNaam]
             properties:
               id: { type: string }
               naam: { type: string }
               kleur: { type: string, description: Vaste lijnkleur in de trendgrafiek }
+              platformNaam: { type: string }
         jaren:
           type: array
           items: { $ref: '#/components/schemas/JaarCijfers' }
@@ -480,33 +598,49 @@ components:
             type: object
             required: [id, naam, nu, vorige, aantal, vergeleken]
             description: >
-              Over de platformen die in beide jaren definitief zijn (vergeleken=true), anders over de
-              definitieve platformen van het nieuwste jaar zonder vergelijking.
+              De assen van het nieuwste jaar met scores, vergeleken op as-id. Over de businessunits die
+              in beide jaren definitief zijn (vergeleken=true), anders over de definitieve businessunits
+              van het nieuwste jaar zonder vergelijking.
             properties:
               id: { type: string }
               naam: { type: string }
               nu: { type: [number, 'null'] }
               vorige: { type: [number, 'null'] }
-              aantal: { type: integer, description: Aantal platformen achter de cijfers }
+              aantal: { type: integer, description: Aantal businessunits achter de cijfers }
               vergeleken: { type: boolean }
     JaarCijfers:
       type: object
-      required: [jaar, voortgang, aantalDefinitief, gemiddelde, perAs, platformen]
+      required: [jaar, vastgelegd, voortgang, aantalDefinitief, aantalVragen, gemiddelde, perAs, assen, businessUnits]
       properties:
         jaar: { type: integer }
-        voortgang: { type: string, description: '"<definitief>/<platformen>" of "afgerond"', examples: ['3/5', afgerond] }
+        vastgelegd: { type: boolean }
+        voortgang: { type: string, description: '"<definitief>/<businessunits>" of "afgerond"', examples: ['3/5', afgerond] }
         aantalDefinitief: { type: integer }
+        aantalVragen: { type: integer, description: Aantal vragen in de vragenlijst van dat jaar }
         gemiddelde: { type: [number, 'null'] }
         perAs:
           type: object
           additionalProperties: { type: [number, 'null'] }
-        platformen:
+        assen:
           type: array
           items:
             type: object
-            required: [platformId, status, perAs, totaal, beantwoord]
+            required: [id, naam, kleur]
             properties:
+              id: { type: string }
+              naam: { type: string }
+              kleur: { type: string }
+        businessUnits:
+          type: array
+          items:
+            type: object
+            required: [businessUnitId, naam, kleur, platformId, platformNaam, status, perAs, totaal, beantwoord]
+            properties:
+              businessUnitId: { type: string }
+              naam: { type: string }
+              kleur: { type: string }
               platformId: { type: string }
+              platformNaam: { type: string }
               status: { type: string, enum: [definitief, concept, niet-gestart] }
               perAs:
                 type: object
@@ -515,9 +649,9 @@ components:
               beantwoord: { type: integer, minimum: 0 }
     AsScore:
       type: object
-      required: [platformId, asId, waarde, vorige, verschil]
+      required: [businessUnitId, asId, waarde, vorige, verschil]
       properties:
-        platformId: { type: string }
+        businessUnitId: { type: string }
         asId: { type: string }
         waarde: { type: number }
         vorige: { type: [number, 'null'] }
@@ -525,13 +659,13 @@ components:
     Kerncijfers:
       type: object
       description: >
-        Afgeleide uitspraken gebruiken alleen definitieve platformen; een vergelijking alleen de
-        platformen die in beide jaren definitief zijn. Stijging en daling worden bepaald op de
+        Afgeleide uitspraken gebruiken alleen definitieve businessunits; een vergelijking alleen de
+        businessunits die in beide jaren definitief zijn. Stijging en daling worden bepaald op de
         waarden afgerond op één decimaal.
-      required: [jaar, gemiddelde, aantalGemiddelde, vorigeJaar, vergelijking, aantalPlatformen, aantalDefinitief, aantalConcept, aantalNietGestart, stijger, groeikans]
+      required: [jaar, gemiddelde, aantalGemiddelde, vorigeJaar, vergelijking, aantalBusinessUnits, aantalDefinitief, aantalConcept, aantalNietGestart, stijger, groeikans]
       properties:
         jaar: { type: integer }
-        gemiddelde: { type: [number, 'null'], description: Gemiddelde van de definitieve platformen }
+        gemiddelde: { type: [number, 'null'], description: Gemiddelde van de definitieve businessunits }
         aantalGemiddelde: { type: integer }
         vorigeJaar: { type: [integer, 'null'] }
         vergelijking:
@@ -543,16 +677,16 @@ components:
                 vorige: { type: number }
                 aantal: { type: integer, minimum: 1 }
             - type: 'null'
-        aantalPlatformen: { type: integer }
+        aantalBusinessUnits: { type: integer }
         aantalDefinitief: { type: integer }
         aantalConcept: { type: integer }
         aantalNietGestart: { type: integer }
         stijger:
           oneOf:
             - type: object
-              required: [platformId, waarde, vorige, verschil]
+              required: [businessUnitId, waarde, vorige, verschil]
               properties:
-                platformId: { type: string }
+                businessUnitId: { type: string }
                 waarde: { type: number }
                 vorige: { type: number }
                 verschil: { type: number }
@@ -644,6 +778,10 @@ components:
         - account_ontkoppeld
         - platform_opgeslagen_concept
         - platform_afgerond
+        - catalogus_toegevoegd
+        - catalogus_gewijzigd
+        - catalogus_verplaatst
+        - meting_vrijgegeven
     AuditRegel:
       type: object
       required: [id, tijdstip, actor, actorNaam, actorEmail, actie, doelType, doelId, detail]

@@ -3,7 +3,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { prisma } from '@/src/data/prismaClient';
 import { maakGebruiker } from '@/src/data/gebruikersRepository';
-import { createMeting, savePlatformScore } from '@/src/data/metingenRepository';
+import { createMeting } from '@/src/data/metingenRepository';
+import { bewaarTestScore } from '@/tests/support/score-testdata';
 
 import { GET } from './route';
 
@@ -18,7 +19,7 @@ function sessieVoor(gebruikerId: string) {
 afterEach(async () => {
   vi.mocked(getServerSession).mockReset();
   await prisma.vraagScore.deleteMany();
-  await prisma.platformScore.deleteMany();
+  await prisma.businessUnitScore.deleteMany();
   await prisma.auditLogEntry.deleteMany();
   await prisma.meting.deleteMany();
   await prisma.gebruiker.deleteMany();
@@ -30,8 +31,8 @@ describe('GET /api/overzicht', () => {
     vi.mocked(getServerSession).mockResolvedValue(sessieVoor(lezer.id));
     const meting = await createMeting(2027);
     await createMeting(2026);
-    await savePlatformScore({
-      metingId: meting.id, jaar: 2027, platformId: 'ro', status: 'definitief', algemeneToelichting: '',
+    await bewaarTestScore({
+      metingId: meting.id, jaar: 2027, businessUnitId: 'ro', status: 'definitief', algemeneToelichting: '',
       laatstGewijzigdDoor: 'test', vraagScores: [{ vraagId: 'capaciteit-kennis', score: 3, toelichting: '' }],
     });
 
@@ -40,10 +41,16 @@ describe('GET /api/overzicht', () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.jaren.map((j: { jaar: number }) => j.jaar)).toEqual([2026, 2027]);
-    const ro = body.jaren[1].platformen.find((p: { platformId: string }) => p.platformId === 'ro');
-    expect(ro).toEqual({ platformId: 'ro', status: 'definitief', perAs: { techniek: null, mens: 3, proces: null }, totaal: 3, beantwoord: 1 });
+    const ro = body.jaren[1].businessUnits.find((p: { businessUnitId: string }) => p.businessUnitId === 'ro');
+    expect(ro).toEqual({
+      businessUnitId: 'ro', naam: 'R&O', kleur: '#eb6834', platformId: 'ro', platformNaam: 'R&O',
+      status: 'definitief', perAs: { techniek: null, mens: 3, proces: null }, totaal: 3, beantwoord: 1,
+    });
+    expect(body.jaren[1].vastgelegd).toBe(true);
+    expect(body.jaren[0].vastgelegd).toBe(false);
+    expect(body.businessUnits).toHaveLength(5);
     expect(body.jaren[1].voortgang).toBe('1/5');
-    expect(body.openingszin).toBe('In 2027 staat het gemiddelde op 3,0 over 1 definitief platform.');
+    expect(body.openingszin).toBe('In 2027 staat het gemiddelde op 3,0 over 1 definitieve businessunit.');
     expect(Array.isArray(body.gespreksonderwerpen)).toBe(true);
   });
 

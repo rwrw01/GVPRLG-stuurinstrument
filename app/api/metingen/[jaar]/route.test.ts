@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { prisma } from '@/src/data/prismaClient';
 import { maakGebruiker } from '@/src/data/gebruikersRepository';
-import { createMeting, savePlatformScore } from '@/src/data/metingenRepository';
+import { createMeting } from '@/src/data/metingenRepository';
+import { bewaarTestScore } from '@/tests/support/score-testdata';
 import { mockSessie } from '@/src/integration/auth/_testSessie';
 import { GET } from './route';
 
@@ -16,7 +17,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
   await prisma.vraagScore.deleteMany();
-  await prisma.platformScore.deleteMany();
+  await prisma.businessUnitScore.deleteMany();
   await prisma.auditLogEntry.deleteMany();
   await prisma.meting.deleteMany();
   await prisma.gebruiker.deleteMany();
@@ -28,18 +29,19 @@ function call(jaar: string) {
 }
 
 describe('GET /api/metingen/{jaar}', () => {
-  it('should return the status of every filled-in platform when the meting exists', async () => {
+  it('should return the status of every filled-in business unit when the meting exists', async () => {
     const meting = await createMeting(2027);
-    await savePlatformScore({
-      metingId: meting.id, jaar: 2027, platformId: 'ro', status: 'concept', algemeneToelichting: '',
+    await bewaarTestScore({
+      metingId: meting.id, jaar: 2027, businessUnitId: 'ro', status: 'concept', algemeneToelichting: '',
       laatstGewijzigdDoor: 'test', vraagScores: [{ vraagId: 'cloud-data', score: 3, toelichting: '' }],
     });
     const response = await call('2027');
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.meting.jaar).toBe(2027);
-    expect(body.meting.platformen.ro.status).toBe('concept');
-    expect(body.meting.platformen.ro.scoresPerAs.techniek['cloud-data']).toBe(3);
+    expect(body.meting.vastgelegd).toBe(true);
+    expect(body.meting.businessUnits.ro.status).toBe('concept');
+    expect(body.meting.businessUnits.ro.scoresPerAs.techniek['cloud-data']).toBe(3);
   });
 
   it('should return 404 problem+json when the meting does not exist', async () => {

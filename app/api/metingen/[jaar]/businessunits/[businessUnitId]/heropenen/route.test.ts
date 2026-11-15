@@ -2,9 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { prisma } from '@/src/data/prismaClient';
 import { maakGebruiker, zetKoppelingen, type GebruikerRecord } from '@/src/data/gebruikersRepository';
-import { createMeting, savePlatformScore } from '@/src/data/metingenRepository';
+import { createMeting } from '@/src/data/metingenRepository';
+import { bewaarTestScore } from '@/tests/support/score-testdata';
 import { mockSessie } from '@/src/integration/auth/_testSessie';
-import { CONFIG } from '@/src/service/config';
+import { STANDAARD_VRAAG_IDS } from '@/tests/support/vragenlijst-testdata';
 
 import { POST } from './route';
 
@@ -13,7 +14,7 @@ vi.mock('@/src/integration/auth/sessie', async (importOriginal) => ({
   vereisGebruiker: vi.fn(),
 }));
 
-const PARAMS = { params: Promise.resolve({ jaar: '2027', platformId: 'belastingen' }) };
+const PARAMS = { params: Promise.resolve({ jaar: '2027', businessUnitId: 'belastingen' }) };
 
 let beheerder: GebruikerRecord;
 
@@ -24,7 +25,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
   await prisma.vraagScore.deleteMany();
-  await prisma.platformScore.deleteMany();
+  await prisma.businessUnitScore.deleteMany();
   await prisma.auditLogEntry.deleteMany();
   await prisma.platformInvuller.deleteMany();
   await prisma.meting.deleteMany();
@@ -37,25 +38,25 @@ function postRequest() {
 
 async function maakPlatform(status: 'concept' | 'definitief') {
   const meting = await createMeting(2027);
-  await savePlatformScore({
+  await bewaarTestScore({
     metingId: meting.id,
     jaar: meting.jaar,
-    platformId: 'belastingen',
+    businessUnitId: 'belastingen',
     status,
     algemeneToelichting: '',
     laatstGewijzigdDoor: beheerder.id,
     actorEmail: beheerder.email,
-    vraagScores: CONFIG.assen.flatMap((a) => a.vragen.map((v) => ({ vraagId: v.id, score: 3, toelichting: '' }))),
+    vraagScores: STANDAARD_VRAAG_IDS.map((id) => ({ vraagId: id, score: 3, toelichting: '' })),
   });
   return meting;
 }
 
 async function platformStatus() {
-  const score = await prisma.platformScore.findFirst({ where: { platformId: 'belastingen' } });
+  const score = await prisma.businessUnitScore.findFirst({ where: { businessUnitId: 'belastingen' } });
   return score?.status;
 }
 
-describe('POST /api/metingen/[jaar]/platformen/[platformId]/heropenen', () => {
+describe('POST /api/metingen/[jaar]/businessunits/[businessUnitId]/heropenen', () => {
   it('heropent een definitief platform als beheerder', async () => {
     await maakPlatform('definitief');
 
@@ -103,7 +104,7 @@ describe('POST /api/metingen/[jaar]/platformen/[platformId]/heropenen', () => {
     const response = await POST(postRequest(), PARAMS);
 
     expect(response.status).toBe(409);
-    expect((await response.json()).title).toBe('Platform is niet definitief');
+    expect((await response.json()).title).toBe('Businessunit is niet definitief');
     expect(await platformStatus()).toBe('concept');
   });
 

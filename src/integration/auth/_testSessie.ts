@@ -4,7 +4,7 @@
 //     ...(await importOriginal<typeof import('@/src/integration/auth/sessie')>()),
 //     vereisGebruiker: vi.fn(),
 //   }));
-// Only vereisGebruiker is replaced; weigerRol / weigerPlatformSchrijfrecht stay real.
+// Only vereisGebruiker is replaced; weigerRol / weigerBusinessUnitSchrijfrecht stay real.
 import { vi } from 'vitest';
 
 import type { GebruikerRecord } from '@/src/data/gebruikersRepository';

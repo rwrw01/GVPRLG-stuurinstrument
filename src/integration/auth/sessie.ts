@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth/next';
 import type { NextResponse } from 'next/server';
 
-import { platformDetail, schrijfAudit } from '@/src/data/auditRepository';
+import { businessUnitDetail, schrijfAudit } from '@/src/data/auditRepository';
 import { vindGebruikerOpId, type GebruikerRecord, type Rol } from '@/src/data/gebruikersRepository';
 import { vereisActief, vereisPlatformSchrijfrecht, vereisRol } from '@/src/process/toegang';
 import { problemResponse } from '@/src/integration/problemResponse';
@@ -64,29 +64,30 @@ export async function weigerRol(gebruiker: GebruikerRecord, rol: Rol): Promise<N
 }
 
 /**
- * Refuses the request (audited) when the user may not write the platform within this meting.
+ * Refuses the request (audited) when the user may not write the business unit within this meting:
+ * an invuller needs a link to the platform the unit belongs to in that year.
  * @param gebruiker - Active user from `vereisGebruiker`
  * @param meting - The meting being written (`id` and `jaar`)
- * @param platformId - Platform id
+ * @param unit - The business unit of that year (`id` and `platformId`)
  * @returns A 403 problem+json response, or null when allowed
  */
-export async function weigerPlatformSchrijfrecht(
+export async function weigerBusinessUnitSchrijfrecht(
   gebruiker: GebruikerRecord,
   meting: { id: string; jaar: number },
-  platformId: string,
+  unit: { id: string; platformId: string },
 ): Promise<NextResponse | null> {
-  const resultaat = await vereisPlatformSchrijfrecht(gebruiker, meting.id, platformId);
+  const resultaat = await vereisPlatformSchrijfrecht(gebruiker, meting.id, unit.platformId);
   if (resultaat.ok) return null;
   await schrijfAudit({
     actor: gebruiker.id,
     actie: 'toegang_geweigerd',
     doelType: 'platform_score',
     doelId: meting.id,
-    detail: `${platformDetail(platformId, meting.jaar)};reden=${resultaat.error.reden}`,
+    detail: `${businessUnitDetail(unit.platformId, unit.id, meting.jaar)};reden=${resultaat.error.reden}`,
   });
   const detail =
     resultaat.error.reden === 'alleen-lezen'
       ? 'U heeft alleen leesrechten; wijzigingen opslaan is niet mogelijk.'
-      : 'U bent niet gekoppeld aan dit platform voor dit meetjaar.';
+      : 'U bent niet gekoppeld aan het platform van deze businessunit voor dit meetjaar.';
   return problemResponse(403, GEEN_TOEGANG, detail);
 }
