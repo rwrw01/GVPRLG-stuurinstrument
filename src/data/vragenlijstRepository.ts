@@ -241,6 +241,9 @@ export async function geefVrij(
   auditInTx: (tx: Prisma.TransactionClient, vrijgave: Vrijgave) => Promise<void>,
 ): Promise<'vrijgegeven' | 'niet-vastgelegd' | 'heeft-inhoud'> {
   return prisma.$transaction(async (tx) => {
+    // Same lock order as legVast (catalogue lock, then the meting row): the links removed below
+    // depend on which platforms are lapsed, so no catalogue write may interleave.
+    await vergrendelCatalogus(tx, 'gedeeld');
     const rijen = await tx.$queryRaw<Array<{ vastgelegdOp: Date | null }>>`SELECT "vastgelegdOp" FROM metingen WHERE id = ${metingId} FOR UPDATE`;
     if (!rijen[0] || rijen[0].vastgelegdOp === null) return 'niet-vastgelegd';
     const [vragen, units] = await Promise.all([

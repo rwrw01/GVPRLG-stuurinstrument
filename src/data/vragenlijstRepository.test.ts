@@ -5,7 +5,7 @@ import { standaardLijst, STANDAARD_VRAAG_IDS } from '@/tests/support/vragenlijst
 
 import { createMeting } from './metingenRepository';
 import { prisma } from './prismaClient';
-import { geefVrij, legVast, leesVragenlijst, leesVragenlijsten } from './vragenlijstRepository';
+import { geefVrij, legVast, leesVragenlijst, leesVragenlijsten, vergrendelCatalogus } from './vragenlijstRepository';
 
 afterEach(async () => {
   await prisma.vraagScore.deleteMany();
@@ -105,6 +105,35 @@ describe('vragenlijstRepository', () => {
     expect(await geefVrij(meting.id, async () => undefined)).toBe('heeft-inhoud');
     expect((await leesVragenlijst(2027))?.vastgelegd).toBe(true);
     expect(await prisma.vraagScore.count()).toBe(1);
+  });
+
+  it('should wait for a running catalogue write before unfreezing (shared catalogue lock)', async () => {
+    const meting = await vastgelegdeMeting(2027);
+    const volgorde: string[] = [];
+    let losLaten = () => undefined as void;
+    const vastgehouden = new Promise<void>((klaar) => {
+      losLaten = klaar;
+    });
+    let vergrendeld = () => undefined as void;
+    const isVergrendeld = new Promise<void>((klaar) => {
+      vergrendeld = klaar;
+    });
+    const schrijver = prisma.$transaction(async (tx) => {
+      await vergrendelCatalogus(tx, 'exclusief');
+      vergrendeld();
+      await vastgehouden;
+      volgorde.push('schrijver klaar');
+    });
+    await isVergrendeld;
+    const vrijgave = geefVrij(meting.id, async () => {
+      volgorde.push('vrijgave');
+    });
+    await new Promise((r) => setTimeout(r, 300));
+    expect(volgorde).toEqual([]);
+    losLaten();
+    await schrijver;
+    expect(await vrijgave).toBe('vrijgegeven');
+    expect(volgorde).toEqual(['schrijver klaar', 'vrijgave']);
   });
 
   it('should unfreeze a year whose rows are empty and refuse a year with any content', async () => {
