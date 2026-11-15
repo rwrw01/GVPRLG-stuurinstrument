@@ -30,3 +30,6 @@ prisma/dev.db
 
 # Playwright session files (E2E auth setup)
 /playwright/.auth/
+
+# Internal documentation (not for the public repository)
+/intern/
