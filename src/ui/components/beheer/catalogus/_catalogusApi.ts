@@ -49,3 +49,18 @@ export function bevestigVerwijderen(wat: string, metingen: CatMeting[]): string 
   const openZin = open.length > 0 ? ` De open meetjaren (${open.join(', ')}) nemen dit direct over.` : '';
   return `Weet je zeker dat je ${wat} wilt verwijderen?${vastZin}${openZin}`;
 }
+
+/**
+ * The confirmation text for letting a platform lapse: as for any removal, plus that the filler
+ * links to this platform in the open years go too (frozen years keep theirs).
+ * @param naam - Platform name
+ * @param metingen - Year states
+ * @returns the text for window.confirm
+ */
+export function bevestigPlatformVervallen(naam: string, metingen: CatMeting[]): string {
+  const open = metingen.filter((m) => !m.vastgelegd).map((m) => m.jaar);
+  const koppelingen = open.length > 0
+    ? ` De koppelingen van invullers aan dit platform in de open meetjaren (${open.join(', ')}) vervallen ook.`
+    : '';
+  return `${bevestigVerwijderen(`het platform "${naam}"`, metingen)}${koppelingen}`;
+}

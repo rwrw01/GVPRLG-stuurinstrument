@@ -177,8 +177,14 @@ test('een tweede businessunit onder één platform: dezelfde invuller vult beide
   await page.getByRole('button', { name: 'Wijzigen: E2E IV twee' }).click();
   await page.getByRole('form', { name: 'Businessunit wijzigen: E2E IV twee' }).getByLabel('Naam van de businessunit').fill('E2E IV twee hernoemd');
   await page.getByRole('button', { name: 'Wijziging opslaan' }).click();
+  const unitRij = page.locator('tr[data-businessunit]', { hasText: 'E2E IV twee hernoemd' });
   await page.getByRole('button', { name: 'Laten vervallen: E2E IV twee hernoemd' }).click();
-  await expect(page.locator('tr[data-businessunit]', { hasText: 'E2E IV twee' })).toHaveCount(0);
+  await expect(unitRij).toHaveCount(0);
+  await page.getByText(/Vervallen platformen en businessunits/).click();
+  await page.getByRole('button', { name: 'Weer actief maken: E2E IV twee hernoemd' }).click();
+  await expect(unitRij).toBeVisible();
+  await page.getByRole('button', { name: 'Laten vervallen: E2E IV twee hernoemd' }).click();
+  await expect(unitRij).toHaveCount(0);
   await page.goto(`/metingen/${jaar}/${unit.id}/resultaat`);
   await expect(page.getByRole('heading', { name: `E2E IV twee — Resultaat ${jaar}` })).toBeVisible();
   const open = await maakJaar(page.request);
@@ -202,7 +208,9 @@ test('beheerder voegt een platform toe, hernoemt, laat het vervallen en maakt he
   await page.getByRole('button', { name: 'Wijziging opslaan' }).click();
   const kop = page.locator('tr.groep-kop', { hasText: 'Platform E2E Platform hernoemd' });
   await expect(kop).toBeVisible();
+  const bevestiging = page.waitForEvent('dialog');
   await page.getByRole('button', { name: 'Laten vervallen: platform E2E Platform hernoemd' }).click();
+  expect((await bevestiging).message()).toContain('De koppelingen van invullers aan dit platform in de open meetjaren');
   await expect(kop).toHaveCount(0);
   await page.getByText(/Vervallen platformen en businessunits/).click();
   await page.getByRole('button', { name: 'Weer actief maken: platform E2E Platform hernoemd' }).click();
