@@ -1,7 +1,7 @@
 {
   "name": "gvprlg",
   "version": "1.0.0",
-  "description": "GVPRLG volwassenheidsmeting",
+  "description": "Spinnenweb: jaarlijkse meting van de PinkRoccade-businessunits door de GVPRLG",
   "private": true,
   "type": "module",
   "scripts": {
