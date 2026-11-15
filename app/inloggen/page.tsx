@@ -1,13 +1,17 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 
+// The button stays disabled until React has hydrated it: a click on the server-rendered button
+// before that would do nothing at all (seen in E2E under load: no sign-in request followed).
 function InlogKnop() {
   const callbackUrl = useSearchParams().get('callbackUrl') ?? '/';
+  const [klaar, setKlaar] = useState(false);
+  useEffect(() => setKlaar(true), []);
   return (
-    <button className="btn btn-primary" onClick={() => signIn('keycloak', { callbackUrl })}>
+    <button className="btn btn-primary" disabled={!klaar} onClick={() => signIn('keycloak', { callbackUrl })}>
       Inloggen
     </button>
   );
