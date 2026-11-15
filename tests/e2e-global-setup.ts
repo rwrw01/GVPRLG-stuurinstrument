@@ -11,6 +11,7 @@ import {
   PLATFORM_INVULLER,
   wisJaarClaims,
 } from './e2e-data';
+import { vereisLokaleDatabase } from './support/lokale-database';
 import { keycloakId, resetNaarTotpInstellen, zorgVoorGebruikerMetTotp } from './keycloak-admin';
 
 const MAILPIT_URL = process.env.E2E_MAILPIT_URL ?? 'http://127.0.0.1:8025';
@@ -113,6 +114,8 @@ async function _leegMailpit(): Promise<void> {
  */
 export default async function globalSetup(): Promise<void> {
   loadEnv({ path: '.env', quiet: true });
+  // Everything below deletes rows; never let it reach a database that is not on this machine.
+  vereisLokaleDatabase(process.env.DATABASE_URL, process.env.E2E_ALLOW_DB);
   const { prisma } = await import('../src/data/prismaClient');
   const repos: Repos = {
     ...(await import('../src/data/gebruikersRepository')),
