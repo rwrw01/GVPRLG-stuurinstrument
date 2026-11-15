@@ -52,3 +52,32 @@ export async function vereisPlatformSchrijfrecht(
       return fail({ status: 403, reden: 'rol' });
   }
 }
+
+/**
+ * Whether the user may edit one platform's business units within a meting, by the same rule as
+ * the write check (`vereisPlatformSchrijfrecht`). For the UI only; writes no audit rows.
+ * @param g - Active user
+ * @param metingId - Meting id
+ * @param platformId - Platform id
+ * @returns true when a save would pass the access check
+ */
+export async function magPlatformBewerken(g: GebruikerRecord, metingId: string, platformId: string): Promise<boolean> {
+  return (await vereisPlatformSchrijfrecht(g, metingId, platformId)).ok;
+}
+
+/**
+ * Per business unit whether the user may edit it within a meting (`magPlatformBewerken` per platform).
+ * @param g - Active user
+ * @param metingId - Meting id
+ * @param units - Business units of the year with their platform
+ * @returns business unit id -> may edit
+ */
+export async function magBusinessUnitsBewerken(
+  g: GebruikerRecord,
+  metingId: string,
+  units: Array<{ id: string; platformId: string }>,
+): Promise<Record<string, boolean>> {
+  const platformIds = [...new Set(units.map((u) => u.platformId))];
+  const perPlatform = new Map(await Promise.all(platformIds.map(async (p) => [p, await magPlatformBewerken(g, metingId, p)] as const)));
+  return Object.fromEntries(units.map((u) => [u.id, perPlatform.get(u.platformId) ?? false]));
+}

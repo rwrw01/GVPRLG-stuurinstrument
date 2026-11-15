@@ -43,7 +43,13 @@ paths:
   /api/metingen/{jaar}:
     get:
       summary: Haal één meting op met status, scores en aanwezigen van alle ingevulde businessunits
-      description: Antwoord { meting { id, jaar, aangemaakt, vastgelegd, businessUnits } }; businessUnits per businessunit-id een BusinessUnitRij.
+      description: >
+        Antwoord { meting { id, jaar, aangemaakt, vastgelegd, businessUnits }, magBewerken };
+        businessUnits per businessunit-id een BusinessUnitRij. magBewerken geeft voor elke
+        businessunit van de vragenlijst van dat jaar aan of de ingelogde gebruiker hem mag
+        bewerken, volgens dezelfde regel als de schrijfcontrole van PUT (beheerder altijd, invuller
+        alleen gekoppeld aan het platform in dat jaar, lezer nooit). Alleen voor de UI; de server
+        blijft elke schrijfactie zelf controleren.
       parameters:
         - name: jaar
           in: path
@@ -52,6 +58,17 @@ paths:
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [meting, magBewerken]
+                properties:
+                  meting: { type: object }
+                  magBewerken:
+                    type: object
+                    description: Businessunit-id -> of de gebruiker die businessunit mag bewerken
+                    additionalProperties: { type: boolean }
         '401':
           $ref: '#/components/responses/NietIngelogd'
         '403':
@@ -100,13 +117,19 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [businessUnit, unit]
+                required: [businessUnit, unit, magBewerken]
                 properties:
                   businessUnit:
                     oneOf:
                       - $ref: '#/components/schemas/BusinessUnitRij'
                       - type: 'null'
                   unit: { $ref: '#/components/schemas/LijstBusinessUnit' }
+                  magBewerken:
+                    type: boolean
+                    description: >
+                      Of de ingelogde gebruiker deze businessunit mag bewerken, volgens dezelfde regel
+                      als de schrijfcontrole van PUT (beheerder altijd, invuller alleen gekoppeld aan
+                      het platform in dat jaar, lezer nooit). Alleen voor de UI.
         '401':
           $ref: '#/components/responses/NietIngelogd'
         '403':

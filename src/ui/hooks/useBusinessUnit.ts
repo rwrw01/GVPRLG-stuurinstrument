@@ -8,7 +8,7 @@ import type { UiBusinessUnit, UiBusinessUnitRij, UiVragenlijst } from '@/src/ui/
 export type BusinessUnitStaat =
   | { status: 'laden' }
   | { status: 'fout'; melding: string }
-  | { status: 'ok'; lijst: UiVragenlijst; unit: UiBusinessUnit; rij: UiBusinessUnitRij | null };
+  | { status: 'ok'; lijst: UiVragenlijst; unit: UiBusinessUnit; rij: UiBusinessUnitRij | null; magBewerken: boolean };
 
 async function haal<T>(url: string): Promise<{ ok: true; body: T } | { ok: false; melding: string }> {
   const response = await fetch(url);
@@ -19,7 +19,7 @@ async function haal<T>(url: string): Promise<{ ok: true; body: T } | { ok: false
 }
 
 /**
- * Loads the row of one business unit and the questionnaire of its year. Responses of a superseded
+ * Loads the row of one business unit (with whether the user may edit it) and the questionnaire of its year. Responses of a superseded
  * run (StrictMode double effect, fast navigation) are ignored.
  * @param jaar - Year from the URL
  * @param businessUnitId - Business unit id from the URL
@@ -32,14 +32,14 @@ export function useBusinessUnit(jaar: string, businessUnitId: string, versie = 0
     let actief = true;
     setStaat({ status: 'laden' });
     Promise.all([
-      haal<{ businessUnit: UiBusinessUnitRij | null; unit: UiBusinessUnit }>(`/api/metingen/${jaar}/businessunits/${businessUnitId}`),
+      haal<{ businessUnit: UiBusinessUnitRij | null; unit: UiBusinessUnit; magBewerken: boolean }>(`/api/metingen/${jaar}/businessunits/${businessUnitId}`),
       haal<{ vragenlijst: UiVragenlijst }>(`/api/metingen/${jaar}/vragenlijst`),
     ])
       .then(([rij, lijst]) => {
         if (!actief) return;
         if (!rij.ok) return setStaat({ status: 'fout', melding: rij.melding });
         if (!lijst.ok) return setStaat({ status: 'fout', melding: lijst.melding });
-        setStaat({ status: 'ok', lijst: lijst.body.vragenlijst, unit: rij.body.unit, rij: rij.body.businessUnit });
+        setStaat({ status: 'ok', lijst: lijst.body.vragenlijst, unit: rij.body.unit, rij: rij.body.businessUnit, magBewerken: rij.body.magBewerken === true });
       })
       .catch(() => actief && setStaat({ status: 'fout', melding: 'Kon deze businessunit niet laden.' }));
     return () => {

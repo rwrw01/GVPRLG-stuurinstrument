@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { prisma } from '../data/prismaClient';
 import { createMeting } from '../data/metingenRepository';
 import { maakGebruiker, zetKoppelingen, type GebruikerRecord } from '../data/gebruikersRepository';
-import { vereisActief, vereisPlatformSchrijfrecht, vereisRol } from './toegang';
+import { magBusinessUnitsBewerken, magPlatformBewerken, vereisActief, vereisPlatformSchrijfrecht, vereisRol } from './toegang';
 
 afterEach(async () => {
   await prisma.platformInvuller.deleteMany();
@@ -104,5 +104,24 @@ describe('vereisPlatformSchrijfrecht', () => {
 
     const resultaat = await vereisPlatformSchrijfrecht(onbekend, meting.id, 'belastingen');
     expect(resultaat).toEqual({ ok: false, error: { status: 403, reden: 'rol' } });
+  });
+});
+
+describe('magBusinessUnitsBewerken', () => {
+  it('should follow the write rule per platform when an invuller is assigned to one platform', async () => {
+    const meting = await createMeting(2027);
+    const invuller = await maakGebruiker({ email: 'jan@test.local', naam: 'Jan', rol: 'invuller', status: 'actief' });
+    await zetKoppelingen(invuller.id, meting.id, ['ro']);
+    const units = [{ id: 'ro', platformId: 'ro' }, { id: 'belastingen', platformId: 'belastingen' }];
+
+    expect(await magBusinessUnitsBewerken(invuller, meting.id, units)).toEqual({ ro: true, belastingen: false });
+    expect(await magPlatformBewerken(invuller, meting.id, 'ro')).toBe(true);
+  });
+
+  it('should allow a beheerder and refuse a lezer on every business unit', async () => {
+    const meting = await createMeting(2027);
+    const units = [{ id: 'ro', platformId: 'ro' }];
+    expect(await magBusinessUnitsBewerken(gebruiker({ rol: 'beheerder' }), meting.id, units)).toEqual({ ro: true });
+    expect(await magBusinessUnitsBewerken(gebruiker({ rol: 'lezer' }), meting.id, units)).toEqual({ ro: false });
   });
 });

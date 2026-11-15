@@ -2,17 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { JaarParamsSchema } from '@/src/integration/schemas';
 import { problemResponse } from '@/src/integration/problemResponse';
 import { vereisGebruiker } from '@/src/integration/auth/sessie';
-import { getMetingByJaar } from '@/src/data/metingenRepository';
+import { magBusinessUnitsBewerken } from '@/src/process/toegang';
+import { haalMetingMetLijst } from '@/src/process/vragenlijst';
 
 interface RouteParams {
   params: Promise<{ jaar: string }>;
 }
 
 /**
- * Returns one meting with the status and scores of every platform filled in so far.
+ * Returns one meting with the status and scores of every business unit filled in so far, and per
+ * business unit of the year's list whether the user may edit it (the same rule as the write check).
  * @param _request incoming request (unused)
  * @param context route params with the measurement year
- * @returns 200 with the meting, 400 on an invalid year, 401/403 without an active session,
+ * @returns 200 with the meting and `magBewerken`, 400 on an invalid year, 401/403 without an active session,
  *   404 when the year does not exist
  */
 export async function GET(_request: NextRequest, { params }: RouteParams) {
@@ -22,9 +24,11 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
   }
   const sessie = await vereisGebruiker();
   if (!sessie.ok) return sessie.response;
-  const meting = await getMetingByJaar(parsed.data.jaar);
-  if (!meting) {
+  const gevonden = await haalMetingMetLijst(parsed.data.jaar);
+  if (!gevonden) {
     return problemResponse(404, 'Meting niet gevonden', `Geen meting voor jaar ${parsed.data.jaar}.`);
   }
-  return NextResponse.json({ meting });
+  const { meting, lijst } = gevonden;
+  const magBewerken = await magBusinessUnitsBewerken(sessie.gebruiker, meting.id, lijst.businessUnits);
+  return NextResponse.json({ meting, magBewerken });
 }

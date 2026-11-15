@@ -19,7 +19,7 @@ interface Rij {
 }
 type Rijen = Record<string, Rij>;
 
-type PageState = { status: 'laden' } | { status: 'fout'; melding: string } | { status: 'ok'; rijen: Rijen };
+type PageState = { status: 'laden' } | { status: 'fout'; melding: string } | { status: 'ok'; rijen: Rijen; magBewerken: Record<string, boolean> };
 
 const KLEUR_NU = '#2c7fa0';
 const KLEUR_VORIG = '#7d8c93';
@@ -84,11 +84,12 @@ function OrganisatieWeb({ jaar, lijst, rijen, vorige }: { jaar: string; lijst: U
 }
 
 /**
- * Card of one business unit: status, its web with the previous year, and the links.
- * @param props - Shown year, its list, the unit, its row and the previous meting
+ * Card of one business unit: status, its web with the previous year, and the links; "Invullen" only
+ * when the server says the user may edit it.
+ * @param props - Shown year, its list, the unit, its row, whether it may be edited and the previous meting
  * @returns the card
  */
-function UnitKaart({ jaar, lijst, unit, data, vorige }: { jaar: string; lijst: UiVragenlijst; unit: UiBusinessUnit; data?: Rij; vorige: VorigeMeting | null }) {
+function UnitKaart({ jaar, lijst, unit, data, magBewerken, vorige }: { jaar: string; lijst: UiVragenlijst; unit: UiBusinessUnit; data?: Rij; magBewerken: boolean; vorige: VorigeMeting | null }) {
   return (
     <div className={`card${data?.status === 'definitief' ? ' is-definitief' : ''}`} data-platform={unit.id} data-businessunit={unit.id}>
       <div className="platform-kop">
@@ -100,7 +101,7 @@ function UnitKaart({ jaar, lijst, unit, data, vorige }: { jaar: string; lijst: U
           series={[{ label: `${unit.naam} ${jaar}`, waarden: naarSpaakWaarden(lijst, berekenGemiddeldePerVraag(lijst, [data.scoresPerAs])), kleur: KLEUR_NU, gestippeld: data.status === 'concept' }, ...vorigeUnit(lijst, vorige, unit.id)]} />
       )}
       <div className="btn-group">
-        <Link className="btn btn-primary" href={`/metingen/${jaar}/${unit.id}`}>Invullen</Link>
+        {magBewerken && <Link className="btn btn-primary" href={`/metingen/${jaar}/${unit.id}`}>Invullen</Link>}
         <Link className="btn btn-outline" href={`/metingen/${jaar}/${unit.id}/resultaat`}>Bekijken</Link>
       </div>
     </div>
@@ -109,11 +110,11 @@ function UnitKaart({ jaar, lijst, unit, data, vorige }: { jaar: string; lijst: U
 
 /**
  * The business unit cards; a platform with more than one business unit gets its name as heading.
- * @param props - Shown year, its list, the rows and the previous meting
+ * @param props - Shown year, its list, the rows, the edit right per business unit and the previous meting
  * @returns the grouped cards
  */
-function UnitKaarten({ jaar, lijst, rijen, vorige }: { jaar: string; lijst: UiVragenlijst; rijen: Rijen; vorige: VorigeMeting | null }) {
-  const kaart = (unit: UiBusinessUnit) => <UnitKaart key={unit.id} jaar={jaar} lijst={lijst} unit={unit} data={rijen[unit.id]} vorige={vorige} />;
+function UnitKaarten({ jaar, lijst, rijen, magBewerken, vorige }: { jaar: string; lijst: UiVragenlijst; rijen: Rijen; magBewerken: Record<string, boolean>; vorige: VorigeMeting | null }) {
+  const kaart = (unit: UiBusinessUnit) => <UnitKaart key={unit.id} jaar={jaar} lijst={lijst} unit={unit} data={rijen[unit.id]} magBewerken={magBewerken[unit.id] === true} vorige={vorige} />;
   const enkel = lijst.platformen.filter((p) => p.businessUnitIds.length === 1);
   const groepen = lijst.platformen.filter((p) => p.businessUnitIds.length > 1);
   const units = (ids: string[]) => ids.map((id) => lijst.businessUnits.find((b) => b.id === id)!).filter(Boolean);
@@ -139,7 +140,7 @@ function useMetingRijen(jaar: string): PageState {
         const body = await response.json().catch(() => null);
         if (!actief) return;
         if (!response.ok) return setState({ status: 'fout', melding: body?.detail ?? 'Kon de meting niet laden.' });
-        setState({ status: 'ok', rijen: body.meting.businessUnits });
+        setState({ status: 'ok', rijen: body.meting.businessUnits, magBewerken: body.magBewerken ?? {} });
       })
       .catch(() => actief && setState({ status: 'fout', melding: 'Kon de meting niet laden.' }));
     return () => {
@@ -175,7 +176,7 @@ export default function MetingOverzichtPage() {
         <p className="vergelijk-uitleg">Het gevulde vlak is {params.jaar}; de grijze stippellijn in de webben is het vorige meetjaar {vorige.jaar}.</p>
       )}
       <OrganisatieWeb jaar={params.jaar} lijst={lijst} rijen={state.rijen} vorige={vorige} />
-      <UnitKaarten jaar={params.jaar} lijst={lijst} rijen={state.rijen} vorige={vorige} />
+      <UnitKaarten jaar={params.jaar} lijst={lijst} rijen={state.rijen} magBewerken={state.magBewerken} vorige={vorige} />
     </div>
   );
 }

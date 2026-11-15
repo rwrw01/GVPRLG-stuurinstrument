@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { prisma } from '@/src/data/prismaClient';
-import { maakGebruiker } from '@/src/data/gebruikersRepository';
+import { maakGebruiker, zetKoppelingen } from '@/src/data/gebruikersRepository';
 import { createMeting } from '@/src/data/metingenRepository';
 import { bewaarTestScore } from '@/tests/support/score-testdata';
 import { mockSessie } from '@/src/integration/auth/_testSessie';
@@ -19,6 +19,7 @@ afterEach(async () => {
   await prisma.vraagScore.deleteMany();
   await prisma.businessUnitScore.deleteMany();
   await prisma.auditLogEntry.deleteMany();
+  await prisma.platformInvuller.deleteMany();
   await prisma.meting.deleteMany();
   await prisma.gebruiker.deleteMany();
 });
@@ -61,5 +62,21 @@ describe('GET /api/metingen/{jaar}', () => {
     const response = await call('2027');
     expect(response.status).toBe(401);
     expect(response.headers.get('Content-Type')).toContain('application/problem+json');
+  });
+
+  it('should say per business unit whether the user may edit it, by the write rule', async () => {
+    const meting = await createMeting(2027);
+    const invuller = await maakGebruiker({ email: 'jan@test.local', naam: 'Jan', rol: 'invuller', status: 'actief' });
+    await zetKoppelingen(invuller.id, meting.id, ['ro']);
+    mockSessie(invuller);
+    const body = await (await call('2027')).json();
+    expect(body.magBewerken).toMatchObject({ ro: true, belastingen: false, burgerzaken: false });
+  });
+
+  it('should let a beheerder edit every business unit of the year', async () => {
+    await createMeting(2027);
+    const body = await (await call('2027')).json();
+    expect(Object.values(body.magBewerken).length).toBeGreaterThan(0);
+    expect(Object.values(body.magBewerken).every((v) => v === true)).toBe(true);
   });
 });

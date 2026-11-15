@@ -18,6 +18,7 @@ import { verstuurUitnodiging } from './keycloak-admin';
 const MENU = { name: 'Gebruikersmenu' };
 const NIET_GEKOPPELD = 'U bent niet gekoppeld aan het platform van deze businessunit voor dit meetjaar.';
 const INGETROKKEN = 'Uw toegang is ingetrokken of nog niet geactiveerd.';
+const NIET_GEKOPPELD_FORMULIER = 'U bent niet gekoppeld aan dit platform; u kunt deze vragenlijst alleen bekijken.';
 const ALLEEN_LEZEN = 'Je hebt alleen leesrechten. Wijzigingen opslaan is niet mogelijk.';
 
 // Journeys share dev-stack state (one invuller, one fase-B year) and may wait for a TOTP period.
@@ -83,7 +84,7 @@ test.describe('GVPRLG fase B — inloggen met Keycloak (TOTP)', () => {
 test.describe('GVPRLG fase B — invuller', () => {
   test.use({ storageState: SESSIE_INVULLER });
 
-  test('invuller wijzigt eigen platform en krijgt 403 op een ander platform', async ({ page }) => {
+  test('invuller wijzigt eigen platform, ziet een ander platform alleen-lezen en krijgt daar 403', async ({ page }) => {
     page.on('dialog', (dialog) => dialog.accept());
     await page.goto(`/metingen/${FASE_B_JAAR}/${PLATFORM_INVULLER}`);
     const opgeslagen = page.waitForEvent('dialog');
@@ -93,8 +94,15 @@ test.describe('GVPRLG fase B — invuller', () => {
     expect(eigen.businessUnit.status).toBe('concept');
 
     await page.goto(`/metingen/${FASE_B_JAAR}/informatievoorziening`);
-    await slaEersteVraagOpAlsConcept(page);
-    await expect(page.getByRole('alert').filter({ hasText: NIET_GEKOPPELD })).toBeVisible();
+    await expect(page.getByText(NIET_GEKOPPELD_FORMULIER)).toBeVisible();
+    await expect(page.locator('.question-row').first().locator('input[type="radio"]').first()).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Opslaan als concept' })).toHaveCount(0);
+    // The server check is unchanged: a direct save is still refused.
+    const geweigerd = await page.request.put(`/api/metingen/${FASE_B_JAAR}/businessunits/informatievoorziening`, {
+      data: { status: 'concept', algemeneToelichting: 'niet gekoppeld', vraagScores: [] },
+    });
+    expect(geweigerd.status()).toBe(403);
+    expect((await geweigerd.json()).detail).toBe(NIET_GEKOPPELD);
     const leeg = await (await page.request.get(`/api/metingen/${FASE_B_JAAR}/businessunits/informatievoorziening`)).json();
     expect(leeg.businessUnit).toBeNull();
   });
@@ -102,6 +110,12 @@ test.describe('GVPRLG fase B — invuller', () => {
   test('invuller ziet concepten van andere platformen', async ({ page }) => {
     await page.goto(`/metingen/${FASE_B_JAAR}`);
     await expect(page.locator(`[data-platform="${PLATFORM_CONCEPT}"] .platform-status`)).toHaveText('In bewerking');
+    // "Invullen" only on the business unit of the assigned platform; elsewhere only "Bekijken".
+    const eigenKaart = page.locator(`[data-businessunit="${PLATFORM_INVULLER}"]`);
+    await expect(eigenKaart.getByRole('link', { name: 'Invullen' })).toBeVisible();
+    const andereKaart = page.locator(`[data-businessunit="${PLATFORM_CONCEPT}"]`);
+    await expect(andereKaart.getByRole('link', { name: 'Bekijken' })).toBeVisible();
+    await expect(andereKaart.getByRole('link', { name: 'Invullen' })).toHaveCount(0);
     await page.goto(`/metingen/${FASE_B_JAAR}/${PLATFORM_CONCEPT}/resultaat`);
     await expect(page.locator('.badge')).toHaveText('concept');
     await expect(page.getByText('Totaal: 2.0 / 5')).toBeVisible();
