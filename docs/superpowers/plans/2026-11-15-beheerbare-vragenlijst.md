@@ -32,7 +32,7 @@ are decisions, §11 is left to the builder).
 - Deletion in the catalogue is soft (`vervallen`); keys are never reused; colours are never reused.
 - Palettes: business units 8 colours (the current 5 first, in order), axes 6 colours (current 3
   first, each WCAG AA as text on white). Validate with
-  `node "C:\Users\RALPHW~1\AppData\Local\Temp\claude\bundled-skills\2.1.323\bc847a03cf7e807a51dca40eb7f3d570\dataviz\scripts\validate_palette.js" "<hex,...>" --mode light`
+  `node "%LOCALAPPDATA%\Temp\claude\bundled-skills\2.1.323\bc847a03cf7e807a51dca40eb7f3d570\dataviz\scripts\validate_palette.js" "<hex,...>" --mode light`
   and record the output in the report.
 - NDS themes and the 1–5 scale stay in code (`CONFIG.ndsThemas`, `CONFIG.schaal`); `CONFIG.assen` and
   `CONFIG.platformen` disappear.

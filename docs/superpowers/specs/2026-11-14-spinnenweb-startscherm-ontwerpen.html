@@ -271,7 +271,7 @@ function teken(){const body=S.scherm==='jaar'?jaarScherm(S.jaar):({A:overzichtA,
     ${[...JAREN].reverse().map(j=>`<button data-jaar="${j}" ${huidig('jaar',j)}>${j}<em>${badge(j)}</em></button>`).join('')}
     <h3>Beheer</h3><button data-toast="Hier opent het bestaande scherm Gebruikers.">Gebruikers</button><button data-toast="Hier opent het bestaande Auditlog.">Auditlog</button><button data-toast="Nieuwe meting aanmaken verhuist hierheen.">Nieuwe meting</button></nav></aside>
     <main class="inhoud">${body}</main></div>`;
-  else if(S.v==='B')h=`<header class="balk-b"><strong>GVPRLG Spinnenweb</strong><span>Ralph Wagter</span></header>
+  else if(S.v==='B')h=`<header class="balk-b"><strong>GVPRLG Spinnenweb</strong><span>Jan Jansen</span></header>
     <nav class="rail" aria-label="Jaren"><button class="thuis" data-scherm="overzicht" ${huidig('overzicht')}><i></i>Overzicht<small>alle jaren</small></button>
     ${JAREN.map(j=>`<button data-jaar="${j}" ${huidig('jaar',j)}><i></i>${j}<small>${badge(j)}</small></button>`).join('')}</nav><main class="inhoud">${body}</main>`;
   else h=`<div class="shell-c"><nav class="strip" aria-label="Hoofdmenu"><span class="logo">GV</span><button data-scherm="overzicht" ${huidig('overzicht')}>Start</button>
