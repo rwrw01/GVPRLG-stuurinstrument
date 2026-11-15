@@ -184,7 +184,7 @@ cd <compose-map> && git pull && docker compose build && docker compose up -d
   3. Geen firewall- of resolver-wijziging nodig; Traefik vraagt automatisch een nieuw
      certificaat aan zodra de eerste HTTPS-request voor dit domein binnenkomt.
 - **GitHub Pages komt te vervallen.** De huidige statische demo
-  (`rwrw01.github.io/GVPRLG-stuurinstrument`) wordt uitgefaseerd zodra de echte app op VPS-001
+  op GitHub Pages van deze repository wordt uitgefaseerd zodra de echte app op VPS-001
   live is — `spinnenweb.gvprlg.nl` wordt de enige plek waar het instrument draait. Onderdeel van
   fase D: GitHub Pages uitzetten in de repo-instellingen (Settings → Pages → Build and
   deployment → None) en eventueel de huidige `index.html`/`demo.html` verwijderen of vervangen
