@@ -22,16 +22,23 @@ export default defineConfig({
     { name: 'static-site', testMatch: 'volwassenheidsmeting.spec.js' },
     // Real Keycloak TOTP logins (dev realm) whose sessions the backend projects reuse.
     { name: 'auth-setup', testMatch: 'auth.setup.js', use: { baseURL: APP_URL } },
+    // Compiles every page and API route of the journeys once (next dev compiles on first request).
+    {
+      name: 'warmup',
+      testMatch: 'warmup.setup.js',
+      dependencies: ['auth-setup'],
+      use: { baseURL: APP_URL, storageState: 'playwright/.auth/beheerder.json' },
+    },
     {
       name: 'backend-fase-a',
       testMatch: ['gvprlg-backend-fase-a.spec.js', 'gvprlg-spinnenweb.spec.js', 'gvprlg-overzicht.spec.js'],
-      dependencies: ['auth-setup'],
+      dependencies: ['warmup'],
       use: { baseURL: APP_URL, storageState: 'playwright/.auth/beheerder.json' },
     },
     {
       name: 'backend-fase-b',
       testMatch: 'gvprlg-fase-b-auth.spec.js',
-      dependencies: ['auth-setup'],
+      dependencies: ['warmup'],
       use: { baseURL: APP_URL },
     },
     // The catalogue is shared by all open years: these journeys run alone, after every other project.

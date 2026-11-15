@@ -8,6 +8,10 @@ import { willekeurigJaar } from './e2e-data';
 
 test.describe('GVPRLG backend fase A — happy flow', () => {
   test('maakt een meting aan, vult een platform in met opmerkingen, rondt af, toont resultaat', async ({ page }) => {
+    // Measured: about 7 s alone, 24.6-27.9 s in the full suite (four workers on one next dev server,
+    // with Keycloak and Postgres on the same laptop): 20+ navigations and 16 score clicks. The 30 s
+    // default left no margin, so this journey gets the tripled budget of test.slow().
+    test.slow();
     const jaar = willekeurigJaar(); // uniek per testrun: 2050-2099, buiten de geseede jaren en het vaste fase-B-jaar
 
     await page.goto('/beheer');

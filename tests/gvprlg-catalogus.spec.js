@@ -234,7 +234,13 @@ test('een wijziging geldt voor open jaren en nooit voor een vastgelegd jaar; een
   await page.getByRole('form', { name: 'Vraag wijzigen: E2E Vast' }).getByLabel('Vraagtekst').fill('E2E Tekst van nu.');
   await page.getByRole('button', { name: 'Wijziging opslaan' }).click();
   await expect(page.locator('tr[data-vraag]', { hasText: 'E2E Tekst van nu.' })).toBeVisible();
+  // Wait for the removal to land before navigating: a page.goto right after the click aborts the
+  // PATCH in the browser (net::ERR_ABORTED), and then the question may stay active.
+  const verwijderd = page.waitForResponse((r) => r.url().endsWith(`/api/beheer/vragen/${vraag.id}`) && r.request().method() === 'PATCH');
   await page.getByRole('button', { name: 'Verwijderen: E2E Vast' }).click();
+  expect((await verwijderd).status()).toBe(200);
+  await expect(page.locator('tr[data-vraag]', { hasText: 'E2E Vast' })).toHaveCount(0);
+  expect((await vraagMet(page.request, 'E2E Vast')).vervallen).toBe(true);
 
   await page.goto(`/metingen/${vast}/ro`);
   await expect(page.getByText('E2E Tekst van toen.')).toBeVisible();
