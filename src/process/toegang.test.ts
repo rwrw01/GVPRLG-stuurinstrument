@@ -3,7 +3,16 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { prisma } from '../data/prismaClient';
 import { createMeting } from '../data/metingenRepository';
 import { maakGebruiker, zetKoppelingen, type GebruikerRecord } from '../data/gebruikersRepository';
-import { magBusinessUnitsBewerken, magPlatformBewerken, vereisActief, vereisPlatformSchrijfrecht, vereisRol } from './toegang';
+import {
+  alleenLezenRedenVan,
+  magBusinessUnitsBewerken,
+  magPlatformBewerken,
+  platformBewerkRecht,
+  schrijfWeigeringTekst,
+  vereisActief,
+  vereisPlatformSchrijfrecht,
+  vereisRol,
+} from './toegang';
 
 afterEach(async () => {
   await prisma.platformInvuller.deleteMany();
@@ -123,5 +132,25 @@ describe('magBusinessUnitsBewerken', () => {
     const units = [{ id: 'ro', platformId: 'ro' }];
     expect(await magBusinessUnitsBewerken(gebruiker({ rol: 'beheerder' }), meting.id, units)).toEqual({ ro: true });
     expect(await magBusinessUnitsBewerken(gebruiker({ rol: 'lezer' }), meting.id, units)).toEqual({ ro: false });
+  });
+});
+
+describe('alleenLezenRedenVan and schrijfWeigeringTekst', () => {
+  it('should map each refusal to one reason and the matching save text', () => {
+    expect(alleenLezenRedenVan({ status: 403, reden: 'geen-koppeling' })).toBe('geen-koppeling');
+    expect(alleenLezenRedenVan({ status: 403, reden: 'alleen-lezen' })).toBe('rol-lezer');
+    expect(schrijfWeigeringTekst({ status: 403, reden: 'geen-koppeling' })).toContain('niet gekoppeld');
+    expect(schrijfWeigeringTekst({ status: 403, reden: 'alleen-lezen' })).toContain('alleen leesrechten');
+  });
+
+  it('should give an unknown role the same read-only explanation on GET and on a refused save', async () => {
+    const meting = await createMeting(2027);
+    const onbekend = gebruiker({ rol: 'kijker' as unknown as GebruikerRecord['rol'] });
+
+    expect(await platformBewerkRecht(onbekend, meting.id, 'belastingen')).toEqual({ magBewerken: false, alleenLezenReden: 'rol-lezer' });
+    const resultaat = await vereisPlatformSchrijfrecht(onbekend, meting.id, 'belastingen');
+    if (resultaat.ok) throw new Error('expected a refusal');
+    expect(alleenLezenRedenVan(resultaat.error)).toBe('rol-lezer');
+    expect(schrijfWeigeringTekst(resultaat.error)).toBe('U heeft alleen leesrechten; wijzigingen opslaan is niet mogelijk.');
   });
 });

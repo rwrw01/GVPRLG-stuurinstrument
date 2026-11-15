@@ -84,7 +84,32 @@ export async function platformBewerkRecht(
 ): Promise<{ magBewerken: boolean; alleenLezenReden: AlleenLezenReden | null }> {
   const resultaat = await vereisPlatformSchrijfrecht(g, metingId, platformId);
   if (resultaat.ok) return { magBewerken: true, alleenLezenReden: null };
-  return { magBewerken: false, alleenLezenReden: resultaat.error.reden === 'geen-koppeling' ? 'geen-koppeling' : 'rol-lezer' };
+  return { magBewerken: false, alleenLezenReden: alleenLezenRedenVan(resultaat.error) };
+}
+
+/**
+ * The single mapping from a refused write right to the reason the user sees, used by both the
+ * GET explanation and the PUT refusal: an unassigned filler is `geen-koppeling`, a reader and any
+ * other role that may not write (deny by default) is `rol-lezer`.
+ * @param weigering - Refusal from `vereisPlatformSchrijfrecht`
+ * @returns the read-only reason
+ */
+export function alleenLezenRedenVan(weigering: Weigering): AlleenLezenReden {
+  return weigering.reden === 'geen-koppeling' ? 'geen-koppeling' : 'rol-lezer';
+}
+
+const SCHRIJFWEIGERING_TEKST: Record<AlleenLezenReden, string> = {
+  'rol-lezer': 'U heeft alleen leesrechten; wijzigingen opslaan is niet mogelijk.',
+  'geen-koppeling': 'U bent niet gekoppeld aan het platform van deze businessunit voor dit meetjaar.',
+};
+
+/**
+ * Detail text of a refused save, by the same reason as the GET explanation (`alleenLezenRedenVan`).
+ * @param weigering - Refusal from `vereisPlatformSchrijfrecht`
+ * @returns the text for the 403 problem+json
+ */
+export function schrijfWeigeringTekst(weigering: Weigering): string {
+  return SCHRIJFWEIGERING_TEKST[alleenLezenRedenVan(weigering)];
 }
 
 /**

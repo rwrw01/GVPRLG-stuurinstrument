@@ -3,7 +3,7 @@ import type { NextResponse } from 'next/server';
 
 import { businessUnitDetail, schrijfAudit } from '@/src/data/auditRepository';
 import { vindGebruikerOpId, type GebruikerRecord, type Rol } from '@/src/data/gebruikersRepository';
-import { vereisActief, vereisPlatformSchrijfrecht, vereisRol } from '@/src/process/toegang';
+import { schrijfWeigeringTekst, vereisActief, vereisPlatformSchrijfrecht, vereisRol } from '@/src/process/toegang';
 import { problemResponse } from '@/src/integration/problemResponse';
 
 import { getAuthOptions } from './authOptions';
@@ -85,9 +85,5 @@ export async function weigerBusinessUnitSchrijfrecht(
     doelId: meting.id,
     detail: `${businessUnitDetail(unit.platformId, unit.id, meting.jaar)};reden=${resultaat.error.reden}`,
   });
-  const detail =
-    resultaat.error.reden === 'alleen-lezen'
-      ? 'U heeft alleen leesrechten; wijzigingen opslaan is niet mogelijk.'
-      : 'U bent niet gekoppeld aan het platform van deze businessunit voor dit meetjaar.';
-  return problemResponse(403, GEEN_TOEGANG, detail);
+  return problemResponse(403, GEEN_TOEGANG, schrijfWeigeringTekst(resultaat.error));
 }
