@@ -125,4 +125,28 @@ describe('migration beheerbare_vragenlijst', () => {
     await vulOudeData(db, undefined, (p) => (p === 'ro' ? 'oud-platform' : p));
     await expect(voerUit(db, MIGRATIES.slice(NIEUW))).rejects.toThrow(/unknown platform id "oud-platform"/);
   });
+
+  it('should abort with an error naming the id when a filler link has an unknown platform id', async () => {
+    const db = await verseDatabase();
+    await voerUit(db, MIGRATIES.slice(0, NIEUW));
+    await vulOudeData(db);
+    await db.$executeRawUnsafe(`INSERT INTO platform_invullers (id, "metingId", "platformId", gebruiker) VALUES ('pi1', 'm25', 'weg-platform', 'g1')`);
+    await expect(voerUit(db, MIGRATIES.slice(NIEUW))).rejects.toThrow(/platform_invullers has a row with unknown platform id "weg-platform"/);
+  });
+
+  it('should roll back completely when a statement fails after the first schema changes', async () => {
+    const db = await verseDatabase();
+    await voerUit(db, MIGRATIES.slice(0, NIEUW));
+    await vulOudeData(db);
+    // A table in the way makes CREATE TABLE meting_assen fail after the catalogue tables, their rows
+    // and the vastgelegdOp column were already created in the same script.
+    await db.$executeRawUnsafe('CREATE TABLE meting_assen (x int)');
+    await expect(voerUit(db, MIGRATIES.slice(NIEUW))).rejects.toThrow(/meting_assen/);
+    const staat = await db.$queryRawUnsafe<Array<{ oud: string | null; nieuw: string | null; kolom: bigint; rijen: bigint }>>(
+      `SELECT to_regclass('platform_scores')::text AS oud, to_regclass('assen')::text AS nieuw,
+              (SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'metingen' AND column_name = 'vastgelegdOp') AS kolom,
+              (SELECT COUNT(*) FROM platform_scores) AS rijen`,
+    );
+    expect(staat[0]).toEqual({ oud: 'platform_scores', nieuw: null, kolom: 0n, rijen: 10n });
+  });
 });
