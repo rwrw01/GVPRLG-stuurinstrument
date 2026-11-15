@@ -1,60 +1,66 @@
-import { CONFIG } from './config';
+import type { Vragenlijst } from '../data/vragenlijstRepository';
 
 export type VraagScoreMap = Record<string, number | null>;
-export type PlatformScoresByAs = Record<string, VraagScoreMap>;
+export type ScoresPerAs = Record<string, VraagScoreMap>;
 
-export function berekenGemiddeldePerAs(platformData: PlatformScoresByAs): Record<string, number | null> {
+/** The part of a year's questionnaire the score calculations need. */
+export type AssenLijst = Pick<Vragenlijst, 'assen'>;
+
+/**
+ * Mean per axis of the answered questions of one business unit row.
+ * @param lijst - Questionnaire of the year
+ * @param rij - Scores per axis of one business unit
+ * @returns average per axis id, null for an axis without answered questions
+ */
+export function berekenGemiddeldePerAs(lijst: AssenLijst, rij: ScoresPerAs): Record<string, number | null> {
   const result: Record<string, number | null> = {};
-  for (const as of CONFIG.assen) {
-    const asData = platformData[as.id];
-    if (!asData) {
-      result[as.id] = null;
-      continue;
-    }
-    const scores = as.vragen
-      .map((v) => asData[v.id])
-      .filter((s): s is number => s != null);
-    result[as.id] = scores.length > 0
-      ? scores.reduce((sum, s) => sum + s, 0) / scores.length
-      : null;
+  for (const as of lijst.assen) {
+    const scores = as.vragen.map((v) => rij[as.id]?.[v.id]).filter((s): s is number => s != null);
+    result[as.id] = scores.length > 0 ? scores.reduce((sum, s) => sum + s, 0) / scores.length : null;
   }
   return result;
 }
 
-export function berekenTotaalGemiddelde(platformData: PlatformScoresByAs): number | null {
-  const asGemiddelden = berekenGemiddeldePerAs(platformData);
-  const waarden = Object.values(asGemiddelden).filter((v): v is number => v != null);
-  return waarden.length > 0
-    ? waarden.reduce((sum, v) => sum + v, 0) / waarden.length
-    : null;
+/**
+ * Mean of the axis averages of one business unit row.
+ * @param lijst - Questionnaire of the year
+ * @param rij - Scores per axis of one business unit
+ * @returns the total, or null without answered questions
+ */
+export function berekenTotaalGemiddelde(lijst: AssenLijst, rij: ScoresPerAs): number | null {
+  const waarden = Object.values(berekenGemiddeldePerAs(lijst, rij)).filter((v): v is number => v != null);
+  return waarden.length > 0 ? waarden.reduce((sum, v) => sum + v, 0) / waarden.length : null;
 }
 
 /**
- * Averages each axis over several platforms (mean of the per-platform axis averages).
- * The caller decides which platforms count, e.g. only those with status definitief.
- * @param platformen scores per axis for each platform to include
- * @returns average per axis id, or null when no platform has a score on that axis
+ * Averages each axis over several business units (mean of their axis averages).
+ * The caller decides which rows count, e.g. only those with status definitief.
+ * @param lijst - Questionnaire of the year
+ * @param rijen - Scores per axis for each business unit to include
+ * @returns average per axis id, or null when no row has a score on that axis
  */
-export function berekenOrganisatieGemiddelde(platformen: PlatformScoresByAs[]): Record<string, number | null> {
-  const perPlatform = platformen.map(berekenGemiddeldePerAs);
+export function berekenOrganisatieGemiddelde(lijst: AssenLijst, rijen: ScoresPerAs[]): Record<string, number | null> {
+  const perRij = rijen.map((r) => berekenGemiddeldePerAs(lijst, r));
   const result: Record<string, number | null> = {};
-  for (const as of CONFIG.assen) {
-    const waarden = perPlatform.map((g) => g[as.id]).filter((v): v is number => v != null);
+  for (const as of lijst.assen) {
+    const waarden = perRij.map((g) => g[as.id]).filter((v): v is number => v != null);
     result[as.id] = waarden.length > 0 ? waarden.reduce((sum, v) => sum + v, 0) / waarden.length : null;
   }
   return result;
 }
 
 /**
- * Averages every question over several platforms, the spokes of the per-question spinnenweb.
- * @param platformen scores per axis for each platform to include
- * @returns average per question id, or null when no platform scored that question
+ * Averages every question of the list over several business units, the spokes of the web. A
+ * question that is not in the list (another year's question) is not part of the result.
+ * @param lijst - Questionnaire of the year
+ * @param rijen - Scores per axis for each business unit to include
+ * @returns average per question id, or null when no row scored that question
  */
-export function berekenGemiddeldePerVraag(platformen: PlatformScoresByAs[]): Record<string, number | null> {
+export function berekenGemiddeldePerVraag(lijst: AssenLijst, rijen: ScoresPerAs[]): Record<string, number | null> {
   const result: Record<string, number | null> = {};
-  for (const as of CONFIG.assen) {
+  for (const as of lijst.assen) {
     for (const vraag of as.vragen) {
-      const waarden = platformen.map((p) => p[as.id]?.[vraag.id]).filter((v): v is number => v != null);
+      const waarden = rijen.map((p) => p[as.id]?.[vraag.id]).filter((v): v is number => v != null);
       result[vraag.id] = waarden.length > 0 ? waarden.reduce((sum, v) => sum + v, 0) / waarden.length : null;
     }
   }

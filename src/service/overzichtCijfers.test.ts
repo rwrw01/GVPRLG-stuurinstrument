@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { gelijk, meting, rij } from '@/tests/support/overzicht-testdata';
-import { berekenJaarCijfers, berekenPlatformCijfers, kiesVergelijking, voortgangLabel } from './overzichtCijfers';
+import { cijfers, gelijk, meting, rij, unitCijfers } from '@/tests/support/overzicht-testdata';
+import { kiesVergelijking, voortgangLabel } from './overzichtCijfers';
 
-describe('berekenPlatformCijfers', () => {
+describe('berekenBusinessUnitCijfers', () => {
   it('should average the answered questions per axis and over all questions when scores are partial', () => {
     const data = rij('concept', { techniek: 4, proces: 1 });
     data.scoresPerAs.techniek!['cloud-data'] = 2;
     data.scoresPerAs.techniek!['ai-integratie'] = null;
-    const cijfers = berekenPlatformCijfers('ro', data);
+    const cijfers = unitCijfers('ro', data);
     expect(cijfers.perAs.techniek).toBeCloseTo(10 / 3);
     expect(cijfers.perAs.mens).toBeNull();
     expect(cijfers.perAs.proces).toBe(1);
@@ -19,19 +19,20 @@ describe('berekenPlatformCijfers', () => {
   });
 
   it('should weigh the process axis by its eight questions when every question is answered', () => {
-    const cijfers = berekenPlatformCijfers('ro', rij('definitief', { techniek: 4, mens: 4, proces: 1 }));
+    const cijfers = unitCijfers('ro', rij('definitief', { techniek: 4, mens: 4, proces: 1 }));
     expect(cijfers.totaal).toBeCloseTo((4 * 4 + 4 * 4 + 8 * 1) / 16);
     expect(cijfers.status).toBe('definitief');
   });
 
   it('should be niet-gestart without totals when the platform has no row', () => {
-    expect(berekenPlatformCijfers('ro', undefined)).toEqual({
-      platformId: 'ro', status: 'niet-gestart', perAs: { techniek: null, mens: null, proces: null }, totaal: null, beantwoord: 0,
+    expect(unitCijfers('ro', undefined)).toEqual({
+      naam: 'R&O', kleur: '#eb6834', platformId: 'ro', platformNaam: 'R&O',
+      businessUnitId: 'ro', status: 'niet-gestart', perAs: { techniek: null, mens: null, proces: null }, totaal: null, beantwoord: 0,
     });
   });
 
   it('should give no total when a row exists without answers', () => {
-    const cijfers = berekenPlatformCijfers('ro', rij('concept', {}));
+    const cijfers = unitCijfers('ro', rij('concept', {}));
     expect(cijfers).toMatchObject({ status: 'concept', totaal: null, beantwoord: 0 });
   });
 });
@@ -49,9 +50,9 @@ describe('voortgangLabel', () => {
 
 describe('berekenJaarCijfers', () => {
   it('should list every platform in config order and average the platforms that have scores', () => {
-    const jaar = berekenJaarCijfers(meting(2026, { ro: gelijk('definitief', 2), belastingen: gelijk('concept', 4) }));
-    expect(jaar.platformen.map((p) => p.platformId)).toEqual(['belastingen', 'ro', 'burgerzaken', 'sociaal-domein', 'informatievoorziening']);
-    expect(jaar.platformen.map((p) => p.status)).toEqual(['concept', 'definitief', 'niet-gestart', 'niet-gestart', 'niet-gestart']);
+    const jaar = cijfers(meting(2026, { ro: gelijk('definitief', 2), belastingen: gelijk('concept', 4) }));
+    expect(jaar.businessUnits.map((p) => p.businessUnitId)).toEqual(['belastingen', 'ro', 'burgerzaken', 'sociaal-domein', 'informatievoorziening']);
+    expect(jaar.businessUnits.map((p) => p.status)).toEqual(['concept', 'definitief', 'niet-gestart', 'niet-gestart', 'niet-gestart']);
     expect(jaar.gemiddelde).toBe(3);
     expect(jaar.perAs.mens).toBe(3);
     expect(jaar.aantalDefinitief).toBe(1);
@@ -62,13 +63,13 @@ describe('berekenJaarCijfers', () => {
 describe('kiesVergelijking', () => {
   it('should pick the newest year with scores and the year with scores before it', () => {
     const jaren = [meting(2027), meting(2024, { ro: gelijk('concept', 2) }), meting(2025), meting(2026, { ro: gelijk('concept', 3) })]
-      .map(berekenJaarCijfers);
+      .map((m) => cijfers(m));
     const { nu, vorige } = kiesVergelijking(jaren);
     expect(nu?.jaar).toBe(2026);
     expect(vorige?.jaar).toBe(2024);
   });
 
   it('should return nulls when no year has scores', () => {
-    expect(kiesVergelijking([berekenJaarCijfers(meting(2026))])).toEqual({ nu: null, vorige: null });
+    expect(kiesVergelijking([cijfers(meting(2026))])).toEqual({ nu: null, vorige: null });
   });
 });

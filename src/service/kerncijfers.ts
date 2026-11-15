@@ -1,4 +1,3 @@
-import { CONFIG } from './config';
 import { gemiddelde, type JaarCijfers } from './overzichtCijfers';
 import {
   definitiefGemiddelde,
@@ -10,7 +9,7 @@ import {
   type Stijger,
 } from './overzichtAnalyse';
 
-/** Average of the platforms that are definitief in both years, in each year. */
+/** Average of the business units that are definitief in both years, in each year. */
 export interface Vergelijking {
   nu: number;
   vorige: number;
@@ -20,14 +19,14 @@ export interface Vergelijking {
 /** Key figures of the newest year with scores. */
 export interface Kerncijfers {
   jaar: number;
-  /** Mean total of the definitief platforms of the year. */
+  /** Mean total of the definitief business units of the year. */
   gemiddelde: number | null;
-  /** Number of platforms behind `gemiddelde`. */
+  /** Number of business units behind `gemiddelde`. */
   aantalGemiddelde: number;
   vorigeJaar: number | null;
-  /** Comparison over the platforms definitief in both years; null when there is none. */
+  /** Comparison over the business units definitief in both years; null when there is none. */
   vergelijking: Vergelijking | null;
-  aantalPlatformen: number;
+  aantalBusinessUnits: number;
   aantalDefinitief: number;
   aantalConcept: number;
   aantalNietGestart: number;
@@ -35,23 +34,23 @@ export interface Kerncijfers {
   groeikans: AsScore | null;
 }
 
-/** One axis averaged over platforms; compared over the common definitief platforms when possible. */
+/** One axis averaged over business units; compared over the common definitief business units when possible. */
 export interface AsVergelijking {
   id: string;
   naam: string;
   nu: number | null;
   vorige: number | null;
-  /** Number of platforms behind the figures. */
+  /** Number of business units behind the figures. */
   aantal: number;
-  /** True when `nu` and `vorige` are over the platforms definitief in both years. */
+  /** True when `nu` and `vorige` are over the business units definitief in both years. */
   vergeleken: boolean;
 }
 
 /**
- * Compares the mean total of the platforms that are definitief in both years.
+ * Compares the mean total of the business units that are definitief in both years.
  * @param nu - Newest year with scores
  * @param vorige - Comparison year, or null
- * @returns the comparison, or null without a comparison year or without common platforms
+ * @returns the comparison, or null without a comparison year or without common business units
  */
 export function vergelijkGemiddelde(nu: JaarCijfers, vorige: JaarCijfers | null): Vergelijking | null {
   const paren = vorige ? gemeenschappelijk(nu, vorige) : [];
@@ -71,14 +70,14 @@ export function vergelijkGemiddelde(nu: JaarCijfers, vorige: JaarCijfers | null)
  * @returns the key figures
  */
 export function berekenKerncijfers(nu: JaarCijfers, vorige: JaarCijfers | null): Kerncijfers {
-  const tel = (status: string) => nu.platformen.filter((p) => p.status === status).length;
+  const tel = (status: string) => nu.businessUnits.filter((p) => p.status === status).length;
   return {
     jaar: nu.jaar,
     gemiddelde: definitiefGemiddelde(nu),
     aantalGemiddelde: definitieveVan(nu).length,
     vorigeJaar: vorige?.jaar ?? null,
     vergelijking: vergelijkGemiddelde(nu, vorige),
-    aantalPlatformen: nu.platformen.length,
+    aantalBusinessUnits: nu.businessUnits.length,
     aantalDefinitief: tel('definitief'),
     aantalConcept: tel('concept'),
     aantalNietGestart: tel('niet-gestart'),
@@ -92,16 +91,16 @@ function gemiddeldeAs(waarden: Array<number | null | undefined>): number | null 
 }
 
 /**
- * The three axes: over the platforms definitief in both years when there are any, otherwise the
- * definitief platforms of the newest year without comparison.
+ * The three axes: over the business units definitief in both years when there are any, otherwise the
+ * definitief business units of the newest year without comparison.
  * @param nu - Newest year with scores, or null
  * @param vorige - Comparison year, or null
- * @returns one entry per configured axis
+ * @returns one entry per axis of the newest year (by axis id; empty without a year)
  */
 export function vergelijkAssen(nu: JaarCijfers | null, vorige: JaarCijfers | null): AsVergelijking[] {
   const paren = nu && vorige ? gemeenschappelijk(nu, vorige) : [];
   const eigen = nu ? definitieveVan(nu) : [];
-  return CONFIG.assen.map((as) => {
+  return (nu?.assen ?? []).map((as) => {
     if (paren.length > 0) {
       return {
         id: as.id,

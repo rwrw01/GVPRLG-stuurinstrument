@@ -1,6 +1,6 @@
 import { formatScore, noemOp } from './nlGetal';
 import { grootsteDaling, langsteStijging } from './overzichtAnalyse';
-import { AANTAL_VRAGEN, asNaam, kiesVergelijking, platformNaam, type JaarCijfers, type PlatformCijfers } from './overzichtCijfers';
+import { asNaam, businessUnitNaam, kiesVergelijking, type BusinessUnitCijfers, type JaarCijfers } from './overzichtCijfers';
 
 /** Kind of talking point; the UI shows an icon plus text for it. */
 export type OnderwerpSoort = 'daling' | 'concept' | 'niet-gestart' | 'stijging';
@@ -18,16 +18,17 @@ export const MAX_ONDERWERPEN = 4;
 /**
  * Sentence with the number of answered questions, singular for one.
  * @param beantwoord - Number of answered questions
+ * @param aantalVragen - Number of questions in the year's list
  * @returns e.g. "1 van de 16 vragen is beantwoord."
  */
-function beantwoordZin(beantwoord: number): string {
+function beantwoordZin(beantwoord: number, aantalVragen: number): string {
   return beantwoord === 1
-    ? `1 van de ${AANTAL_VRAGEN} vragen is beantwoord.`
-    : `${beantwoord} van de ${AANTAL_VRAGEN} vragen zijn beantwoord.`;
+    ? `1 van de ${aantalVragen} vragen is beantwoord.`
+    : `${beantwoord} van de ${aantalVragen} vragen zijn beantwoord.`;
 }
 
 /**
- * Talking point for the largest fall on an axis of a platform definitief in both years.
+ * Talking point for the largest fall on an axis of a business unit definitief in both years.
  * @param nu - Newest year with scores
  * @param vorige - Comparison year, or null
  * @returns the point, or null without such a fall
@@ -37,40 +38,40 @@ function dalingOnderwerp(nu: JaarCijfers, vorige: JaarCijfers | null): Gesprekso
   if (!vorige || !daling) return null;
   return {
     soort: 'daling',
-    titel: `${platformNaam(daling.platformId)}: de as ${asNaam(daling.asId)} staat onder druk`,
+    titel: `${businessUnitNaam(nu, daling.businessUnitId)}: de as ${asNaam(nu, daling.asId)} staat onder druk`,
     toelichting: `Van ${formatScore(daling.vorige ?? 0)} in ${vorige.jaar} naar ${formatScore(daling.waarde)} in ${nu.jaar}. Dit vraagt samen aandacht.`,
   };
 }
 
 /**
- * Talking point for the platforms still in concept in the newest year.
+ * Talking point for the business units still in concept in the newest year.
  * @param nu - Newest year with scores
- * @returns the point, or null when no platform is in concept
+ * @returns the point, or null when no business unit is in concept
  */
 function conceptOnderwerp(nu: JaarCijfers): Gespreksonderwerp | null {
-  const concepten = nu.platformen.filter((p) => p.status === 'concept');
+  const concepten = nu.businessUnits.filter((p) => p.status === 'concept');
   if (concepten.length === 0) return null;
-  const namen = noemOp(concepten.map((p) => platformNaam(p.platformId)));
+  const namen = noemOp(concepten.map((p) => p.naam));
   if (concepten.length === 1) {
     return {
       soort: 'concept',
       titel: `${namen} staat nog in concept`,
-      toelichting: beantwoordZin(concepten[0]!.beantwoord),
+      toelichting: beantwoordZin(concepten[0]!.beantwoord, nu.aantalVragen),
     };
   }
-  const telling = concepten.map((p: PlatformCijfers) => `${platformNaam(p.platformId)} ${p.beantwoord} van ${AANTAL_VRAGEN}`);
+  const telling = concepten.map((p: BusinessUnitCijfers) => `${p.naam} ${p.beantwoord} van ${nu.aantalVragen}`);
   return { soort: 'concept', titel: `${namen} staan nog in concept`, toelichting: `Beantwoorde vragen: ${telling.join(', ')}.` };
 }
 
 /**
- * Talking point for the platforms without a row in the newest year.
+ * Talking point for the business units without a row in the newest year.
  * @param nu - Newest year with scores
- * @returns the point, or null when every platform has started
+ * @returns the point, or null when every business unit has started
  */
 function nietGestartOnderwerp(nu: JaarCijfers): Gespreksonderwerp | null {
-  const open = nu.platformen.filter((p) => p.status === 'niet-gestart');
+  const open = nu.businessUnits.filter((p) => p.status === 'niet-gestart');
   if (open.length === 0) return null;
-  const namen = noemOp(open.map((p) => platformNaam(p.platformId)));
+  const namen = noemOp(open.map((p) => p.naam));
   return {
     soort: 'niet-gestart',
     titel: open.length === 1 ? `${namen} is nog niet gestart` : `${namen} zijn nog niet gestart`,
@@ -79,15 +80,15 @@ function nietGestartOnderwerp(nu: JaarCijfers): Gespreksonderwerp | null {
 }
 
 /**
- * Talking point for the platform whose definitief total rose the most measurements in a row.
+ * Talking point for the business unit whose definitief total rose the most measurements in a row.
  * @param nu - Newest year with scores
  * @param jaren - All year figures
- * @returns the point, or null when no platform rose into the newest year
+ * @returns the point, or null when no business unit rose into the newest year
  */
 function stijgingOnderwerp(nu: JaarCijfers, jaren: JaarCijfers[]): Gespreksonderwerp | null {
   const reeks = langsteStijging(jaren);
   if (!reeks) return null;
-  const naam = platformNaam(reeks.platformId);
+  const naam = businessUnitNaam(nu, reeks.businessUnitId);
   return {
     soort: 'stijging',
     titel: reeks.aantalMetingen === 1 ? `${naam} groeit ten opzichte van ${reeks.vanJaar}` : `${naam} groeit ${reeks.aantalMetingen} metingen op rij`,
@@ -96,8 +97,8 @@ function stijgingOnderwerp(nu: JaarCijfers, jaren: JaarCijfers[]): Gespreksonder
 }
 
 /**
- * Talking points in fixed order: the largest fall on an axis, platforms in concept, platforms not
- * started and the platform that has been rising the longest; at most MAX_ONDERWERPEN.
+ * Talking points in fixed order: the largest fall on an axis, business units in concept, business units not
+ * started and the business unit that has been rising the longest; at most MAX_ONDERWERPEN.
  * @param jaren - Year figures in any order
  * @returns the talking points (empty when no year has scores)
  */
