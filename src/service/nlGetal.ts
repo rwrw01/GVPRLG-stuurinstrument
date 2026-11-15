@@ -4,7 +4,7 @@
  * @returns the display text
  */
 export function formatScore(waarde: number): string {
-  return (Math.round(waarde * 10) / 10).toFixed(1).replace('.', ',');
+  return rond1(waarde).toFixed(1).replace('.', ',');
 }
 
 /**
@@ -18,12 +18,14 @@ export function noemOp(namen: string[]): string {
 }
 
 /**
- * Rounds a score to one decimal, the precision the user sees.
+ * Rounds a score to one decimal (half up), the precision the user sees. Floating-point noise is
+ * removed first, so an average of averages such as (4/3 + 53/30) / 2 = 1.5499999999999998 (exactly
+ * 1,55) still rounds to 1,6.
  * @param waarde - Score (unrounded)
  * @returns the rounded score
  */
 export function rond1(waarde: number): number {
-  return Math.round(waarde * 10) / 10;
+  return Math.round(Number((waarde * 10).toPrecision(12))) / 10;
 }
 
 /**

@@ -1,3 +1,5 @@
+import { formatScore } from '@/src/service/nlGetal';
+
 import { radarPolygoon, radarPunt } from './_radarGeometrie';
 
 export interface SpinnenwebSerie {
@@ -50,7 +52,7 @@ export function Spinnenweb({ spaken, series, titel, grootte = 320, toonLabels = 
   const padX = toonLabels ? 150 : 8;
   const padY = toonLabels ? 28 : 8;
   const samenvatting = series
-    .map((s) => `${s.label}: ${spaken.map((a, i) => `${a.label} ${s.waarden[i]?.toFixed(1) ?? 'geen score'}`).join(', ')}`)
+    .map((s) => `${s.label}: ${spaken.map((a, i) => `${a.label} ${s.waarden[i] == null ? 'geen score' : formatScore(s.waarden[i]!)}`).join(', ')}`)
     .join('; ');
 
   return (

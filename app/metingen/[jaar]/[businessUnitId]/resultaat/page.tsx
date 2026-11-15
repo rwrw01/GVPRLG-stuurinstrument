@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 
+import { formatScore } from '@/src/service/nlGetal';
 import { berekenGemiddeldePerAs, berekenGemiddeldePerVraag, berekenTotaalGemiddelde } from '@/src/service/scores';
 import { HeropenenKnop } from '@/src/ui/components/HeropenenKnop';
 import { Spinnenweb } from '@/src/ui/components/Spinnenweb';
@@ -27,7 +28,7 @@ function ResultaatKaart({ lijst, rij, titel }: { lijst: UiVragenlijst; rij: UiBu
       <h3>Spinnenweb</h3>
       <Spinnenweb titel={`Spinnenweb ${titel}`} spaken={vraagSpaken(lijst)} groepen={asGroepen(lijst)} grootte={420}
         series={[{ label: titel, waarden: naarSpaakWaarden(lijst, berekenGemiddeldePerVraag(lijst, [rij.scoresPerAs])), kleur: '#2c7fa0', gestippeld: rij.status === 'concept' }]} />
-      <p className="totaalscore">Totaal: {totaal?.toFixed(1) ?? '-'} / 5</p>
+      <p className="totaalscore">Totaal: {totaal == null ? '-' : formatScore(totaal)} / 5</p>
       <table aria-label="Scores per as">
         <thead>
           <tr>
@@ -37,8 +38,8 @@ function ResultaatKaart({ lijst, rij, titel }: { lijst: UiVragenlijst; rij: UiBu
         </thead>
         <tbody>
           <tr>
-            {lijst.assen.map((a) => <td key={a.id}>{gemPerAs[a.id]?.toFixed(1) ?? '-'}</td>)}
-            <td>{totaal?.toFixed(1) ?? '-'}</td>
+            {lijst.assen.map((a) => <td key={a.id}>{gemPerAs[a.id] == null ? '-' : formatScore(gemPerAs[a.id]!)}</td>)}
+            <td>{totaal == null ? '-' : formatScore(totaal)}</td>
           </tr>
         </tbody>
       </table>

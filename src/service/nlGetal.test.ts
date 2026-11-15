@@ -1,12 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatScore, noemOp, zichtbaarVerschil } from './nlGetal';
+import { formatScore, noemOp, rond1, zichtbaarVerschil } from './nlGetal';
 
 describe('formatScore', () => {
   it('should round to one decimal with a Dutch comma', () => {
     expect(formatScore(3.45)).toBe('3,5');
     expect(formatScore(4)).toBe('4,0');
     expect(formatScore(18 / 11)).toBe('1,6');
+  });
+
+  it('should round an exact half up, also with floating-point noise', () => {
+    expect(formatScore(29 / 20)).toBe('1,5'); // 1,45
+    expect((29 / 20).toFixed(1)).toBe('1.4'); // why toFixed alone is not used
+    expect((4 / 3 + 53 / 30) / 2).toBe(1.5499999999999998);
+    expect(formatScore((4 / 3 + 53 / 30) / 2)).toBe('1,6'); // exactly 1,55
+    expect(rond1((8 / 3 + 61 / 30) / 2)).toBe(2.4); // exactly 2,35
   });
 });
 

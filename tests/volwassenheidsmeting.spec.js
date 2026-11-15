@@ -80,7 +80,7 @@ test.describe('Happy flow', () => {
     await expect(page.locator('h2').first()).toContainText('Belastingen — Resultaat 2026');
     await expect(page.locator('.badge-definitief')).toBeVisible();
     await expect(page.locator('canvas[id^="radar-"]')).toBeVisible();
-    await expect(page.locator('text=Totaal: 4.0 / 5')).toBeVisible();
+    await expect(page.locator('text=Totaal: 4,0 / 5')).toBeVisible();
 
     await page.click('#btn-back');
     await expect(page.locator('.badge-definitief')).toHaveCount(1);

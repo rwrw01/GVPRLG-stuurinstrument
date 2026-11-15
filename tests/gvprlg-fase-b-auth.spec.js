@@ -118,7 +118,7 @@ test.describe('GVPRLG fase B — invuller', () => {
     await expect(andereKaart.getByRole('link', { name: 'Invullen' })).toHaveCount(0);
     await page.goto(`/metingen/${FASE_B_JAAR}/${PLATFORM_CONCEPT}/resultaat`);
     await expect(page.locator('.badge')).toHaveText('concept');
-    await expect(page.getByText('Totaal: 2.0 / 5')).toBeVisible();
+    await expect(page.getByText('Totaal: 2,0 / 5')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Heropenen' })).toHaveCount(0);
   });
 });

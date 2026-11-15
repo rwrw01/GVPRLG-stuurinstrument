@@ -41,7 +41,7 @@ test.describe('GVPRLG backend fase A — happy flow', () => {
 
     await page.click('text=Afronden (definitief)');
     await expect(page).toHaveURL(new RegExp(`/metingen/${jaar}/belastingen/resultaat$`));
-    await expect(page.locator('text=3.0').first()).toBeVisible();
+    await expect(page.getByText('Totaal: 3,0 / 5')).toBeVisible();
     await expect(page.locator('text=algemene opmerking')).toBeVisible();
     // De letterlijke payload moet als platte tekst zichtbaar zijn, niet als HTML geparset.
     await expect(page.getByText('<img src=x', { exact: false })).toBeVisible();
