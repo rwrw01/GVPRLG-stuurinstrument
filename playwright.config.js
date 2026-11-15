@@ -34,5 +34,12 @@ export default defineConfig({
       dependencies: ['auth-setup'],
       use: { baseURL: APP_URL },
     },
+    // The catalogue is shared by all open years: these journeys run alone, after every other project.
+    {
+      name: 'catalogus',
+      testMatch: 'gvprlg-catalogus.spec.js',
+      dependencies: ['backend-fase-a', 'backend-fase-b'],
+      use: { baseURL: APP_URL, storageState: 'playwright/.auth/beheerder.json', actionTimeout: 20000 },
+    },
   ],
 });

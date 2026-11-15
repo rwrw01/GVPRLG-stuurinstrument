@@ -75,3 +75,21 @@
   .beheer-tabel-stapel td.cel-editor::before { content: none; }
   .beheer-tabel-stapel tr + tr .cel-editor { margin-top: -0.75rem; }
 }
+
+/* Beheer of the questionnaire and the business units: group header rows per axis or platform. */
+.catalogus-tabel .groep-kop th { text-align: left; font-size: 1rem; background: var(--color-bg, #f4f7f8); }
+.catalogus-tabel .groep-aantal { font-weight: 400; color: var(--color-muted); }
+.kleur-stip { display: inline-block; width: 0.9rem; height: 0.9rem; border-radius: 50%; vertical-align: middle; margin-right: 0.4rem; }
+.catalogus-formulier { padding: 0.75rem 0; }
+.catalogus-formulier textarea { min-height: 4rem; }
+.vervallen-lijst summary { cursor: pointer; font-weight: 600; }
+.vervallen-lijst li { margin: 0.4rem 0; overflow-wrap: anywhere; }
+.jaren-vrijgeven { margin: 0.5rem 0 0; padding-left: 1.2rem; }
+.veld-hint { margin: 0 0 0.25rem; font-size: 0.875rem; color: var(--color-muted); }
+.platform-groep-kop { margin: 1rem 0 0.5rem; }
+.platform-keuze-units { color: var(--color-muted); font-size: 0.875rem; }
+.aanwezigen { white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  .catalogus-tabel .groep-kop th { display: block; }
+  .beheer-acties { flex-wrap: wrap; }
+}

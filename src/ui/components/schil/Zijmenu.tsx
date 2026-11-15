@@ -99,6 +99,8 @@ export function Zijmenu(props: { pathname: string; open: boolean; onSluit: () =>
         <ul aria-labelledby="zijmenu-beheer">
           {ik?.rol === 'beheerder' && <MenuLink href="/beheer" pathname={pathname} onKies={onKies}>Gebruikers</MenuLink>}
           {ik?.rol === 'beheerder' && <MenuLink href="/beheer#nieuwe-meting" pathname={pathname} onKies={onKies}>Nieuwe meting</MenuLink>}
+          <MenuLink href="/beheer/vragenlijst" pathname={pathname} onKies={onKies}>Vragenlijst</MenuLink>
+          <MenuLink href="/beheer/businessunits" pathname={pathname} onKies={onKies}>Businessunits</MenuLink>
           <MenuLink href="/beheer/audit" pathname={pathname} onKies={onKies}>Auditlog</MenuLink>
         </ul>
       </nav>

@@ -210,6 +210,11 @@ typecheck/unittests; het bouwt beide images voor `linux/arm64`, laadt ze op VPS-
 met `docker compose up -d --no-build`, controleert `/api/healthz` over geldige TLS en de
 login-doorverwijzing naar realm `gvprlg`, en rolt terug bij een mislukte controle.
 
+De migratie `beheerbare_vragenlijst` zet de vragenlijst uit `config.ts` in de database en legt
+elk jaar met scores vast. Vóór die deploy: een `pg_dump` van de productiedatabase (apart akkoord);
+de migratie stopt met een melding als een score een onbekende vraag of een onbekend platform heeft.
+Controleer na de deploy dat 2024 en 2025 dezelfde gemiddelden tonen als ervoor.
+
 Secrets staan in `/opt/gvprlg/secrets/` (map chmod 700, root-only; `db_password` chmod 0444,
 `keycloak_client_secret` en `nextauth_secret` eigendom van uid 1001 met chmod 600) — nooit in
 `docker-compose.yml` of een gecommit bestand.
@@ -291,6 +296,34 @@ account **permanent** uitgeschakeld. De gebruiker ziet alleen "Ongeldige authent
 Is het Keycloak-account verwijderd en opnieuw aangemaakt, dan heeft het een nieuw intern id en
 weigert de app het. In de app: `/beheer` → gebruiker → **Keycloak-account ontkoppelen**. Bij de
 volgende login koppelt de app het nieuwe account opnieuw op e-mailadres.
+
+### Vragenlijst en businessunits beheren
+
+Twee pagina's onder Beheer in het zijmenu; iedereen die is ingelogd ziet ze, alleen een
+`beheerder` ziet de knoppen om te wijzigen.
+
+- **Vragenlijst** (`/beheer/vragenlijst`): per as een kopregel met daaronder de vragen (kort
+  label van maximaal 22 tekens, vraagtekst, NDS-thema). Assen en vragen toevoegen, wijzigen,
+  verplaatsen (de volgorde bepaalt de spaken van het spinnenweb), verwijderen en onder
+  *Verwijderde assen en vragen* weer actief maken. Een tekstwijziging houdt dezelfde vraag (de
+  trend loopt door); bij een andere betekenis: de vraag verwijderen en een nieuwe toevoegen.
+- **Businessunits** (`/beheer/businessunits`): per gebruikersplatform een kopregel met daaronder
+  de businessunits. Platformen en businessunits toevoegen, hernoemen, verplaatsen, laten vervallen
+  en weer actief maken. Invullers worden gekoppeld aan een platform (in `/beheer`) en mogen alle
+  businessunits van dat platform in dat meetjaar invullen.
+
+Regels die de app afdwingt (met een Nederlandse melding): minstens 3 actieve vragen; een as met
+actieve vragen of een platform met actieve businessunits kan niet weg; een vraag of businessunit
+kan niet terug onder een verwijderde as of vervallen platform; een nieuwe as of businessunit krijgt
+de volgende vrije kleur (6 voor assen, 8 voor businessunits, nooit hergebruikt). Is het palet op,
+dan is een codewijziging in `src/service/paletten.ts` nodig.
+
+Elk meetjaar volgt de actuele lijst tot de eerste rij van een businessunit wordt opgeslagen (ook
+een concept zonder scores). Vanaf dan ligt de lijst van dat jaar vast: latere wijzigingen gelden
+alleen voor open meetjaren. Bovenaan beide pagina's staat welke jaren open zijn en welke vastliggen.
+Een vastgelegd jaar zonder scores, toelichtingen of aanwezigen kan een beheerder daar weer
+openzetten. Elke wijziging staat in het auditlog (`catalogus_*`, `meting_vrijgegeven`) met oude en
+nieuwe waarde.
 
 ## Dependencies en licenties
 
