@@ -117,7 +117,7 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [businessUnit, unit, magBewerken]
+                required: [businessUnit, unit, magBewerken, alleenLezenReden]
                 properties:
                   businessUnit:
                     oneOf:
@@ -130,6 +130,14 @@ paths:
                       Of de ingelogde gebruiker deze businessunit mag bewerken, volgens dezelfde regel
                       als de schrijfcontrole van PUT (beheerder altijd, invuller alleen gekoppeld aan
                       het platform in dat jaar, lezer nooit). Alleen voor de UI.
+                  alleenLezenReden:
+                    type: [string, 'null']
+                    enum: [rol-lezer, geen-koppeling, null]
+                    description: >
+                      Waarom de businessunit alleen-lezen is, uit dezelfde regel als magBewerken: null
+                      wanneer magBewerken true is, geen-koppeling voor een invuller die in dat jaar niet
+                      aan het platform is gekoppeld, rol-lezer voor een lezer (en voor elke andere rol
+                      zonder schrijfrecht). Alleen voor de UI.
         '401':
           $ref: '#/components/responses/NietIngelogd'
         '403':

@@ -19,7 +19,7 @@ const MENU = { name: 'Gebruikersmenu' };
 const NIET_GEKOPPELD = 'U bent niet gekoppeld aan het platform van deze businessunit voor dit meetjaar.';
 const INGETROKKEN = 'Uw toegang is ingetrokken of nog niet geactiveerd.';
 const NIET_GEKOPPELD_FORMULIER = 'U bent niet gekoppeld aan dit platform; u kunt deze vragenlijst alleen bekijken.';
-const ALLEEN_LEZEN = 'Je hebt alleen leesrechten. Wijzigingen opslaan is niet mogelijk.';
+const ALLEEN_LEZEN = 'U heeft alleen leesrechten; u kunt deze vragenlijst bekijken maar niet wijzigen.';
 
 // Journeys share dev-stack state (one invuller, one fase-B year) and may wait for a TOTP period.
 // Tests in this file run in order in one worker (no fullyParallel); restores happen in finally blocks.

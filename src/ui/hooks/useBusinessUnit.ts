@@ -2,13 +2,21 @@
 
 import { useEffect, useState } from 'react';
 
-import type { UiBusinessUnit, UiBusinessUnitRij, UiVragenlijst } from '@/src/ui/components/_vragenlijstTypen';
+import type { UiAlleenLezenReden, UiBusinessUnit, UiBusinessUnitRij, UiVragenlijst } from '@/src/ui/components/_vragenlijstTypen';
 
 /** Loading state of one business unit of a year with the year's list. */
 export type BusinessUnitStaat =
   | { status: 'laden' }
   | { status: 'fout'; melding: string }
-  | { status: 'ok'; lijst: UiVragenlijst; unit: UiBusinessUnit; rij: UiBusinessUnitRij | null; magBewerken: boolean };
+  | { status: 'ok'; lijst: UiVragenlijst; unit: UiBusinessUnit; rij: UiBusinessUnitRij | null; magBewerken: boolean; alleenLezenReden: UiAlleenLezenReden | null };
+
+type RijAntwoord = { businessUnit: UiBusinessUnitRij | null; unit: UiBusinessUnit; magBewerken: boolean; alleenLezenReden: UiAlleenLezenReden | null };
+
+/** Edit right from the response, read-only (by role) when the server sent no valid values. */
+function bewerkRecht(body: RijAntwoord): { magBewerken: boolean; alleenLezenReden: UiAlleenLezenReden | null } {
+  if (body.magBewerken === true) return { magBewerken: true, alleenLezenReden: null };
+  return { magBewerken: false, alleenLezenReden: body.alleenLezenReden === 'geen-koppeling' ? 'geen-koppeling' : 'rol-lezer' };
+}
 
 async function haal<T>(url: string): Promise<{ ok: true; body: T } | { ok: false; melding: string }> {
   const response = await fetch(url);
@@ -32,14 +40,14 @@ export function useBusinessUnit(jaar: string, businessUnitId: string, versie = 0
     let actief = true;
     setStaat({ status: 'laden' });
     Promise.all([
-      haal<{ businessUnit: UiBusinessUnitRij | null; unit: UiBusinessUnit; magBewerken: boolean }>(`/api/metingen/${jaar}/businessunits/${businessUnitId}`),
+      haal<RijAntwoord>(`/api/metingen/${jaar}/businessunits/${businessUnitId}`),
       haal<{ vragenlijst: UiVragenlijst }>(`/api/metingen/${jaar}/vragenlijst`),
     ])
       .then(([rij, lijst]) => {
         if (!actief) return;
         if (!rij.ok) return setStaat({ status: 'fout', melding: rij.melding });
         if (!lijst.ok) return setStaat({ status: 'fout', melding: lijst.melding });
-        setStaat({ status: 'ok', lijst: lijst.body.vragenlijst, unit: rij.body.unit, rij: rij.body.businessUnit, magBewerken: rij.body.magBewerken === true });
+        setStaat({ status: 'ok', lijst: lijst.body.vragenlijst, unit: rij.body.unit, rij: rij.body.businessUnit, ...bewerkRecht(rij.body) });
       })
       .catch(() => actief && setStaat({ status: 'fout', melding: 'Kon deze businessunit niet laden.' }));
     return () => {

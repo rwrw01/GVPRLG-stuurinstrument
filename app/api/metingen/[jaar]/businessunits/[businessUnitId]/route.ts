@@ -4,24 +4,24 @@ import { weigerBusinessUnitSchrijfrecht } from '@/src/integration/auth/sessie';
 import { problemResponse } from '@/src/integration/problemResponse';
 import { SaveBusinessUnitScoreSchema } from '@/src/integration/schemas';
 import { slaBusinessUnitOp } from '@/src/process/platformWorkflow';
-import { magPlatformBewerken } from '@/src/process/toegang';
+import { platformBewerkRecht } from '@/src/process/toegang';
 
 import { laadContext, type BusinessUnitRouteParams } from './_context';
 
 /**
  * Returns the row of one business unit within a meting for any active user, with whether that
- * user may edit it (the same rule as the write check of PUT).
+ * user may edit it (the same rule as the write check of PUT) and, when not, why.
  * @param _request - Incoming request (unused)
  * @param context - Route params with year and business unit id
- * @returns 200 with the row (null when not filled in yet), the unit and `magBewerken`; 400/401/403/404 problem+json
+ * @returns 200 with the row (null when not filled in yet), the unit, `magBewerken` and `alleenLezenReden`; 400/401/403/404 problem+json
  */
 export async function GET(_request: NextRequest, { params }: BusinessUnitRouteParams) {
   const context = await laadContext(params);
   if (!context.ok) return context.response;
   const { gebruiker, meting, unit } = context;
   const businessUnit = meting.businessUnits[unit.id] ?? null;
-  const magBewerken = await magPlatformBewerken(gebruiker, meting.id, unit.platformId);
-  return NextResponse.json({ businessUnit, unit, magBewerken });
+  const { magBewerken, alleenLezenReden } = await platformBewerkRecht(gebruiker, meting.id, unit.platformId);
+  return NextResponse.json({ businessUnit, unit, magBewerken, alleenLezenReden });
 }
 
 /**

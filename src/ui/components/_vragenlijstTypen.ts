@@ -44,3 +44,6 @@ export interface UiBusinessUnitRij {
   scoresPerAs: Record<string, Record<string, number | null>>;
   toelichtingen: Record<string, string>;
 }
+
+/** Why a business unit is read-only for the user (mirrors `AlleenLezenReden` of the API). */
+export type UiAlleenLezenReden = 'rol-lezer' | 'geen-koppeling';

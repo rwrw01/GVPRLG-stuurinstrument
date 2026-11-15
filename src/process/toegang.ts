@@ -65,6 +65,28 @@ export async function magPlatformBewerken(g: GebruikerRecord, metingId: string, 
   return (await vereisPlatformSchrijfrecht(g, metingId, platformId)).ok;
 }
 
+/** Why a business unit is read-only for the user: by role, or because the filler is not assigned. */
+export type AlleenLezenReden = 'rol-lezer' | 'geen-koppeling';
+
+/**
+ * Whether the user may edit one platform within a meting and, when not, why — by the same rule as
+ * the write check (`vereisPlatformSchrijfrecht`). For the UI only; writes no audit rows.
+ * @param g - Active user
+ * @param metingId - Meting id
+ * @param platformId - Platform id
+ * @returns `magBewerken`, and `alleenLezenReden`: null when editable, `geen-koppeling` for an
+ *   unassigned filler, `rol-lezer` for a reader or any other role that may not write
+ */
+export async function platformBewerkRecht(
+  g: GebruikerRecord,
+  metingId: string,
+  platformId: string,
+): Promise<{ magBewerken: boolean; alleenLezenReden: AlleenLezenReden | null }> {
+  const resultaat = await vereisPlatformSchrijfrecht(g, metingId, platformId);
+  if (resultaat.ok) return { magBewerken: true, alleenLezenReden: null };
+  return { magBewerken: false, alleenLezenReden: resultaat.error.reden === 'geen-koppeling' ? 'geen-koppeling' : 'rol-lezer' };
+}
+
 /**
  * Per business unit whether the user may edit it within a meting (`magPlatformBewerken` per platform).
  * @param g - Active user
