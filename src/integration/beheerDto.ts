@@ -21,7 +21,8 @@ export type BeheerFout =
   | 'niet-gevonden'
   | 'zelfbescherming'
   | 'laatste-beheerder'
-  | 'lezer-koppeling';
+  | 'lezer-koppeling'
+  | 'platform-onbekend';
 
 const FOUTEN: Record<BeheerFout, { status: number; title: string; detail: string }> = {
   'bestaat-al': { status: 409, title: 'Gebruiker bestaat al', detail: 'Er bestaat al een gebruiker met dit e-mailadres.' },
@@ -36,6 +37,11 @@ const FOUTEN: Record<BeheerFout, { status: number; title: string; detail: string
     status: 409,
     title: 'Laatste beheerder',
     detail: 'Er moet minstens één actieve beheerder overblijven.',
+  },
+  'platform-onbekend': {
+    status: 400,
+    title: 'Ongeldige invoer',
+    detail: 'Een gekozen platform doet niet mee in dit meetjaar.',
   },
   'lezer-koppeling': {
     status: 400,

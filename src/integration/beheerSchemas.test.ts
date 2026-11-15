@@ -16,8 +16,10 @@ describe('GebruikerToevoegenSchema', () => {
     expect(result.data?.email).toBe('jan.jansen@test.local');
   });
 
-  it('weigert onbekend platform', () => {
-    expect(GebruikerToevoegenSchema.safeParse({ ...GELDIG, platformIds: ['bestaat-niet'] }).success).toBe(false);
+  it('should check the platform format only and refuse a duplicate; the year list decides existence', () => {
+    expect(GebruikerToevoegenSchema.safeParse({ ...GELDIG, platformIds: ['een-nieuw-platform'] }).success).toBe(true);
+    expect(GebruikerToevoegenSchema.safeParse({ ...GELDIG, platformIds: ['ro', 'ro'] }).success).toBe(false);
+    expect(GebruikerToevoegenSchema.safeParse({ ...GELDIG, platformIds: [''] }).success).toBe(false);
   });
 
   it('accepteert een gebruiker zonder platformen', () => {
@@ -31,8 +33,8 @@ describe('GebruikerToevoegenSchema', () => {
 });
 
 describe('KoppelingenSchema', () => {
-  it('weigert onbekend platform', () => {
-    expect(KoppelingenSchema.safeParse({ jaar: 2027, platformIds: ['ro', 'onbekend'] }).success).toBe(false);
+  it('should refuse a duplicate platform', () => {
+    expect(KoppelingenSchema.safeParse({ jaar: 2027, platformIds: ['ro', 'ro'] }).success).toBe(false);
   });
 });
 

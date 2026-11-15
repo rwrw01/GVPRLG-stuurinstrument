@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: GVPRLG Spinnenweb API
-  version: 1.0.0-fase-b
+  version: 1.1.0-vragenlijst
 security:
   - cookieAuth: []
 paths:
@@ -339,7 +339,7 @@ paths:
                   gebruiker: { $ref: '#/components/schemas/GebruikerMetKoppelingen' }
         '400':
           description: >-
-            Ongeldige invoer, of een lezer met niet-lege platformIds: "Een lezer kan niet aan
+            Ongeldige invoer, een platform dat niet meedoet in dat meetjaar, of een lezer met niet-lege platformIds: "Een lezer kan niet aan
             platformen gekoppeld worden." (problem+json)
           content:
             application/problem+json:
@@ -429,7 +429,7 @@ paths:
                   verwijderd: { type: array, items: { type: string } }
         '400':
           description: >-
-            Ongeldige invoer, of een lezer met niet-lege platformIds: "Een lezer kan niet aan
+            Ongeldige invoer, een platform dat niet meedoet in dat meetjaar, of een lezer met niet-lege platformIds: "Een lezer kan niet aan
             platformen gekoppeld worden." (problem+json)
           content:
             application/problem+json:
@@ -443,6 +443,340 @@ paths:
           content:
             application/problem+json:
               schema: { $ref: '#/components/schemas/Problem' }
+  /api/beheer/catalogus:
+    get:
+      summary: De volledige vragenlijst en businessunits (ook vervallen items) en per meetjaar of het vastligt
+      description: >
+        Voor elke actieve gebruiker; alleen een beheerder kan wijzigen. Assen met hun vragen,
+        platformen met hun businessunits, alles in volgorde. heeftInhoud geeft aan of een vastgelegd
+        jaar al scores, toelichtingen of aanwezigen bevat (dan kan het niet meer worden vrijgegeven).
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Catalogus' }
+        '401':
+          $ref: '#/components/responses/NietIngelogd'
+        '403':
+          $ref: '#/components/responses/GeenToegang'
+  /api/beheer/assen:
+    post:
+      summary: Voeg een as toe; alleen beheerder
+      description: >
+        Krijgt een gegenereerde sleutel, de volgende vrije kleur uit het assenpalet (6 kleuren, een
+        kleur wordt nooit hergebruikt) en de laatste plek. Geaudit als catalogus_toegevoegd.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [naam]
+              properties:
+                naam: { type: string, minLength: 1, maxLength: 100 }
+      responses:
+        '201':
+          description: Toegevoegd
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogusAs' }
+        '400': { $ref: '#/components/responses/CatalogusOngeldig' }
+        '401': { $ref: '#/components/responses/NietIngelogd' }
+        '403': { $ref: '#/components/responses/CatalogusGeenBeheerder' }
+        '409':
+          description: Geen kleur meer vrij (problem+json)
+  /api/beheer/assen/{id}:
+    patch:
+      summary: Hernoem een as, verwijder haar (vervallen) of maak haar weer actief; alleen beheerder
+      description: >
+        Een as met actieve vragen kan niet vervallen (409). Vastgelegde jaren houden hun kopie; open
+        jaren nemen de wijziging direct over. Geaudit als catalogus_gewijzigd met oude en nieuwe waarde.
+      parameters:
+        - $ref: '#/components/parameters/CatalogusId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                naam: { type: string, minLength: 1, maxLength: 100 }
+                vervallen: { type: boolean }
+      responses:
+        '200':
+          description: Gewijzigd
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogusAs' }
+        '400': { $ref: '#/components/responses/CatalogusOngeldig' }
+        '401': { $ref: '#/components/responses/NietIngelogd' }
+        '403': { $ref: '#/components/responses/CatalogusGeenBeheerder' }
+        '404': { $ref: '#/components/responses/CatalogusNietGevonden' }
+        '409': { $ref: '#/components/responses/CatalogusRegel' }
+  /api/beheer/assen/{id}/verplaats:
+    post:
+      summary: Verplaats een actieve as één plek omhoog of omlaag; alleen beheerder
+      parameters:
+        - $ref: '#/components/parameters/CatalogusId'
+      requestBody: { $ref: '#/components/requestBodies/Verplaats' }
+      responses:
+        '200':
+          description: Verplaatst
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogusAs' }
+        '400': { $ref: '#/components/responses/CatalogusOngeldig' }
+        '401': { $ref: '#/components/responses/NietIngelogd' }
+        '403': { $ref: '#/components/responses/CatalogusGeenBeheerder' }
+        '404': { $ref: '#/components/responses/CatalogusNietGevonden' }
+        '409': { $ref: '#/components/responses/CatalogusRegel' }
+  /api/beheer/vragen:
+    post:
+      summary: Voeg een vraag toe aan een actieve as; alleen beheerder
+      description: Begint zonder scores en zonder trend. Geaudit als catalogus_toegevoegd.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [asId, kort, tekst]
+              properties:
+                asId: { type: string }
+                kort: { type: string, minLength: 1, maxLength: 22 }
+                tekst: { type: string, minLength: 1, maxLength: 1000 }
+                nds: { type: [string, 'null'], description: Een NDS-thema uit de vaste lijst in de code }
+      responses:
+        '201':
+          description: Toegevoegd
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogusVraag' }
+        '400': { $ref: '#/components/responses/CatalogusOngeldig' }
+        '401': { $ref: '#/components/responses/NietIngelogd' }
+        '403': { $ref: '#/components/responses/CatalogusGeenBeheerder' }
+        '404': { $ref: '#/components/responses/CatalogusNietGevonden' }
+        '409': { $ref: '#/components/responses/CatalogusRegel' }
+  /api/beheer/vragen/{id}:
+    patch:
+      summary: Wijzig een vraag, verplaats haar naar een andere as, verwijder of herstel haar; alleen beheerder
+      description: >
+        Een wijziging van tekst, kort label of NDS-thema houdt dezelfde vraag (de trend loopt door).
+        Geweigerd (409) als er daarna minder dan 3 actieve vragen zijn, of bij herstellen of
+        verplaatsen naar een verwijderde as. Geaudit als catalogus_gewijzigd.
+      parameters:
+        - $ref: '#/components/parameters/CatalogusId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                asId: { type: string }
+                kort: { type: string, minLength: 1, maxLength: 22 }
+                tekst: { type: string, minLength: 1, maxLength: 1000 }
+                nds: { type: [string, 'null'] }
+                vervallen: { type: boolean }
+      responses:
+        '200':
+          description: Gewijzigd
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogusVraag' }
+        '400': { $ref: '#/components/responses/CatalogusOngeldig' }
+        '401': { $ref: '#/components/responses/NietIngelogd' }
+        '403': { $ref: '#/components/responses/CatalogusGeenBeheerder' }
+        '404': { $ref: '#/components/responses/CatalogusNietGevonden' }
+        '409': { $ref: '#/components/responses/CatalogusRegel' }
+  /api/beheer/vragen/{id}/verplaats:
+    post:
+      summary: Verplaats een actieve vraag één plek binnen haar as; alleen beheerder
+      parameters:
+        - $ref: '#/components/parameters/CatalogusId'
+      requestBody: { $ref: '#/components/requestBodies/Verplaats' }
+      responses:
+        '200':
+          description: Verplaatst
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogusVraag' }
+        '400': { $ref: '#/components/responses/CatalogusOngeldig' }
+        '401': { $ref: '#/components/responses/NietIngelogd' }
+        '403': { $ref: '#/components/responses/CatalogusGeenBeheerder' }
+        '404': { $ref: '#/components/responses/CatalogusNietGevonden' }
+        '409': { $ref: '#/components/responses/CatalogusRegel' }
+  /api/beheer/platformen:
+    post:
+      summary: Voeg een gebruikersplatform toe; alleen beheerder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [naam]
+              properties:
+                naam: { type: string, minLength: 1, maxLength: 100 }
+      responses:
+        '201':
+          description: Toegevoegd
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogusPlatform' }
+        '400': { $ref: '#/components/responses/CatalogusOngeldig' }
+        '401': { $ref: '#/components/responses/NietIngelogd' }
+        '403': { $ref: '#/components/responses/CatalogusGeenBeheerder' }
+  /api/beheer/platformen/{id}:
+    patch:
+      summary: Hernoem een platform, laat het vervallen of maak het weer actief; alleen beheerder
+      description: >
+        Een platform met actieve businessunits kan niet vervallen (409). Bij vervallen vervallen de
+        koppelingen van invullers aan dat platform in open meetjaren mee (geaudit als
+        koppeling_verwijderd); vastgelegde jaren blijven ongewijzigd.
+      parameters:
+        - $ref: '#/components/parameters/CatalogusId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                naam: { type: string, minLength: 1, maxLength: 100 }
+                vervallen: { type: boolean }
+      responses:
+        '200':
+          description: Gewijzigd
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogusPlatform' }
+        '400': { $ref: '#/components/responses/CatalogusOngeldig' }
+        '401': { $ref: '#/components/responses/NietIngelogd' }
+        '403': { $ref: '#/components/responses/CatalogusGeenBeheerder' }
+        '404': { $ref: '#/components/responses/CatalogusNietGevonden' }
+        '409': { $ref: '#/components/responses/CatalogusRegel' }
+  /api/beheer/platformen/{id}/verplaats:
+    post:
+      summary: Verplaats een actief platform één plek omhoog of omlaag; alleen beheerder
+      parameters:
+        - $ref: '#/components/parameters/CatalogusId'
+      requestBody: { $ref: '#/components/requestBodies/Verplaats' }
+      responses:
+        '200':
+          description: Verplaatst
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogusPlatform' }
+        '400': { $ref: '#/components/responses/CatalogusOngeldig' }
+        '401': { $ref: '#/components/responses/NietIngelogd' }
+        '403': { $ref: '#/components/responses/CatalogusGeenBeheerder' }
+        '404': { $ref: '#/components/responses/CatalogusNietGevonden' }
+        '409': { $ref: '#/components/responses/CatalogusRegel' }
+  /api/beheer/businessunits:
+    post:
+      summary: Voeg een businessunit toe aan een actief platform; alleen beheerder
+      description: >
+        Begint kaal (geen scores, geen trend). Krijgt de volgende vrije kleur uit het palet van 8;
+        daarboven 409. Geaudit als catalogus_toegevoegd.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [platformId, naam]
+              properties:
+                platformId: { type: string }
+                naam: { type: string, minLength: 1, maxLength: 100 }
+      responses:
+        '201':
+          description: Toegevoegd
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogusBusinessUnit' }
+        '400': { $ref: '#/components/responses/CatalogusOngeldig' }
+        '401': { $ref: '#/components/responses/NietIngelogd' }
+        '403': { $ref: '#/components/responses/CatalogusGeenBeheerder' }
+        '404': { $ref: '#/components/responses/CatalogusNietGevonden' }
+        '409': { $ref: '#/components/responses/CatalogusRegel' }
+  /api/beheer/businessunits/{id}:
+    patch:
+      summary: Hernoem een businessunit, verplaats haar naar een ander platform, laat haar vervallen of herstel haar; alleen beheerder
+      description: >
+        Een vervallen businessunit doet niet mee in open meetjaren en blijft zichtbaar in de jaren
+        waarin ze vastlag. Herstellen of verplaatsen naar een vervallen platform: 409.
+      parameters:
+        - $ref: '#/components/parameters/CatalogusId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              minProperties: 1
+              properties:
+                platformId: { type: string }
+                naam: { type: string, minLength: 1, maxLength: 100 }
+                vervallen: { type: boolean }
+      responses:
+        '200':
+          description: Gewijzigd
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogusBusinessUnit' }
+        '400': { $ref: '#/components/responses/CatalogusOngeldig' }
+        '401': { $ref: '#/components/responses/NietIngelogd' }
+        '403': { $ref: '#/components/responses/CatalogusGeenBeheerder' }
+        '404': { $ref: '#/components/responses/CatalogusNietGevonden' }
+        '409': { $ref: '#/components/responses/CatalogusRegel' }
+  /api/beheer/businessunits/{id}/verplaats:
+    post:
+      summary: Verplaats een actieve businessunit één plek binnen haar platform; alleen beheerder
+      parameters:
+        - $ref: '#/components/parameters/CatalogusId'
+      requestBody: { $ref: '#/components/requestBodies/Verplaats' }
+      responses:
+        '200':
+          description: Verplaatst
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogusBusinessUnit' }
+        '400': { $ref: '#/components/responses/CatalogusOngeldig' }
+        '401': { $ref: '#/components/responses/NietIngelogd' }
+        '403': { $ref: '#/components/responses/CatalogusGeenBeheerder' }
+        '404': { $ref: '#/components/responses/CatalogusNietGevonden' }
+        '409': { $ref: '#/components/responses/CatalogusRegel' }
+  /api/beheer/metingen/{jaar}/vrijgeven:
+    post:
+      summary: Zet de vragenlijst van een vastgelegd meetjaar weer open; alleen beheerder
+      description: >
+        Alleen zolang het jaar geen enkele score, toelichting, algemene toelichting of aanwezigen
+        bevat. De lege rijen en de kopie vervallen; het jaar volgt weer de actuele lijst. Geaudit als
+        meting_vrijgegeven.
+      parameters:
+        - $ref: '#/components/parameters/Jaar'
+      responses:
+        '200':
+          description: Vrijgegeven
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok]
+                properties:
+                  ok: { type: boolean, const: true }
+        '400': { $ref: '#/components/responses/CatalogusOngeldig' }
+        '401': { $ref: '#/components/responses/NietIngelogd' }
+        '403': { $ref: '#/components/responses/CatalogusGeenBeheerder' }
+        '404':
+          description: Meting niet gevonden (problem+json)
+        '409':
+          description: Het jaar ligt niet vast, of bevat al scores, toelichtingen of aanwezigen (problem+json)
 components:
   securitySchemes:
     cookieAuth:
@@ -469,7 +803,40 @@ components:
       in: path
       required: true
       schema: { type: string, maxLength: 64 }
+  requestBodies:
+    Verplaats:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [richting]
+            properties:
+              richting: { type: string, enum: [omhoog, omlaag] }
   responses:
+    CatalogusOngeldig:
+      description: Ongeldige invoer met een Nederlandse melding, bijvoorbeeld "Het korte label mag maximaal 22 tekens zijn." (problem+json)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    CatalogusGeenBeheerder:
+      description: Geen beheerder (problem+json); geaudit als toegang_geweigerd met vereist=beheerder
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    CatalogusNietGevonden:
+      description: Onbekende as, vraag, platform of businessunit (problem+json)
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    CatalogusRegel:
+      description: >
+        Een regel staat de wijziging niet toe (problem+json, Nederlandse melding): minder dan 3 actieve
+        vragen, as met actieve vragen, platform met actieve businessunits, herstellen of verplaatsen
+        onder een vervallen as of platform, geen kleur meer vrij, al bovenaan of onderaan.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
     NietIngelogd:
       description: Geen geldige sessie (problem+json)
       content:
@@ -695,6 +1062,75 @@ components:
           oneOf:
             - $ref: '#/components/schemas/AsScore'
             - type: 'null'
+    CatalogusAs:
+      type: object
+      required: [id, naam, kleur, volgorde, vervallen]
+      properties:
+        id: { type: string }
+        naam: { type: string }
+        kleur: { type: string }
+        volgorde: { type: integer }
+        vervallen: { type: boolean }
+    CatalogusVraag:
+      type: object
+      required: [id, asId, kort, tekst, nds, volgorde, vervallen]
+      properties:
+        id: { type: string }
+        asId: { type: string }
+        kort: { type: string, maxLength: 22 }
+        tekst: { type: string }
+        nds: { type: [string, 'null'] }
+        volgorde: { type: integer, description: Volgorde binnen de as }
+        vervallen: { type: boolean }
+    CatalogusPlatform:
+      type: object
+      required: [id, naam, volgorde, vervallen]
+      properties:
+        id: { type: string }
+        naam: { type: string }
+        volgorde: { type: integer }
+        vervallen: { type: boolean }
+    CatalogusBusinessUnit:
+      type: object
+      required: [id, platformId, naam, kleur, volgorde, vervallen]
+      properties:
+        id: { type: string }
+        platformId: { type: string }
+        naam: { type: string }
+        kleur: { type: string }
+        volgorde: { type: integer, description: Volgorde binnen het platform }
+        vervallen: { type: boolean }
+    Catalogus:
+      type: object
+      required: [assen, platformen, metingen]
+      properties:
+        assen:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/CatalogusAs'
+              - type: object
+                required: [vragen]
+                properties:
+                  vragen: { type: array, items: { $ref: '#/components/schemas/CatalogusVraag' } }
+        platformen:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/CatalogusPlatform'
+              - type: object
+                required: [businessUnits]
+                properties:
+                  businessUnits: { type: array, items: { $ref: '#/components/schemas/CatalogusBusinessUnit' } }
+        metingen:
+          type: array
+          items:
+            type: object
+            required: [jaar, vastgelegd, heeftInhoud]
+            properties:
+              jaar: { type: integer }
+              vastgelegd: { type: boolean }
+              heeftInhoud: { type: boolean }
     Problem:
       type: object
       description: RFC 9457 problem details

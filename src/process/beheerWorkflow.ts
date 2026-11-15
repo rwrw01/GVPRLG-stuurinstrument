@@ -7,7 +7,8 @@ import {
   type GebruikerRecord,
   type Rol,
 } from '../data/gebruikersRepository';
-import { getMetingByJaar } from '../data/metingenRepository';
+import { leesVragenlijst } from '../data/vragenlijstRepository';
+import { metingIdVanJaar } from '../data/catalogusRepository';
 import { fail, ok, type Result } from '../service/result';
 
 export { wijzigGebruikerDoorBeheerder, type GebruikerWijzigingActie, type WijzigFout } from './_gebruikerWijzigen';
@@ -24,6 +25,14 @@ export interface GebruikerInvoer {
 export interface KoppelingWijziging {
   toegevoegd: string[];
   verwijderd: string[];
+}
+
+// The meting of the year and whether every platform takes part in that year's list.
+async function metingVoorKoppelingen(jaar: number, platformIds: string[]): Promise<Result<string, 'meting-onbekend' | 'platform-onbekend'>> {
+  const [metingId, lijst] = await Promise.all([metingIdVanJaar(jaar), leesVragenlijst(jaar)]);
+  if (!metingId || !lijst) return fail('meting-onbekend');
+  const meedoend = new Set(lijst.platformen.map((p) => p.id));
+  return platformIds.every((id) => meedoend.has(id)) ? ok(metingId) : fail('platform-onbekend');
 }
 
 async function auditKoppelingen(
@@ -53,16 +62,17 @@ async function auditKoppelingen(
  * first login binds it by e-mail. Audited as `gebruiker_toegevoegd` plus one row per platform.
  * @param actor - The acting administrator
  * @param invoer - E-mail (normalised), name, role, year and platform ids (may be empty)
- * @returns The created user, or `lezer-koppeling` (a lezer with platforms) / `bestaat-al` / `meting-onbekend`
+ * @returns The created user, or `lezer-koppeling` (a lezer with platforms) / `bestaat-al` / `meting-onbekend` /
+ *   `platform-onbekend` (a platform that does not take part in that year)
  */
 export async function voegGebruikerToe(
   actor: GebruikerRecord,
   invoer: GebruikerInvoer,
-): Promise<Result<GebruikerRecord, 'lezer-koppeling' | 'bestaat-al' | 'meting-onbekend'>> {
+): Promise<Result<GebruikerRecord, 'lezer-koppeling' | 'bestaat-al' | 'meting-onbekend' | 'platform-onbekend'>> {
   if (invoer.rol === 'lezer' && invoer.platformIds.length > 0) return fail('lezer-koppeling');
   if (await vindGebruikerOpEmail(invoer.email)) return fail('bestaat-al');
-  const meting = await getMetingByJaar(invoer.jaar);
-  if (!meting) return fail('meting-onbekend');
+  const meting = await metingVoorKoppelingen(invoer.jaar, invoer.platformIds);
+  if (!meting.ok) return meting;
 
   const gebruiker = await maakGebruiker({ email: invoer.email, naam: invoer.naam, rol: invoer.rol });
   await schrijfAudit({
@@ -72,7 +82,7 @@ export async function voegGebruikerToe(
     doelId: gebruiker.id,
     detail: `email=${gebruiker.email};rol=${gebruiker.rol}`,
   });
-  const wijziging = await zetKoppelingen(gebruiker.id, meting.id, invoer.platformIds);
+  const wijziging = await zetKoppelingen(gebruiker.id, meting.data, invoer.platformIds);
   if (!wijziging.ok) return fail('lezer-koppeling');
   await auditKoppelingen(actor, gebruiker, invoer.jaar, wijziging);
   return ok(gebruiker);
@@ -84,23 +94,23 @@ export async function voegGebruikerToe(
  * @param doelId - Id of the user whose assignments change
  * @param jaar - Measurement year
  * @param platformIds - Desired platform ids for that year
- * @returns The added and removed platform ids, or `niet-gevonden` / `lezer-koppeling` / `meting-onbekend`
+ * @returns The added and removed platform ids, or `niet-gevonden` / `lezer-koppeling` / `meting-onbekend` / `platform-onbekend`
  */
 export async function zetKoppelingenDoorBeheerder(
   actor: GebruikerRecord,
   doelId: string,
   jaar: number,
   platformIds: string[],
-): Promise<Result<KoppelingWijziging, 'niet-gevonden' | 'lezer-koppeling' | 'meting-onbekend'>> {
+): Promise<Result<KoppelingWijziging, 'niet-gevonden' | 'lezer-koppeling' | 'meting-onbekend' | 'platform-onbekend'>> {
   const doel = await vindGebruikerOpId(doelId);
   if (!doel) return fail('niet-gevonden');
   if (doel.rol === 'lezer' && platformIds.length > 0) return fail('lezer-koppeling');
-  const meting = await getMetingByJaar(jaar);
-  if (!meting) return fail('meting-onbekend');
+  const meting = await metingVoorKoppelingen(jaar, platformIds);
+  if (!meting.ok) return meting;
 
   // The role is checked again under a row lock inside zetKoppelingen: a concurrent change to
   // lezer cannot slip in between the check above and the write.
-  const resultaat = await zetKoppelingen(doel.id, meting.id, platformIds);
+  const resultaat = await zetKoppelingen(doel.id, meting.data, platformIds);
   if (!resultaat.ok) return fail('lezer-koppeling');
   const wijziging = { toegevoegd: resultaat.toegevoegd, verwijderd: resultaat.verwijderd };
   await auditKoppelingen(actor, doel, jaar, wijziging);

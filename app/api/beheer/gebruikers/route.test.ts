@@ -100,11 +100,13 @@ describe('POST /api/beheer/gebruikers', () => {
     expect(response.status).toBe(404);
   });
 
-  it('400 bij ongeldige invoer', async () => {
+  it('400 bij een platform dat niet meedoet in het meetjaar', async () => {
+    await createMeting(2027);
     const response = await POST(postRequest({ ...NIEUW, platformIds: ['onbekend'] }));
 
     expect(response.status).toBe(400);
-    expect((await response.json()).title).toBe('Ongeldige invoer');
+    expect(await response.json()).toMatchObject({ title: 'Ongeldige invoer', detail: 'Een gekozen platform doet niet mee in dit meetjaar.' });
+    expect(await prisma.gebruiker.count({ where: { email: NIEUW.email.toLowerCase() } })).toBe(0);
   });
 
   it('should answer 400 for a lezer with platformIds', async () => {

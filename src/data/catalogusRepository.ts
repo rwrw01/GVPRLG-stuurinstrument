@@ -52,11 +52,11 @@ export async function inCatalogusTransactie<T>(werk: (tx: Tx) => Promise<T>): Pr
 
 /**
  * Reads every row of one list, removed rows included, in their order.
- * @param tx - Transaction client (or the shared client for reads)
  * @param soort - Which list
+ * @param tx - Transaction client (default: the shared client)
  * @returns the rows ordered by `volgorde`
  */
-export async function leesRijen(tx: Tx | typeof prisma, soort: CatalogusSoort): Promise<CatalogusRij[]> {
+export async function leesRijen(soort: CatalogusSoort, tx: Tx | typeof prisma = prisma): Promise<CatalogusRij[]> {
   const orderBy = { volgorde: 'asc' } as const;
   switch (soort) {
     case 'as':
@@ -113,6 +113,15 @@ export async function wijzigRij(tx: Tx, soort: CatalogusSoort, id: string, v: Ca
     case 'businessunit':
       return naarRij.businessunit(await tx.businessUnit.update({ where: { id }, data: { ...basis, naam: v.naam, platformId: v.ouderId ?? undefined } }));
   }
+}
+
+/**
+ * The id of the meting of a year.
+ * @param jaar - Measurement year
+ * @returns the id, or null when the year does not exist
+ */
+export async function metingIdVanJaar(jaar: number): Promise<string | null> {
+  return (await prisma.meting.findUnique({ where: { jaar }, select: { id: true } }))?.id ?? null;
 }
 
 /**
