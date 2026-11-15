@@ -4,16 +4,16 @@
 
 **Goal:** Maak de Fase A-backend containerizeerbaar en deploybaar op VPS-001, zonder GitHub
 Actions/CI-CD (bewust besluit, zie spec §7) en zonder dat dit plan zelf iets live zet op
-VPS-001 of in de `sovereign-stack`-repo pusht. Het plan levert: health-endpoints, een
+VPS-001 of in de infra-repo pusht. Het plan levert: health-endpoints, een
 production-Dockerfile, een gehardende `docker-compose.yml` (in de GVPRLG-repo zelf), lokaal
 bewezen werkend via `docker compose build && docker compose up`, plus een kant-en-klare
-(niet-gepushte) diff voor de ene benodigde wijziging in `sovereign-stack`.
+(niet-gepushte) diff voor de ene benodigde wijziging in de infra-repo.
 
 **Architecture:** Multi-stage Dockerfile (Node 22 Alpine, gepind op digest) met Next.js
 `output: "standalone"`. Prisma 7 + `@prisma/adapter-pg` heeft geen native query-engine-binary
 nodig (pure JS via `pg`), dus geen speciale Prisma-binary-handling in Docker. Twee services
 naast Postgres: een one-shot `migrate`-service (`prisma migrate deploy`) en de persistente
-`app`-service — zelfde patroon als SiteGuardian op VPS-001. Secrets via Docker
+`app`-service — zelfde patroon als de andere custom apps op VPS-001. Secrets via Docker
 `secrets:`-bestandsreferenties, nooit plaintext.
 
 **Tech Stack:** Node 22-alpine (digest-gepind), Next.js 16 `output: standalone`, Docker Compose
@@ -26,8 +26,8 @@ scope van dit plan).
 
 ## Global Constraints
 
-- Dit plan pusht **niets** naar `sovereign-stack` en zet **niets** live op VPS-001 — de laatste
-  taak bereidt de sovereign-stack-wijziging voor als diff, zonder te committen/pushen.
+- Dit plan pusht **niets** naar de infra-repo en zet **niets** live op VPS-001 — de laatste
+  taak bereidt de infra-repo-wijziging voor als diff, zonder te committen/pushen.
 - Geen GitHub Actions, geen GitHub-repo-secrets, geen `ghcr.io` (spec §7, expliciet besluit).
 - Elke `FROM`-regel gebruikt een gepinde digest, geen los versienummer (globale regel
   02-portability.md).
@@ -50,7 +50,7 @@ scope van dit plan).
    pas diep in de stack.
 4. **Health-endpoint liegt** — `/api/healthz` mag nooit 200 geven als het proces niet echt
    gezond is, en `/api/readyz` moet een echte DB-call doen, niet alleen "ja" terugsturen.
-5. **`net-fe-gvprlg` bestaat lokaal niet** — de lokale verificatie van de production-compose
+5. **`proxy` bestaat lokaal niet** — de lokale verificatie van de production-compose
    moet dit netwerk zelf aanmaken/opruimen, anders faalt de hele compose-stack meteen bij het
    testen, nog voordat er iets inhoudelijks gecontroleerd is.
 
@@ -58,9 +58,9 @@ scope van dit plan).
 
 ## Buiten scope van dit plan (expliciet)
 
-- Daadwerkelijk pushen naar `sovereign-stack` of committen van de Traefik-netwerkwijziging —
+- Daadwerkelijk pushen naar de infra-repo of committen van de Traefik-netwerkwijziging —
   Taak 5 bereidt dit alleen voor.
-- SSH naar VPS-001, `/opt/gvprlg/` aanmaken, `docker network create net-fe-gvprlg` op de
+- SSH naar VPS-001, `<compose-map>/` aanmaken, `docker network create proxy` op de
   server, de eerste echte deploy — vraagt expliciete go vooraf (spec §9 punt 6).
 - GitHub Pages uitfaseren — pas zodra de echte app bevestigd live draait (spec §7).
 - Backup-integratie (3-2-1) — losse, kleinere taak, niet blokkerend voor een eerste deploy.
@@ -387,7 +387,7 @@ services:
     container_name: gvprlg-app
     networks:
       - gvprlg-internal
-      - net-fe-gvprlg
+      - proxy
     environment:
       DB_HOST: postgres
       DB_PORT: "5432"
@@ -434,12 +434,12 @@ services:
         condition: service_completed_successfully
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=net-fe-gvprlg"
+      - "traefik.docker.network=proxy"
       - "traefik.http.routers.gvprlg.rule=Host(`spinnenweb.gvprlg.nl`)"
       - "traefik.http.routers.gvprlg.entrypoints=websecure"
       - "traefik.http.routers.gvprlg.tls.certresolver=letsencrypt"
       - "traefik.http.services.gvprlg.loadbalancer.server.port=8080"
-      - "traefik.http.routers.gvprlg.middlewares=crowdsec@file,rate-limit@file"
+      - "traefik.http.routers.gvprlg.middlewares=<proxy-middlewares>"
 
   postgres:
     image: postgres:16-alpine@sha256:b7587f3cb74f4f4b2a4f9d67f052edbf95eb93f4fec7c5ada3792546caaf7383
@@ -473,7 +473,7 @@ services:
 networks:
   gvprlg-internal:
     internal: true
-  net-fe-gvprlg:
+  proxy:
     external: true
 
 volumes:
@@ -500,10 +500,10 @@ Run:
 ```bash
 mkdir -p secrets
 echo -n "lokaal-test-wachtwoord" > secrets/db_password
-docker network create net-fe-gvprlg
+docker network create proxy
 ```
 Expected: netwerk aangemaakt (of een duidelijke "already exists"-melding als een vorige run
-niet opgeruimd is — dan eerst `docker network rm net-fe-gvprlg`).
+niet opgeruimd is — dan eerst `docker network rm proxy`).
 
 - [ ] **Step 7: Bouw en start de volledige production-stack lokaal**
 
@@ -552,7 +552,7 @@ een eventuele hertest.
 Run:
 ```bash
 docker compose down -v
-docker network rm net-fe-gvprlg
+docker network rm proxy
 rm -rf secrets
 ```
 Expected: alles opgeruimd, geen resterende containers/netwerken/volumes van deze test.
@@ -565,19 +565,19 @@ Voeg aan het bestaande `README.md` (na de "Ontwikkelen (backend)"-sectie) toe:
 ## Deployment (VPS-001, handmatig — bewust geen CI/CD)
 
 Zie `docs/superpowers/specs/2026-10-09-backend-migratie-vps001-design.md` §7 voor de
-motivatie. Op VPS-001, via de bestaande Tailscale-SSH-sessie:
+motivatie. Op VPS-001, via de bestaande SSH-sessie over het beheer-VPN:
 
 ```bash
-ssh ralph@100.64.0.2
-cd /opt/gvprlg
+ssh <beheerder>@<VPN-adres VPS>
+cd <compose-map>
 git pull
 docker compose build
 docker compose up -d
 ```
 
-Secrets staan in `/opt/gvprlg/secrets/` (chmod 700, root-only) — nooit in `docker-compose.yml`
+Secrets staan in `<compose-map>/secrets/` (chmod 700, root-only) — nooit in `docker-compose.yml`
 of een gecommit bestand. Eerste keer: maak `secrets/db_password` aan met een sterk,
-gegenereerd wachtwoord (`openssl rand -base64 32 > /opt/gvprlg/secrets/db_password`) vóór de
+gegenereerd wachtwoord (`openssl rand -base64 32 > <compose-map>/secrets/db_password`) vóór de
 eerste `docker compose up -d`.
 ```
 
@@ -618,16 +618,16 @@ git commit -m "chore: ignore local production secrets directory"
 
 ---
 
-### Task 5: Voorbereiden (niet pushen) van de sovereign-stack-wijziging
+### Task 5: Voorbereiden (niet pushen) van de infra-repo-wijziging
 
 **Files:** geen wijziging in de GVPRLG-repo. Dit maakt een diff klaar voor een **andere**,
-niet-aangeraakte repo (`C:\dev\sovereign-stack`), zonder daar te committen of te pushen.
+niet-aangeraakte repo (lokale kopie van de infra-repo), zonder daar te committen of te pushen.
 
 **Interfaces:** geen — dit is voorbereidend, geen code-interface.
 
-- [ ] **Step 1: Lees de huidige `stacks/traefik/docker-compose.yml` in sovereign-stack**
+- [ ] **Step 1: Lees de huidige compose van de reverse proxy in de infra-repo**
 
-Run (alleen lezen): `cat "C:/dev/sovereign-stack/stacks/traefik/docker-compose.yml"`
+Run (alleen lezen): `cat "<infra-repo>/<compose van de reverse proxy>"`
 Bevestig de exacte huidige `networks:`-lijst van de `traefik`-service en de
 netwerkdefinities onderaan, vóórdat je iets voorstelt — niet uit het geheugen aannemen dat
 dit nog identiek is aan wat eerder in deze sessie gelezen is.
@@ -635,16 +635,16 @@ dit nog identiek is aan wat eerder in deze sessie gelezen is.
 - [ ] **Step 2: Stel de wijziging voor als een diff, zonder te committen**
 
 Toon de beheerder een `diff`-achtige weergave: in de `traefik`-service se `networks:`-lijst
-`net-fe-gvprlg` toevoegen, en onderaan bij de netwerkdefinities:
+`proxy` toevoegen, en onderaan bij de netwerkdefinities:
 ```yaml
-  net-fe-gvprlg:
+  proxy:
     external: true
 ```
-Dit is de **enige** wijziging in sovereign-stack die dit plan voorstelt (spec §7).
+Dit is de **enige** wijziging in de infra-repo die dit plan voorstelt (spec §7).
 
 - [ ] **Step 3: Wacht op expliciete goedkeuring**
 
-Dit is de grens van dit plan. Niet zelf committen of pushen naar `sovereign-stack` — dat
+Dit is de grens van dit plan. Niet zelf committen of pushen naar de infra-repo — dat
 raakt een andere, levende infrastructuur-repo en vraagt de beheerder's expliciete "ja, zet
 dit door" ná het zien van de exacte diff (CFT-werkwijze regel 2). Rapporteer de voorgestelde
 diff en stop.

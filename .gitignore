@@ -33,3 +33,6 @@ prisma/dev.db
 
 # Internal documentation (not for the public repository)
 /intern/
+
+# Environment-specific deploy values (production host, paths); template: deploy.local.env.example
+/scripts/deploy.local.env

@@ -22,10 +22,10 @@ met `docs/superpowers/specs/2026-10-09-backend-migratie-vps001-design.md` (datam
 ## Global Constraints
 
 - **Geen direct intercontainerverkeer:** de gvprlg-app hangt in productie alleen aan
-  `net-fe-gvprlg` en `gvprlg-internal`. Nooit aan `net-auth`, `kc-internal`, `mox_mox-internal`.
-  App → Keycloak uitsluitend via de publieke issuer-URL `https://auth.athide.nl/realms/gvprlg`.
+  het proxy-netwerk en `gvprlg-internal`. Nooit aan de netwerken van Keycloak of mox.
+  App → Keycloak uitsluitend via de publieke issuer-URL `https://<keycloak-host>/realms/gvprlg`.
 - **Geen Keycloak Admin-API in de app** en geen wijziging aan de VPN-only-afscherming van `/admin`.
-- Realms `athide` en `master` worden niet gewijzigd.
+- De bestaande realms (beheer-realm en `master`) worden niet gewijzigd.
 - Sessiecookie: HttpOnly, Secure (productie), `SameSite=Strict`, `maxAge` 8 uur (28800 s).
   Nooit `localStorage` voor sessies.
 - Keycloak-realm: SSO session idle 30 min, max 8 uur; TOTP SHA1, 6 cijfers, 30 s, look-ahead 1;
@@ -42,7 +42,7 @@ met `docs/superpowers/specs/2026-10-09-backend-migratie-vps001-design.md` (datam
   export eist: pages, layouts); JSDoc met `@param`/`@returns` op nieuwe functies.
 - Commits: Engels, **geen `Co-Authored-By`-regels**.
 - Werk op VPS-001 (Taak 12) alleen na expliciet akkoord per stap; huidige staat tonen, oud→nieuw,
-  rollback beschreven. Geen echte voorzitters uitnodigen zolang de afzender `@publicvibes.nl` is.
+  rollback beschreven. Geen echte voorzitters uitnodigen zolang de afzender op het testmaildomein staat.
 
 ## Review Focus
 
@@ -499,12 +499,12 @@ Vastgelegd:
   (`tsx` als exact gepinde devDependency, MIT — Node's eigen type-stripping kan de bestaande
   extensieloze relatieve imports in `src/` niet resolven). Weigert te draaien als
   `NODE_ENV=production`. Voeg `tsx` toe aan de licentietabel.
-- Compose `app`: env `KEYCLOAK_ISSUER=https://auth.athide.nl/realms/gvprlg`,
+- Compose `app`: env `KEYCLOAK_ISSUER=https://<keycloak-host>/realms/gvprlg`,
   `KEYCLOAK_CLIENT_ID=gvprlg-app`, `KEYCLOAK_CLIENT_SECRET_FILE=/run/secrets/keycloak_client_secret`,
   `NEXTAUTH_URL=https://spinnenweb.gvprlg.nl`, `NEXTAUTH_SECRET_FILE=/run/secrets/nextauth_secret`,
   `BOOTSTRAP_BEHEERDER_EMAIL` (waarde uit `.env` op de server, niet gecommit); secrets
   `keycloak_client_secret`, `nextauth_secret` als `file: ./secrets/...`. **Netwerken ongewijzigd**
-  (`gvprlg-internal`, `net-fe-gvprlg`) — controleer dat er geen netwerk bijkomt.
+  (`gvprlg-internal`, proxy-netwerk) — controleer dat er geen netwerk bijkomt.
 - README: (a) runbook "Nieuwe voorzitter" (Keycloak-console: gebruiker, e-mail, email verified,
   required action Configure OTP, Send email; daarna `/beheer`), "Authenticator kwijt",
   "Toegang intrekken" (app + Keycloak uitschakelen), "Keycloak-account opnieuw aangemaakt"
@@ -563,19 +563,19 @@ Journeys (testnamen vastgelegd):
 
 **Alleen met expliciet akkoord van de gebruiker per stap.** Elke stap: huidige staat tonen →
 voorstel oud→nieuw → akkoord → uitvoeren → verifiëren. SSH via
-`C:/Windows/System32/OpenSSH/ssh.exe ralph@100.64.0.2` (Windows-agent-sleutel).
-Geen wijzigingen aan realms `athide`/`master`, Traefik, firewall of netwerken.
+`C:/Windows/System32/OpenSSH/ssh.exe <beheerder>@<VPN-adres VPS>` (Windows-agent-sleutel).
+Geen wijzigingen aan de bestaande realms, de reverse proxy, firewall of netwerken.
 
 - [ ] **Step 1 (alleen-lezen):** vaststellen en rapporteren: publieke mox-hostnaam voor SMTPS en
-  zijn certificaatnaam; of `keycloak` uitgaand `<mox-host>:465` kan bereiken
-  (`docker exec keycloak bash -c 'timeout 5 bash -c "</dev/tcp/<host>/465"'`); bestaat realm
+  zijn certificaatnaam; of de Keycloak-container uitgaand `<mox-host>:465` kan bereiken
+  (`docker exec <keycloak-container> bash -c 'timeout 5 bash -c "</dev/tcp/<host>/465"'`); bestaat realm
   `gvprlg` nog niet (query uit de eerdere sessie). Blokkeert iets: stoppen en melden.
-- [ ] **Step 2 (akkoord):** mox-account `gvprlg-noreply@publicvibes.nl` aanmaken volgens het
-  bestaande accountpatroon; wachtwoord in `/opt/gvprlg/secrets/` (root, 0600). Rollback: account
+- [ ] **Step 2 (akkoord):** mox-account `gvprlg-noreply` op het testmaildomein aanmaken volgens het
+  bestaande accountpatroon; wachtwoord in `<compose-map>/secrets/` (root, 0600). Rollback: account
   verwijderen.
 - [ ] **Step 3 (akkoord):** realm importeren uit `deploy/keycloak/realm-gvprlg.json` (via Admin
-  Console over VPN of `kc.sh import`); SMTP-user/-password/from instellen; client-secret laten
-  genereren en in `/opt/gvprlg/secrets/keycloak_client_secret` zetten. Rollback: realm `gvprlg`
+  Console over het beheer-VPN of `kc.sh import`); SMTP-user/-password/from instellen; client-secret laten
+  genereren en in `<compose-map>/secrets/keycloak_client_secret` zetten. Rollback: realm `gvprlg`
   verwijderen.
 - [ ] **Step 4 (akkoord):** testgebruiker met een eigen mailbox van de gebruiker (M365 én Gmail)
   aanmaken, "Send email" (Configure OTP). Verifiëren: mail komt aan, headers `spf=pass`,

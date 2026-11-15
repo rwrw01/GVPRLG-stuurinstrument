@@ -19,3 +19,4 @@ secrets-dev
 *.jpeg
 docker-compose.yml
 scripts/deploy.sh
+scripts/deploy.local.env

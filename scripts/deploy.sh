@@ -1,22 +1,36 @@
 #!/usr/bin/env bash
-# Deploy gvprlg (Spinnenweb) to VPS-001: build locally, pipe the images over SSH, restart.
+# Deploy gvprlg (Spinnenweb) to the VPS: build locally, pipe the images over SSH, restart.
 # The VPS never receives source code and never builds. Operational config on the VPS
-# (/opt/gvprlg/docker-compose.yml, entrypoint scripts, .env, secrets/) is never touched here.
+# ($COMPOSE_DIR/docker-compose.yml, entrypoint scripts, .env, secrets/) is never touched here.
+# Environment-specific values (SSH target, compose dir, issuer) live in the untracked
+# scripts/deploy.local.env; copy scripts/deploy.local.env.example and fill it in.
 # Usage (Git Bash on the dev laptop): bash scripts/deploy.sh
 set -euo pipefail
 export MSYS_NO_PATHCONV=1   # Git Bash must not rewrite /mnt/c/... paths passed to wsl
 
 APP_NAME="gvprlg-app"
 MIGRATE_NAME="gvprlg-migrate"
-VPS_HOST="ralph@100.64.0.2"                         # Tailscale
-COMPOSE_DIR="/opt/gvprlg"                           # operational dir on VPS
-DOMAIN="spinnenweb.gvprlg.nl"
-KEYCLOAK_ISSUER="https://auth.athide.nl/realms/gvprlg"
-VPS_PLATFORM="arm64"                                # VPS-001 is aarch64 (uname -m)
 SSH="${SSH_BIN:-C:/Windows/System32/OpenSSH/ssh.exe} -o BatchMode=yes"   # Windows agent key
 DOCKER="${DOCKER_BIN:-wsl -e docker}"               # Docker Engine runs inside WSL
 
 cd "$(git rev-parse --show-toplevel)"
+
+LOCAL_ENV=scripts/deploy.local.env
+if [ ! -f "$LOCAL_ENV" ]; then
+  echo "$LOCAL_ENV ontbreekt: kopieer scripts/deploy.local.env.example naar $LOCAL_ENV" >&2
+  echo "en vul de waarden van de productieomgeving in (dit bestand wordt nooit gecommit)." >&2
+  exit 1
+fi
+# shellcheck source=/dev/null
+source "$LOCAL_ENV"
+DOMAIN="${DOMAIN:-spinnenweb.gvprlg.nl}"
+VPS_PLATFORM="${VPS_PLATFORM:-arm64}"               # CPU architecture of the VPS (uname -m)
+for var in VPS_HOST COMPOSE_DIR KEYCLOAK_ISSUER; do
+  if [ -z "${!var:-}" ]; then
+    echo "$var ontbreekt of is leeg in $LOCAL_ENV (zie scripts/deploy.local.env.example)." >&2
+    exit 1
+  fi
+done
 SHA=$(git rev-parse --short HEAD)
 
 echo "== 1. Gate =="

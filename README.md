@@ -76,7 +76,7 @@ Opnieuw draaien is veilig.
 `npm run test:unit` draait tegen de database in `.env.test` (een apart `_test`-gesufixte
 database op dezelfde lokale Postgres) — nooit tegen de interactieve dev-database in `.env`.
 
-## Deployment (VPS-001, handmatig — bewust geen CI/CD)
+## Deployment (VPS, handmatig — bewust geen CI/CD)
 
 Zie `docs/superpowers/specs/2026-10-09-backend-migratie-vps001-design.md` §7 voor de
 motivatie.
@@ -84,30 +84,31 @@ motivatie.
 ### Eerste keer (koude deploy)
 
 De VPS krijgt nooit broncode en bouwt nooit zelf: images worden lokaal voor `linux/arm64`
-gebouwd en via SSH doorgezet (`scripts/deploy.sh`). In `/opt/gvprlg` staat alleen
-operationele configuratie: `docker-compose.yml`, de twee entrypoint-scripts, `.env` en
-`secrets/`. Eenmalig, met `sudo` op VPS-001:
+gebouwd en via SSH doorgezet (`scripts/deploy.sh`). In de compose-map op de VPS (hieronder
+`<compose-map>`) staat alleen operationele configuratie: `docker-compose.yml`, de twee
+entrypoint-scripts, `.env` en `secrets/`. De `docker-compose.yml` in deze repo is een sjabloon:
+omgevingsspecifieke waarden komen uit `.env`. Eenmalig, met `sudo` op de VPS:
 
 ```bash
 # 1. Map (0755) en operationele bestanden (root, 0644) uit de repo plaatsen
 #    docker-compose.yml, app-entrypoint.sh, migrate-entrypoint.sh  (LF-regeleinden)
 
-# 2. .env (root, 0600) met het adres van de eerste beheerder
-printf 'BOOTSTRAP_BEHEERDER_EMAIL=<adres>
-' > /opt/gvprlg/.env
+# 2. .env (root, 0600) met het adres van de eerste beheerder en de omgevingswaarden
+printf '%s
+' 'BOOTSTRAP_BEHEERDER_EMAIL=<adres>'   'KEYCLOAK_ISSUER=https://<keycloak-host>/realms/gvprlg'   'PROXY_NETWORK=<proxy-netwerk>'   'PROXY_MIDDLEWARES=<proxy-middlewares, kommagescheiden>' > <compose-map>/.env
 
 # 3. Database-secret VÓÓR de eerste start (anders maakt Docker er een map van)
 openssl rand -hex 32 | tr -d '
-' > /opt/gvprlg/secrets/db_password
-chmod 0444 /opt/gvprlg/secrets/db_password
+' > <compose-map>/secrets/db_password
+chmod 0444 <compose-map>/secrets/db_password
 
-# 4. Spoke-netwerk met expliciet subnet (de standaard-adrespools van Docker zijn op;
-#    gvprlg-internal krijgt 172.30.15.0/28 via de compose)
-docker network create --driver bridge --subnet 172.30.14.0/28 net-fe-gvprlg
+# 4. Netwerk dat de app met de reverse proxy deelt (geef een expliciet subnet mee als de
+#    standaard-adrespools van Docker op zijn; dan ook een subnet voor gvprlg-internal)
+docker network create --driver bridge --subnet <vrij subnet> <proxy-netwerk>
 
-# 5. Traefik koppelen zonder herstart, en blijvend in /opt/traefik/docker-compose.yml
-#    (service-netwerk + top-level `external: true`, eerst een .bak maken)
-docker network connect net-fe-gvprlg traefik
+# 5. Reverse proxy (Traefik) koppelen zonder herstart, en blijvend in de compose van de
+#    proxy (service-netwerk + top-level `external: true`, eerst een .bak maken)
+docker network connect <proxy-netwerk> <reverse-proxy-container>
 
 # 6. Keycloak-realm, app-secrets en login-thema: zie "Eerste installatie authenticatie"
 ```
@@ -120,30 +121,31 @@ bash scripts/deploy.sh
 
 ### Eerste installatie authenticatie (Keycloak, eenmalig)
 
-Keycloak draait in de sovereign-stack op `https://auth.athide.nl`. De app bereikt Keycloak
+Keycloak draait als aparte installatie op `https://<keycloak-host>`. De app bereikt Keycloak
 uitsluitend via die publieke URL — er komt géén extra Docker-netwerk, `extra_hosts` of link
-naar Keycloak of mox bij; de `app`-service houdt precies `gvprlg-internal` en `net-fe-gvprlg`.
+naar Keycloak of de mailserver bij; de `app`-service houdt precies `gvprlg-internal` en het
+proxy-netwerk.
 
 1. **Realm importeren** uit `deploy/keycloak/realm-gvprlg.json` (configuratie zonder secrets).
    Eén van beide:
-   - Admin Console (via VPN): realm-selector → *Create realm* → bestand uploaden; of bij een
+   - Admin Console (via het beheer-VPN): realm-selector → *Create realm* → bestand uploaden; of bij een
      bestaande lege realm `gvprlg`: *Realm settings* → *Action* (rechtsboven) →
      *Partial import*.
    - CLI in de Keycloak-container: `kc.sh import --file <pad>/realm-gvprlg.json` (bij gestopte
      Keycloak, met dezelfde database-instellingen als de draaiende server).
 
-   Het bestand zet het realm-attribuut `frontendUrl` op `https://auth.athide.nl`. Laat dat
+   Het bestand zet het realm-attribuut `frontendUrl` op de publieke Keycloak-URL. Laat dat
    staan: zonder dat attribuut neemt Keycloak schema en poort over van het verzoek, en
-   uitnodigingsmails die vanuit de Admin Console op `:444` of via `kcadm` op
+   uitnodigingsmails die vanuit de Admin Console op de beheerpoort of via `kcadm` op
    `http://localhost:8080` worden verstuurd, krijgen dan onbruikbare links. Controleer na de
-   import dat `https://auth.athide.nl/realms/gvprlg/.well-known/openid-configuration` als
-   `issuer` precies `https://auth.athide.nl/realms/gvprlg` geeft.
+   import dat `https://<keycloak-host>/realms/gvprlg/.well-known/openid-configuration` als
+   `issuer` precies de waarde van `KEYCLOAK_ISSUER` geeft.
 
    Het realm-bestand zet ook `loginTheme=gvprlg`. Kopieer vóór de import
-   `deploy/keycloak/themes/gvprlg` naar `/opt/keycloak/themes/gvprlg` (root, mappen 0755,
-   bestanden 0644). Keycloak ziet een nieuwe themamap pas na een herstart
-   (`sudo docker compose restart keycloak` in `/opt/keycloak`, circa 20 s onderbreking voor
-   alle realms). Controleer met `kcadm.sh get serverinfo` (volledige uitvoer; `--fields themes`
+   `deploy/keycloak/themes/gvprlg` naar de themamap van de Keycloak-installatie
+   (`themes/gvprlg`; root, mappen 0755, bestanden 0644). Keycloak ziet een nieuwe themamap pas
+   na een herstart (`sudo docker compose restart keycloak` in de compose-map van Keycloak,
+   circa 20 s onderbreking voor alle realms). Controleer met `kcadm.sh get serverinfo` (volledige uitvoer; `--fields themes`
    geeft een lege lijst).
 2. **SMTP instellen** in realm `gvprlg` → *Realm settings* → *Email*: host (mox, poort 465,
    SSL aan), gebruikersnaam, wachtwoord en from-adres volgens stap 1 van de mailroute
@@ -152,7 +154,7 @@ naar Keycloak of mox bij; de `app`-service houdt precies `gvprlg-internal` en `n
    de waarde en zet hem in het secret-bestand zonder hem in de shell-history te zetten:
 
    ```bash
-   cd /opt/gvprlg
+   cd <compose-map>
    sudo sh -c 'umask 077; cat > secrets/keycloak_client_secret'   # plakken, Enter, Ctrl-D
    ```
 4. **NextAuth-secret** aanmaken:
@@ -186,9 +188,10 @@ naar Keycloak of mox bij; de `app`-service houdt precies `gvprlg-internal` en `n
    gebruiker" (stappen 1–2). Zolang er geen actieve beheerder is, maakt de app bij de eerste
    login met dit adres de beheerder aan.
 
-De overige app-configuratie (`KEYCLOAK_ISSUER=https://auth.athide.nl/realms/gvprlg`,
-`KEYCLOAK_CLIENT_ID=gvprlg-app`, `NEXTAUTH_URL=https://spinnenweb.gvprlg.nl` en de
-`*_FILE`-paden onder `/run/secrets/`) staat vast in `docker-compose.yml`. Ontbreekt een
+`KEYCLOAK_ISSUER`, `PROXY_NETWORK` en `PROXY_MIDDLEWARES` komen uit dezelfde `.env` (zie
+"Eerste keer"). De overige app-configuratie (`KEYCLOAK_CLIENT_ID=gvprlg-app`,
+`NEXTAUTH_URL=https://spinnenweb.gvprlg.nl` en de `*_FILE`-paden onder `/run/secrets/`) staat
+vast in `docker-compose.yml`. Ontbreekt een
 secret-bestand, is het leeg of niet leesbaar voor uid 1001, dan stopt de container direct bij
 het starten (`app-entrypoint.sh`, met een `FATAL`-melding in `docker compose logs app`).
 
@@ -199,14 +202,16 @@ ook expliciet afwijzen met een duidelijke foutmelding in plaats van stil te fale
 
 ### Volgende keren (update)
 
-Commit en push naar `main`, dan vanaf de ontwikkellaptop:
+Commit en push naar `main`, dan vanaf de ontwikkellaptop. Het script leest de
+omgevingsspecifieke waarden (SSH-doel, compose-map, issuer) uit het niet-gecommitte
+`scripts/deploy.local.env`; kopieer eenmalig `scripts/deploy.local.env.example` en vul het in.
 
 ```bash
 bash scripts/deploy.sh
 ```
 
 Het script stopt bij niet-gecommitte wijzigingen, een niet-gepushte commit of rode
-typecheck/unittests; het bouwt beide images voor `linux/arm64`, laadt ze op VPS-001, start ze
+typecheck/unittests; het bouwt beide images voor `linux/arm64`, laadt ze op de VPS, start ze
 met `docker compose up -d --no-build`, controleert `/api/healthz` over geldige TLS en de
 login-doorverwijzing naar realm `gvprlg`, en rolt terug bij een mislukte controle.
 
@@ -215,19 +220,19 @@ elk jaar met scores vast. Vóór die deploy: een `pg_dump` van de productiedatab
 de migratie stopt met een melding als een score een onbekende vraag of een onbekend platform heeft.
 Controleer na de deploy dat 2024 en 2025 dezelfde gemiddelden tonen als ervoor.
 
-Secrets staan in `/opt/gvprlg/secrets/` (map chmod 700, root-only; `db_password` chmod 0444,
+Secrets staan in `<compose-map>/secrets/` (map chmod 700, root-only; `db_password` chmod 0444,
 `keycloak_client_secret` en `nextauth_secret` eigendom van uid 1001 met chmod 600) — nooit in
 `docker-compose.yml` of een gecommit bestand.
 
 ## Mail (uitnodigingen vanuit Keycloak)
 
-Keycloak verstuurt de uitnodigings- en herstelmails via mox. Dit gebeurt in twee stappen; het
+Keycloak verstuurt de uitnodigings- en herstelmails via de eigen mailserver (mox). Dit gebeurt in twee stappen; het
 omzetten is alleen configuratie in realm `gvprlg` (SMTP-account en from-adres), geen code.
 
-**Stap 1 — testroute.** Afzender `gvprlg-noreply@publicvibes.nl` op het bestaande mox-domein
-`publicvibes.nl` (SPF/DKIM al ingericht). Hiermee test je de uitnodigingsflow op de
+**Stap 1 — testroute.** Een noreply-afzender op een bestaand maildomein van de mailserver
+(SPF/DKIM al ingericht). Hiermee test je de uitnodigingsflow op de
 productie-Keycloak met eigen testmailboxen. **In deze stap worden geen echte gebruikers
-uitgenodigd** — een afzender op `publicvibes.nl` oogt voor gemeenten als phishing.
+uitgenodigd** — een afzender op een ander domein oogt voor gemeenten als phishing.
 
 **Stap 2 — definitieve route** `noreply@spinnenweb.gvprlg.nl`, zodra de DNS-records er zijn:
 
@@ -236,7 +241,7 @@ uitgenodigd** — een afzender op `publicvibes.nl` oogt voor gemeenten als phish
 2. DNS (handmatig, bij de registrar van `gvprlg.nl`):
 
    ```text
-   spinnenweb.gvprlg.nl                       TXT "v=spf1 ip4:89.167.107.143 -all"
+   spinnenweb.gvprlg.nl                       TXT "<SPF-record met het publieke IP van de mailserver>"
    <selector>._domainkey.spinnenweb.gvprlg.nl TXT "<door mox gegenereerd>"
    _dmarc.spinnenweb.gvprlg.nl                TXT "v=DMARC1; p=quarantine; rua=mailto:<TBD>"
    ```
@@ -253,7 +258,7 @@ Gmail-adres en controleer in de headers: `spf=pass`, `dkim=pass` en `dmarc=pass`
 ## Runbooks (beheer)
 
 Rollen en platformtoegang staan in de app (`/beheer`); Keycloak levert alleen de identiteit
-(e-mail + TOTP). Keycloak-console: `https://auth.athide.nl/admin/` (via VPN), realm `gvprlg`.
+(e-mail + TOTP). Keycloak-console: alleen bereikbaar via het beheer-VPN, realm `gvprlg`.
 
 ### Nieuwe gebruiker
 

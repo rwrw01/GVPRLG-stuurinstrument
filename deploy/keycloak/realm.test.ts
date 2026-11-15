@@ -86,8 +86,9 @@ describe('realm-gvprlg', () => {
   });
   it('zet de publieke basis-URL vast zodat actielinks en issuer niet van het verzoek afhangen', () => {
     // Without frontendUrl Keycloak copies scheme and port from the request
-    // (kcadm on http://localhost:8080 produced http://auth.athide.nl:8080 links on VPS-001).
-    expect(prod.attributes?.frontendUrl).toBe('https://auth.athide.nl');
+    // (kcadm on http://localhost:8080 produced http://<keycloak-host>:8080 links in production).
+    // Public https origin: no port, no path.
+    expect(prod.attributes?.frontendUrl).toMatch(/^https:\/\/[a-z0-9.-]+$/);
   });
   it('dev wijkt alleen af op users, redirectUris, webOrigins, secret, smtpServer, frontendUrl', () => {
     expect(zonderToegestaneVerschillen(dev)).toEqual(zonderToegestaneVerschillen(prod));

@@ -18,7 +18,7 @@ betrouwbaar, met verifieerbare identiteit, en blijvend (niet per-browser) kunnen
 - Elke wijziging is te herleiden tot een geverifieerde identiteit en een tijdstip
   (verantwoordingsmodel + audit-trail).
 - Nieuwe platformvoorzitters kunnen risicoloos oefenen zonder de echte cijfers te raken.
-- De data staat op VPS-001 (sovereign stack), geen externe cloud-afhankelijkheid voor opslag of
+- De data staat op VPS-001 (eigen beheerde server), geen externe cloud-afhankelijkheid voor opslag of
   identiteit.
 
 **Buiten scope van dit document:** de inhoud van de vragenlijst zelf (assen, vragen, schaal) —
@@ -77,18 +77,18 @@ proberen vóór zijn echte platform.
 > is historisch.
 
 - Nieuwe, losstaande Keycloak-realm `gvprlg` op de bestaande Keycloak-instance van VPS-001 —
-  geen vermenging met de admin-realm `athide`.
-- Uitnodigen (beheerder, via Keycloak Admin Console, VPN-only): gebruiker aanmaken met verplichte
+  geen vermenging met de bestaande beheer-realm.
+- Uitnodigen (beheerder, via Keycloak Admin Console, alleen via het beheer-VPN): gebruiker aanmaken met verplichte
   actie `CONFIGURE_TOTP`, uitnodigingsmail laten versturen door Keycloak.
 - **Open/te valideren:** Keycloak-SMTP is nergens gedocumenteerd als ingericht. Voorstel: Keycloak
-  SMTP-instellingen laten verlopen via Resend (API-key is al aanwezig in de stack voor
-  SiteGuardian) — geen nieuwe e-mailprovider. Dit moet eerst bevestigd/ingericht worden op
+  SMTP-instellingen laten verlopen via de al in de stack aanwezige e-mailprovider — geen nieuwe
+  e-mailprovider. Dit moet eerst bevestigd/ingericht worden op
   VPS-001 voordat de uitnodigingsflow werkt; niet aangenomen dat dit al werkt.
 - Inloggen: aangepaste, wachtwoordloze browser-flow in realm `gvprlg` (gebruikersnaam/e-mail →
   OTP-formulier, geen wachtwoordstap). Bekend Keycloak-patroon, vraagt eigen flow-configuratie.
 - Authenticator kwijt: beheerder verwijdert de OTP-credential in Keycloak en triggert opnieuw de
   `CONFIGURE_TOTP`-mail (gedocumenteerde runbook-stap, zelfde stijl als de bestaande
-  "Keycloak-gebruiker aanmaken"-procedure in de sovereign-stack admin-guide).
+  "Keycloak-gebruiker aanmaken"-procedure in de admin-guide van de infra-repo).
 - De GVPRLG-app zelf gebruikt NextAuth met een Keycloak-OIDC-provider voor sessiebeheer
   (HttpOnly/Secure/SameSite=Strict cookie, nooit localStorage voor de sessie — in lijn met de
   globale security-regels).
@@ -108,9 +108,9 @@ Volledige rewrite als TypeScript-app (de huidige `js/`-map is pure JavaScript zo
 `tsconfig.json`, geen build-stap. Omdat dit een greenfield-rewrite is, bouwen we conform de
 projectstandaard: TypeScript strict, geen `any`).
 
-- **Framework:** Next.js (TypeScript), zelfde keuze als SiteGuardian/Git-Guardian op VPS-001 —
+- **Framework:** Next.js (TypeScript), zelfde keuze als andere custom apps op VPS-001 —
   consistent met bestaande operationele kennis en CI/CD-patroon.
-- **ORM:** Prisma + PostgreSQL (zelfde combinatie als SiteGuardian op deze VPS).
+- **ORM:** Prisma + PostgreSQL (zelfde combinatie als andere apps op deze VPS).
 - **Common Ground 5-laags-indeling:**
   - `src/ui/` — formulier, resultaten, dashboard (React, poort van de huidige renderlogica in `app.js`)
   - `src/process/` — workflow (meting starten, uitnodigen, rolcontrole, validatieregels)
@@ -123,66 +123,64 @@ projectstandaard: TypeScript strict, geen `any`).
 
 ## 7. Deployment (bewust zonder GitHub Actions/CI-CD)
 
-Volgt qua compose-structuur het bestaande patroon voor custom apps op VPS-001 (zoals
-SiteGuardian), maar **expliciet niet** het bestaande CI/CD-automatiseringspatroon (GitHub
-Actions → `ghcr.io` → Tailscale/SSH) dat `uren`/SiteGuardian/Git-Guardian gebruiken.
+Volgt qua compose-structuur het bestaande patroon voor custom apps op VPS-001, maar
+**expliciet niet** het bestaande CI/CD-automatiseringspatroon (GitHub Actions → `ghcr.io` →
+VPN/SSH) dat andere apps op de VPS gebruiken.
 
-**Besluit en motivatie:** dat patroon vereist 4 GitHub-repo-secrets (`TAILSCALE_AUTHKEY`,
-`VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`) — in feite het VPN-toetredingsbewijs en de SSH-sleutel
+**Besluit en motivatie:** dat patroon vereist 4 GitHub-repo-secrets (een VPN-sleutel, host,
+gebruiker en SSH-sleutel) — in feite het VPN-toetredingsbewijs en de SSH-sleutel
 voor de volledige VPS-001, niet alleen voor de gvprlg-app. Een supply-chain-incident in een van
-de gebruikte third-party GitHub Actions (`docker/build-push-action`, `tailscale/github-action`,
-`appleboy/ssh-action`) zou daarmee potentieel toegang geven tot de hele server (Keycloak, Wazuh,
-de rest), niet alleen tot gvprlg. Dat staat haaks op het zero-trust/assume-breach-uitgangspunt
+de gebruikte third-party GitHub Actions (build-, VPN- en SSH-actions) zou daarmee potentieel toegang geven tot de hele server (Keycloak,
+monitoring, de rest), niet alleen tot gvprlg. Dat staat haaks op het zero-trust/assume-breach-uitgangspunt
 van de rest van de stack. Besluit: GVPRLG deployt **handmatig**, getriggerd door de beheerder
-via de bestaande, al-vertrouwde Tailscale-SSH-sessie — geen GitHub-secrets, geen `ghcr.io`,
+via de bestaande, al-vertrouwde SSH-sessie over het beheer-VPN — geen GitHub-secrets, geen `ghcr.io`,
 geen third-party Actions in het pad:
 
 ```bash
-ssh ralph@100.64.0.2
-cd /opt/gvprlg && git pull && docker compose build && docker compose up -d
+ssh <beheerder>@<VPN-adres VPS>
+cd <compose-map> && git pull && docker compose build && docker compose up -d
 ```
 
 - Dockerfile (multi-stage, Alpine, non-root, HEALTHCHECK) bouwt native op VPS-001 zelf (ARM64)
   — geen cross-compile/QEMU nodig, dus ook geen `ghcr.io`-tussenstap vereist.
-- **Compose-locatie (bewust afwijkend van SiteGuardian/bridge):** `docker-compose.yml` leeft
-  in de GVPRLG-repo zelf, naast de broncode — niet in `stacks/gvprlg/` in sovereign-stack.
-  Andere custom-apps bewaren hun compose-bestand wél in sovereign-stack, maar die pullen een
+- **Compose-locatie (bewust afwijkend van andere custom apps):** `docker-compose.yml` leeft
+  in de GVPRLG-repo zelf, naast de broncode — niet in de infra-repo.
+  Andere custom-apps bewaren hun compose-bestand wél in de infra-repo, maar die pullen een
   kant-en-klaar `ghcr.io`-image; gvprlg bouwt lokaal uit eigen broncode (`build: context: .`),
-  dus moet zelfstandig te clonen/bouwen zijn. `/opt/gvprlg/` op VPS-001 is simpelweg een
-  git-clone van de GVPRLG-repo — geen afhankelijkheid van sovereign-stack's eigen
+  dus moet zelfstandig te clonen/bouwen zijn. De compose-map op VPS-001 is simpelweg een
+  git-clone van de GVPRLG-repo — geen afhankelijkheid van het eigen
   directory-sync-mechanisme.
-- Hardening in die compose, zelfde als SiteGuardian: `read_only`, `cap_drop: ALL`,
+- Hardening in die compose, zelfde als de andere custom apps: `read_only`, `cap_drop: ALL`,
   `no-new-privileges`, memory/pids-limits, `restart: on-failure:5`, Traefik-labels met
-  `crowdsec@file`+`rate-limit@file`-middlewares. Secrets (database-wachtwoord, eventuele
-  toekomstige API-keys) volgen de bestaande sovereign-stack-conventie:
-  `/opt/gvprlg/secrets/` (chmod 700, root-only), nooit als plaintext-waarde in
+  de proxy-middlewares voor detectie en rate limiting. Secrets (database-wachtwoord, eventuele
+  toekomstige API-keys) volgen de bestaande conventie van de stack:
+  `<compose-map>/secrets/` (chmod 700, root-only), nooit als plaintext-waarde in
   `docker-compose.yml` of een gecommit `.env`-bestand — uitsluitend file-references, zoals de
   rest van de stack. De lokale dev-only `devpassword` uit fase A (`docker-compose.dev.yml`,
   nooit op VPS-001 gedraaid) wordt hier niet hergebruikt.
-- **De enige wijziging in sovereign-stack zelf:** `net-fe-gvprlg` toevoegen aan de
-  netwerklijst van `stacks/traefik/docker-compose.yml` (zodat Traefik's container het nieuwe,
-  los aangemaakte `net-fe-gvprlg`-netwerk kan bereiken) — geen `stacks/gvprlg/`-map in
-  sovereign-stack.
-- Geen GitHub Actions-workflow, geen GitHub-repo-secrets, geen `deploy-gvprlg.yml` in
-  sovereign-stack. Toekomstige updates: beheerder logt in, `git pull`, herbouwt, herstart —
-  zelfde, bewust handmatige stap als andere admin-taken in `docs/admin-guide.md`.
+- **De enige wijziging in de infra-repo zelf:** het proxy-netwerk van gvprlg toevoegen aan de
+  netwerklijst van de compose van de reverse proxy (zodat de proxycontainer het nieuwe, los
+  aangemaakte netwerk kan bereiken) — geen gvprlg-map in de infra-repo.
+- Geen GitHub Actions-workflow, geen GitHub-repo-secrets, geen deploy-workflow in
+  de infra-repo. Toekomstige updates: beheerder logt in, `git pull`, herbouwt, herstart —
+  zelfde, bewust handmatige stap als andere admin-taken in de admin-guide van de infra-repo.
 - **Open/te verifiëren vóór de eerste live deploy (niet aannemen):** de exacte werking van het
-  bestaande `/opt/scripts/deploy.sh` (gebruikt door andere stacks, leeft alleen op de server)
+  bestaande deployscript op de server (gebruikt door andere stacks, leeft alleen op de server)
   is hier niet van toepassing — gvprlg gebruikt het hierboven beschreven eigen, eenvoudiger
-  pad. Wel moet vóór de eerste deploy via SSH bevestigd worden dat `/opt/gvprlg/` nog niet
-  bestaat en dat `docker network create net-fe-gvprlg` niet botst met een bestaand netwerk
+  pad. Wel moet vóór de eerste deploy via SSH bevestigd worden dat de compose-map nog niet
+  bestaat en dat het aanmaken van het proxy-netwerk niet botst met een bestaand netwerk
   (geen vooraf gereserveerd subnet-schema nodig — Docker wijst dat automatisch toe, bevestigd
-  in `docs/deployment-plan.md`).
-- **Domein: `spinnenweb.gvprlg.nl`** (vervangt de eerdere aanname `gvprlg.publicvibes.nl`).
-  Geverifieerd in `stacks/traefik/traefik.yml`: de Let's Encrypt-resolver gebruikt een
+  in het deploymentplan van de infra-repo).
+- **Domein: `spinnenweb.gvprlg.nl`** (vervangt een eerdere aanname op een ander domein).
+  Geverifieerd in de proxyconfiguratie: de Let's Encrypt-resolver gebruikt een
   **HTTP-01-challenge** (`httpChallenge: entryPoint: web`), geen DNS-01 met een aan specifieke
   zones gebonden provider. ACME is dus domeinonafhankelijk — er is geen allowlist en geen
   per-zone API-koppeling nodig. Benodigd om dit domein live te krijgen:
-  1. Een A-record `spinnenweb.gvprlg.nl` → `89.167.107.143` (publiek IP van VPS-001, uitsluitend
-     voor inbound HTTP/HTTPS en de Hetzner Cloud API — nooit voor SSH).
-  2. In `stacks/gvprlg/docker-compose.yml` het label
+  1. Een A-record `spinnenweb.gvprlg.nl` → `<publiek IP VPS>` (uitsluitend voor inbound
+     HTTP/HTTPS — nooit voor SSH).
+  2. In de compose het label
      `traefik.http.routers.gvprlg.rule=Host(\`spinnenweb.gvprlg.nl\`)` met
-     `tls.certresolver=letsencrypt` — zelfde patroon als SiteGuardian.
+     `tls.certresolver=letsencrypt` — zelfde patroon als de andere custom apps.
   3. Geen firewall- of resolver-wijziging nodig; Traefik vraagt automatisch een nieuw
      certificaat aan zodra de eerste HTTPS-request voor dit domein binnenkomt.
 - **GitHub Pages komt te vervallen.** De huidige statische demo
@@ -209,23 +207,23 @@ cd /opt/gvprlg && git pull && docker compose build && docker compose up -d
 ## 9. Open punten (expliciet, niet ingevuld op aanname)
 
 1. Keycloak-SMTP: status onbekend, moet gevalideerd worden. **Eerste taak van fase B:** via SSH
-   (Tailscale) naar VPS-001, Keycloak Admin Console → Realm Settings → Email controleren voor de
-   `athide`-realm. Zo niet ingericht: Resend-SMTP-instellingen toevoegen (API-key is al aanwezig
-   in de stack) en toepassen op de nieuwe `gvprlg`-realm. Pas hierna kan de uitnodigingsflow
+   (beheer-VPN) naar VPS-001, Keycloak Admin Console → Realm Settings → Email controleren voor de
+   bestaande beheer-realm. Zo niet ingericht: SMTP-instellingen van de bestaande e-mailprovider
+   toevoegen en toepassen op de nieuwe `gvprlg`-realm. Pas hierna kan de uitnodigingsflow
    gebouwd en getest worden — dit is een harde afhankelijkheid vóór de rest van fase B.
 2. ~~Subdomeinnaam~~ — **opgelost:** `spinnenweb.gvprlg.nl`, ACME werkt domeinonafhankelijk via
    HTTP-01 (zie §7).
-3. **DNS `gvprlg.nl`: apart beheerd**, andere registrar/account dan `athide.nl`/`publicvibes.nl`.
-   Het A-record (`spinnenweb.gvprlg.nl` → `89.167.107.143`) moet dus los van de
-   sovereign-stack-tooling gezet worden, bij de registrar/DNS-provider van `gvprlg.nl` zelf.
-   Opgenomen als losse, handmatige stap in fase D (geen Hetzner-DNS-automatisering van
-   toepassing).
+3. **DNS `gvprlg.nl`: apart beheerd**, andere registrar/account dan de overige domeinen van de beheerder.
+   Het A-record (`spinnenweb.gvprlg.nl` → `<publiek IP VPS>`) moet dus los van de
+   infra-tooling gezet worden, bij de registrar/DNS-provider van `gvprlg.nl` zelf.
+   Opgenomen als losse, handmatige stap in fase D (geen DNS-automatisering van de
+   hostingprovider van toepassing).
 4. ~~Lot van de GitHub Pages-demo~~ — **opgelost:** komt te vervallen, uitfaseren in fase D
    (zie §7).
 5. ~~Mag een invuller meer dan één platform tegelijk toegewezen krijgen?~~ — **opgelost:** ja,
    bevestigd (zie §2).
-6. **Vóór de eerste live deploy te verifiëren via SSH (niet aannemen):** bestaat `/opt/gvprlg/`
-   al niet, en botst `docker network create net-fe-gvprlg` niet met een bestaand netwerk op
+6. **Vóór de eerste live deploy te verifiëren via SSH (niet aannemen):** bestaat de compose-map
+   al niet, en botst het aanmaken van het proxy-netwerk niet met een bestaand netwerk op
    VPS-001 (zie §7).
 
 ## 10. Fasering (voorstel voor het implementatieplan)
@@ -237,7 +235,7 @@ cd /opt/gvprlg && git pull && docker compose build && docker compose up -d
    uitnodigingsproces, audit-trail.
 3. **Fase C — Oefenomgeving:** sandbox-meting + reset-functie voor de beheerder.
 4. **Fase D — Deployment:** Dockerfile, handmatige SSH-gebaseerde deploy (bewust geen
-   CI/CD-workflows, zie §7), `stacks/gvprlg/` in sovereign-stack, DNS/Traefik,
+   CI/CD-workflows, zie §7), geen gvprlg-map in de infra-repo, DNS/reverse proxy,
    backup-integratie.
 
 Elke fase is apart testbaar en oplevert op zichzelf waarde (fase A is al bruikbaar voor interne

@@ -1,6 +1,7 @@
 services:
   migrate:
-    # On VPS-001 the image is built locally and piped in (scripts/deploy.sh); never built there.
+    # In production the image is built locally and piped in (scripts/deploy.sh); never built there.
+    # This file is a template: environment-specific values come from the .env next to it.
     image: ${MIGRATE_IMAGE:-gvprlg-migrate:latest}
     build:
       context: .
@@ -33,7 +34,7 @@ services:
     container_name: gvprlg-app
     networks:
       - gvprlg-internal
-      - net-fe-gvprlg
+      - proxy
     environment:
       DB_HOST: postgres
       DB_PORT: "5432"
@@ -43,7 +44,7 @@ services:
       HOSTNAME: "0.0.0.0"
       NODE_ENV: "production"
       # Keycloak is reached via its public URL only (no extra network, no extra_hosts).
-      KEYCLOAK_ISSUER: "https://auth.athide.nl/realms/gvprlg"
+      KEYCLOAK_ISSUER: ${KEYCLOAK_ISSUER:?KEYCLOAK_ISSUER ontbreekt in .env}
       KEYCLOAK_CLIENT_ID: "gvprlg-app"
       KEYCLOAK_CLIENT_SECRET_FILE: /run/secrets/keycloak_client_secret
       NEXTAUTH_URL: "https://spinnenweb.gvprlg.nl"
@@ -90,12 +91,13 @@ services:
         condition: service_completed_successfully
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=net-fe-gvprlg"
+      - "traefik.docker.network=${PROXY_NETWORK:-proxy}"
       - "traefik.http.routers.gvprlg.rule=Host(`spinnenweb.gvprlg.nl`)"
       - "traefik.http.routers.gvprlg.entrypoints=websecure"
       - "traefik.http.routers.gvprlg.tls.certresolver=letsencrypt"
       - "traefik.http.services.gvprlg.loadbalancer.server.port=8080"
-      - "traefik.http.routers.gvprlg.middlewares=crowdsec@file,rate-limit@file"
+      # Comma-separated proxy middlewares (detection, rate limiting, ...) set in .env; empty = none.
+      - "traefik.http.routers.gvprlg.middlewares=${PROXY_MIDDLEWARES:-}"
 
   postgres:
     image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
@@ -145,12 +147,10 @@ services:
 networks:
   gvprlg-internal:
     internal: true
-    # Explicit subnet: Docker's default address pools are exhausted on VPS-001.
-    # Same /28 convention as the other internal networks in 172.30.0.0/16.
-    ipam:
-      config:
-        - subnet: 172.30.15.0/28
-  net-fe-gvprlg:
+    # Add an explicit `ipam` subnet here if Docker's default address pools are exhausted.
+  proxy:
+    # Pre-existing network shared with the reverse proxy; its name is set in .env.
+    name: ${PROXY_NETWORK:-proxy}
     external: true
 
 volumes:

@@ -31,7 +31,8 @@ zonder authenticatie: alles wordt toegeschreven aan de vaste `TEST_USER_ID`
 - Live-deploy van de app op VPS-001 (fase D is gebouwd; de livegang is een eigen stap). De
   fase-D-artefacten (`docker-compose.yml`, `.env.example`, README) moeten wel de nieuwe secrets en
   variabelen kennen.
-- Wijzigingen aan realms `athide` en `master` (die hebben nu ook geen SMTP; dat blijft zo).
+- Wijzigingen aan de bestaande realms (beheer-realm en `master`; die hebben nu ook geen SMTP; dat
+  blijft zo).
 - Accounts aanmaken vanuit de app (Keycloak Admin-API) — zie §3.
 
 **Wel in scope op VPS-001 (besluit gebruiker), elke wijziging met akkoord per stap:** mox-account
@@ -53,16 +54,16 @@ Per stap: huidige staat tonen → oud→nieuw → akkoord → uitvoeren → veri
 
 | Feit | Bron |
 |---|---|
-| Keycloak `quay.io/keycloak/keycloak:26.6.4` draait, healthy (niet 26.0 zoals `sovereign-stack/docs/deployment-plan.md` zegt) | `docker ps` op VPS-001 |
-| Realms: alleen `athide` en `master`; geen van beide heeft SMTP | query op `realm`/`realm_smtp_config` in `postgres-keycloak` |
-| Publieke Keycloak-URL `https://auth.athide.nl/realms/<realm>` | `sovereign-stack/stacks/alerter/alerter.env.example:33` |
-| `/admin` van Keycloak is VPN-only (`management-whitelist`: `100.64.0.0/10`, `127.0.0.1/32`, `172.30.0.1/32`) | exposure-matrix architectuurposter; `stacks/traefik/dynamic/middlewares.yml` |
-| Containers die het publieke IP aanroepen komen via hairpin-NAT met het bronadres van een Docker-gateway binnen; dat mag nooit gewhitelist worden | `stacks/traefik/README.md`, sectie "Afhankelijkheid van management-whitelist" |
-| Netwerkmodel: hub-and-spoke, elke stack alleen een eigen spoke naar Traefik; `icc=false` daemon-wide | architectuurposter, `docs/architecture.html` |
-| mox draait, healthy; accountpatroon `wazuh`, `forwarder` (SMTPS 465, wachtwoord als secret-bestand); mox doet zelf TLS op 465, buiten Traefik | `docker ps`; sovereign-stack specs 2026-07-05 en 2026-08-21 |
+| Keycloak 26.x draait, healthy | `docker ps` op VPS-001 |
+| Realms: alleen de beheer-realm en `master`; geen van beide heeft SMTP | query op `realm`/`realm_smtp_config` in de Keycloak-database |
+| Publieke Keycloak-URL `https://<keycloak-host>/realms/<realm>` | documentatie van de infra-repo |
+| `/admin` van Keycloak is alleen bereikbaar via het beheer-VPN (IP-whitelist-middleware in de proxy) | architectuurdocumentatie en proxyconfiguratie in de infra-repo |
+| Containers die het publieke IP aanroepen komen via hairpin-NAT met het bronadres van een Docker-gateway binnen; dat mag nooit gewhitelist worden | proxydocumentatie in de infra-repo |
+| Netwerkmodel: hub-and-spoke, elke stack alleen een eigen spoke naar de reverse proxy; geen intercontainerverkeer daemon-wide | architectuurdocumentatie in de infra-repo |
+| mox draait, healthy; bestaand accountpatroon (SMTPS 465, wachtwoord als secret-bestand); mox doet zelf TLS op 465, buiten de reverse proxy | `docker ps`; specs in de infra-repo |
 | Geen gvprlg-container op VPS-001 (fase D nog niet live) | `docker ps` |
 | `gvprlg.nl`: MX = Microsoft 365, SPF met outlook/mailjet/mandrill/hubspot `~all`, DMARC `p=none` | publieke DNS |
-| `spinnenweb.gvprlg.nl` A → `89.167.107.143` bestaat al | publieke DNS |
+| `spinnenweb.gvprlg.nl` A → `<publiek IP VPS>` bestaat al | publieke DNS |
 | next-auth: stabiel `4.24.15` (peer `next ^16`, ISC); v5 nog `5.0.0-beta.32` | npm registry |
 
 ## 3. Overwogen aanpakken
@@ -76,30 +77,30 @@ Per stap: huidige staat tonen → oud→nieuw → akkoord → uitvoeren → veri
 | **Route A: accounts in Keycloak-console (VPN), koppelingen/rollen in app** | Geen versoepeling; per voorzitter een handeling op twee plekken | **Gekozen** |
 | Mail via Resend | Externe afhankelijkheid | Afgewezen |
 | **Mail via mox, eindafzender `noreply@spinnenweb.gvprlg.nl`** | Soeverein; subdomein raakt SPF hoofddomein niet | **Gekozen** |
-| Afzender `@publicvibes.nl` | Werkt direct, maar oogt als phishing voor gemeenten | Alleen als tijdelijke testroute (§9) |
+| Afzender op een bestaand maildomein van de beheerder | Werkt direct, maar oogt als phishing voor gemeenten | Alleen als tijdelijke testroute (§9) |
 | Afzender `@gvprlg.nl` (hoofddomein) | Raakt SPF van de vereniging (M365 + 3 diensten) | Afgewezen |
 | Auth.js v5 | Nog bèta | Afgewezen; **next-auth v4.24.15** |
 
 ## 4. Netwerk en verkeerspaden (hardeningseis: geen direct intercontainerverkeer)
 
-De gvprlg-app hangt alleen aan zijn eigen spoke `net-fe-gvprlg` (naar Traefik) en zijn eigen
-interne datastore-netwerk (gvprlg-Postgres, `internal: true`). Hij wordt **niet** aan
-`net-auth`, `kc-internal`, `mox_mox-internal` of een ander stack-netwerk gekoppeld.
+De gvprlg-app hangt alleen aan zijn eigen spoke (het proxy-netwerk, naar de reverse proxy) en
+zijn eigen interne datastore-netwerk (gvprlg-Postgres, `internal: true`). Hij wordt **niet** aan
+de netwerken van Keycloak, mox of een andere stack gekoppeld.
 
 | Verkeer | Pad |
 |---|---|
-| Browser → app | Traefik `spinnenweb.gvprlg.nl` (bestaand fase-D-ontwerp) |
-| Browser → Keycloak login | Traefik `auth.athide.nl/realms/gvprlg/...` (publiek, bestaand) |
-| App → Keycloak (token, userinfo, JWKS, end-session) | HTTPS naar de publieke issuer-URL `https://auth.athide.nl/realms/gvprlg` via Traefik (hairpin). Deze endpoints zijn publiek; er is geen whitelist nodig. Geen interne URL. |
+| Browser → app | Reverse proxy `spinnenweb.gvprlg.nl` (bestaand fase-D-ontwerp) |
+| Browser → Keycloak login | Reverse proxy `<keycloak-host>/realms/gvprlg/...` (publiek, bestaand) |
+| App → Keycloak (token, userinfo, JWKS, end-session) | HTTPS naar de publieke issuer-URL `https://<keycloak-host>/realms/gvprlg` via de reverse proxy (hairpin). Deze endpoints zijn publiek; er is geen whitelist nodig. Geen interne URL. |
 | App → Keycloak Admin-API | **Bestaat niet** in dit ontwerp |
 | Keycloak → mox (uitnodigingsmail) | SMTPS naar de publieke mailhost van mox op poort 465 (mox doet zelf TLS), niet via een gedeeld Docker-netwerk |
-| Beheerder → Keycloak-console | Via VPN (`management-whitelist`), ongewijzigd |
+| Beheerder → Keycloak-console | Via het beheer-VPN (IP-whitelist), ongewijzigd |
 
 **Op VPS-001 vast te stellen vóór de realm-inrichting (alleen-lezen, niet aannemen):**
-1. Kan de Keycloak-container uitgaand poort 465 op de publieke mox-hostnaam bereiken (firewall /
-   `DOCKER-USER`-regels)? Zo niet: dit melden met het voorstel, niet zelf de firewall wijzigen.
+1. Kan de Keycloak-container uitgaand poort 465 op de publieke mox-hostnaam bereiken
+   (host-firewall)? Zo niet: dit melden met het voorstel, niet zelf de firewall wijzigen.
 2. De exacte publieke mox-hostnaam voor SMTPS (certificaatnaam moet kloppen).
-3. Krijgt een container op een nieuwe spoke via hairpin `auth.athide.nl:443` (zelfde vraag als
+3. Krijgt een container op een nieuwe spoke via hairpin `<keycloak-host>:443` (zelfde vraag als
    voor andere apps; wordt pas relevant bij de livegang, maar vastleggen in het runbook).
 
 ## 5. Keycloak-realm `gvprlg`
@@ -130,7 +131,7 @@ interne datastore-netwerk (gvprlg-Postgres, `internal: true`). Hij wordt **niet*
 ## 6. App-integratie (next-auth v4.24.15)
 
 - Route handler `app/api/auth/[...nextauth]/route.ts` met `KeycloakProvider`, issuer
-  `KEYCLOAK_ISSUER` (`https://auth.athide.nl/realms/gvprlg`; lokaal de dev-Keycloak).
+  `KEYCLOAK_ISSUER` (`https://<keycloak-host>/realms/gvprlg`; lokaal de dev-Keycloak).
 - **Sessie:** JWT-strategie. Inhoud: Keycloak `sub`, e-mail, naam, `id_token` (alleen voor
   logout). Cookie HttpOnly, Secure (productie), `SameSite=Strict`, `maxAge` 8 uur.
 - **Uitloggen:** app-sessie wissen én RP-initiated logout bij Keycloak (`end_session_endpoint`
@@ -232,8 +233,8 @@ actor.
 ## 9. Mail: mox en DNS
 
 **Twee stappen (besluit gebruiker):**
-1. **Testroute:** afzender op het bestaande mox-domein `publicvibes.nl` (SPF/DKIM al ingericht),
-   bv. `gvprlg-noreply@publicvibes.nl` (naam: bouwer). Hiermee wordt de uitnodigingsflow op de
+1. **Testroute:** afzender op een bestaand mox-domein (SPF/DKIM al ingericht), bv. een
+   `gvprlg-noreply`-adres (naam: bouwer). Hiermee wordt de uitnodigingsflow op de
    productie-Keycloak getest met eigen testmailboxen. **In deze stap worden geen echte
    voorzitters uitgenodigd.**
 2. **Definitieve route** zodra de DNS-records er zijn: `noreply@spinnenweb.gvprlg.nl`. Omzetten =
@@ -242,7 +243,7 @@ actor.
 - **mox (stap 2):** domein `spinnenweb.gvprlg.nl` toevoegen, account `noreply`, DKIM-sleutel laten
   genereren. Wachtwoorden als secret-bestand volgens het bestaande patroon.
 - **DNS (handmatig, bij de registrar van `gvprlg.nl`, door de gebruiker):**
-  - `spinnenweb.gvprlg.nl TXT "v=spf1 ip4:89.167.107.143 -all"`
+  - `spinnenweb.gvprlg.nl TXT "<SPF-record met het publieke IP van de mailserver>"`
   - `<selector>._domainkey.spinnenweb.gvprlg.nl TXT "<door mox gegenereerd>"`
   - `_dmarc.spinnenweb.gvprlg.nl TXT "v=DMARC1; p=quarantine; rua=mailto:…"` (rapportadres TBD)
   - Het SPF-record van `gvprlg.nl` zelf wordt niet aangeraakt.
@@ -255,7 +256,7 @@ Nieuwe variabelen, Zod-gevalideerd bij start in een nieuw `src/service/env.ts` (
 `src/service/config.ts`, dat de domeinconfig bevat); ontbreken = harde startfout:
 `KEYCLOAK_ISSUER`, `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_CLIENT_SECRET_FILE`, `NEXTAUTH_URL`,
 `NEXTAUTH_SECRET_FILE`, `BOOTSTRAP_BEHEERDER_EMAIL`.
-Secrets alleen als bestand (`/opt/gvprlg/secrets/` in productie), nooit als waarde in compose of
+Secrets alleen als bestand (`<compose-map>/secrets/` in productie), nooit als waarde in compose of
 een gecommit `.env`. `.env.example`, `docker-compose.yml` en README uit fase D worden bijgewerkt.
 
 ## 11. Testen
@@ -289,9 +290,9 @@ Exacte versies en licenties verifieert de bouwer bij installatie.
 
 ## 13. Open punten
 
-1. **Login-domein:** voorzitters zien de Keycloak-loginpagina op `auth.athide.nl`. Een eigen
+1. **Login-domein:** voorzitters zien de Keycloak-loginpagina op het domein van de bestaande Keycloak. Een eigen
    loginhostname (realm "Frontend URL", bv. `login.spinnenweb.gvprlg.nl`) vraagt een extra
-   Traefik-router en certificaat. Niet in fase B; besluit gebruiker vóór de eerste echte
+   proxy-router en certificaat. Niet in fase B; besluit gebruiker vóór de eerste echte
    uitnodiging.
 2. DMARC-rapportadres (§9).
 
