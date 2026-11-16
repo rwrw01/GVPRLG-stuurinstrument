@@ -47,6 +47,8 @@ Testgebruikers in de dev-realm (inloggen met e-mail + TOTP-code, geen wachtwoord
 - `invuller@test.local` — invuller
 - `lezer@test.local` — lezer (ziet alles, kan niets opslaan; de app-gebruiker maakt de E2E-setup aan)
 - `invuller2@test.local` — moet bij de eerste login nog een authenticator koppelen
+- `uitnodiging@test.local` — alleen in Keycloak; de E2E-test van de uitnodigingsmail nodigt hem
+  bij elke run opnieuw uit
 
 De TOTP-seed van `beheerder@test.local`, `invuller@test.local` en `lezer@test.local` is `JBSWY3DPEHPK3PXP`
 (SHA1, 6 cijfers, 30 s). Voeg hem toe in een authenticator-app of bereken de code met
@@ -59,6 +61,9 @@ stand.
 Na het wijzigen van `deploy/keycloak/realm-gvprlg.dev.json`:
 `docker compose -f docker-compose.dev.yml up -d --force-recreate keycloak` (de import slaat
 een bestaande realm over).
+
+De dev-Keycloak zet `SPINNENWEB_URL=http://localhost:3000`: de uitnodigingsmail en de knop
+"Naar Spinnenweb" wijzen in dev naar de lokale app (zie "Keycloak-thema" hieronder).
 
 De migraties maken de meetjaren 2026, 2027 en 2028 automatisch aan. Voorbeeldwaardes voor
 2026 (lokaal testen en demo's, nooit op productiedata) schrijf je rechtstreeks in de
@@ -141,8 +146,9 @@ proxy-netwerk.
    import dat `https://<keycloak-host>/realms/gvprlg/.well-known/openid-configuration` als
    `issuer` precies de waarde van `KEYCLOAK_ISSUER` geeft.
 
-   Het realm-bestand zet ook `loginTheme=gvprlg`. Kopieer vóór de import
-   `deploy/keycloak/themes/gvprlg` naar de themamap van de Keycloak-installatie
+   Het realm-bestand zet ook `loginTheme=gvprlg` en `emailTheme=gvprlg` (zie "Keycloak-thema"
+   hieronder). Kopieer vóór de import `deploy/keycloak/themes/gvprlg` (met de submappen
+   `login` en `email`) naar de themamap van de Keycloak-installatie
    (`themes/gvprlg`; root, mappen 0755, bestanden 0644). Keycloak ziet een nieuwe themamap pas
    na een herstart (`sudo docker compose restart keycloak` in de compose-map van Keycloak,
    circa 20 s onderbreking voor alle realms). Controleer met `kcadm.sh get serverinfo` (volledige uitvoer; `--fields themes`
@@ -223,6 +229,25 @@ Controleer na de deploy dat 2024 en 2025 dezelfde gemiddelden tonen als ervoor.
 Secrets staan in `<compose-map>/secrets/` (map chmod 700, root-only; `db_password` chmod 0444,
 `keycloak_client_secret` en `nextauth_secret` eigendom van uid 1001 met chmod 600) — nooit in
 `docker-compose.yml` of een gecommit bestand.
+
+## Keycloak-thema
+
+`deploy/keycloak/themes/gvprlg` is één Keycloak-thema met twee delen, afgeleid van de
+standaardthema's van Keycloak 26.7.5:
+
+- `login/` (parent `keycloak.v2`): huisstijl in `resources/css/login.css`, en `info.ftl`
+  (kopie van het basistemplate) met een knop **Naar Spinnenweb** op de infopagina waar
+  Keycloak zelf geen link toont — zoals na het koppelen van de authenticator via de
+  uitnodiging uit de console ("Uw account is bijgewerkt.").
+- `email/` (parent `keycloak`): alleen de uitnodigingsmail (execute-actions) wijkt af:
+  onderwerp en tekst in `messages/messages_nl.properties`, de templates `html/` en `text/`
+  `executeActions.ftl` geven het Spinnenweb-adres als extra parameter mee.
+
+Het Spinnenweb-adres staat als `spinnenwebUrl=${env.SPINNENWEB_URL:https://spinnenweb.gvprlg.nl}`
+in beide `theme.properties`: Keycloak vult omgevingsvariabelen in themaproperties in. Productie
+zet `SPINNENWEB_URL` niet en krijgt de standaardwaarde; de dev-Keycloak zet hem op
+`http://localhost:3000`. Wijzigingen aan een thema worden pas na een herstart van Keycloak
+geladen (Keycloak cachet thema's).
 
 ## Mail (uitnodigingen vanuit Keycloak)
 
