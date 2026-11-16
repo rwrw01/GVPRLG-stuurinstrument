@@ -101,7 +101,7 @@ export function Zijmenu(props: { pathname: string; open: boolean; onSluit: () =>
           {ik?.rol === 'beheerder' && <MenuLink href="/beheer#nieuwe-meting" pathname={pathname} onKies={onKies}>Nieuwe meting</MenuLink>}
           <MenuLink href="/beheer/vragenlijst" pathname={pathname} onKies={onKies}>Vragenlijst</MenuLink>
           <MenuLink href="/beheer/businessunits" pathname={pathname} onKies={onKies}>Businessunits</MenuLink>
-          <MenuLink href="/beheer/audit" pathname={pathname} onKies={onKies}>Auditlog</MenuLink>
+          {ik?.rol === 'beheerder' && <MenuLink href="/beheer/audit" pathname={pathname} onKies={onKies}>Auditlog</MenuLink>}
         </ul>
       </nav>
       <GebruikerMenu ik={ik} />

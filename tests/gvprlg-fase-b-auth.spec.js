@@ -20,10 +20,35 @@ const NIET_GEKOPPELD = 'U bent niet gekoppeld aan het platform van deze business
 const INGETROKKEN = 'Uw toegang is ingetrokken of nog niet geactiveerd.';
 const NIET_GEKOPPELD_FORMULIER = 'U bent niet gekoppeld aan dit platform; u kunt deze vragenlijst alleen bekijken.';
 const ALLEEN_LEZEN = 'U heeft alleen leesrechten; u kunt deze vragenlijst bekijken maar niet wijzigen.';
+const ALLEEN_BEHEERDERS = 'Alleen beheerders kunnen deze pagina gebruiken.';
 
 // Journeys share dev-stack state (one invuller, one fase-B year) and may wait for a TOTP period.
 // Tests in this file run in order in one worker (no fullyParallel); restores happen in finally blocks.
 test.describe.configure({ timeout: 120_000 });
+
+/**
+ * Asserts that a non-beheerder has no way into the audit log: no menu item, a refusal on the page
+ * and a 403 problem+json from the API (the server check, independent of the UI).
+ * @param {import('@playwright/test').Page} page - Logged-in page of an invuller or lezer
+ * @param {string} naam - Display name of that user, shown once the side menu knows the role
+ */
+async function verwachtGeenAuditToegang(page, naam) {
+  await page.goto('/');
+  // The role-dependent items render after /api/ik answers; the user's name marks that moment.
+  await expect(page.getByRole('navigation', MENU)).toContainText(naam);
+  const hoofdmenu = page.getByRole('navigation', { name: 'Hoofdmenu' });
+  await expect(hoofdmenu.getByRole('link', { name: 'Vragenlijst' })).toBeVisible();
+  await expect(hoofdmenu.getByRole('link', { name: 'Auditlog' })).toHaveCount(0);
+
+  await page.goto('/beheer/audit');
+  await expect(page.getByRole('alert').filter({ hasText: ALLEEN_BEHEERDERS })).toBeVisible();
+  await expect(page.getByRole('table', { name: 'Auditregels' })).toHaveCount(0);
+
+  const response = await page.request.get('/api/audit');
+  expect(response.status()).toBe(403);
+  expect(response.headers()['content-type']).toContain('application/problem+json');
+  expect((await response.json()).detail).toBe('Alleen een beheerder mag deze actie uitvoeren.');
+}
 
 /**
  * Picks score 3 for the first question and clicks "Opslaan als concept".
@@ -107,6 +132,10 @@ test.describe('GVPRLG fase B — invuller', () => {
     expect(leeg.businessUnit).toBeNull();
   });
 
+  test('invuller heeft geen toegang tot de auditlog', async ({ page }) => {
+    await verwachtGeenAuditToegang(page, GEBRUIKERS.invuller.naam);
+  });
+
   test('invuller ziet concepten van andere platformen', async ({ page }) => {
     await page.goto(`/metingen/${FASE_B_JAAR}`);
     await expect(page.locator(`[data-platform="${PLATFORM_CONCEPT}"] .platform-status`)).toHaveText('In bewerking');
@@ -150,8 +179,8 @@ test.describe('GVPRLG fase B — lezer', () => {
       await expect(page.locator('.openingszin')).not.toBeEmpty();
       await expect(page.getByRole('table', { name: 'Gemiddelde score per businessunit en jaar' })).toBeVisible();
       const hoofdmenu = page.getByRole('navigation', { name: 'Hoofdmenu' });
-      await expect(hoofdmenu.getByRole('link', { name: 'Auditlog' })).toBeVisible();
       await expect(hoofdmenu.getByRole('link', { name: 'Gebruikers' })).toHaveCount(0);
+      await verwachtGeenAuditToegang(page, GEBRUIKERS.lezer.naam);
     } finally {
       await page.context().close();
     }
@@ -246,6 +275,15 @@ test.describe('GVPRLG fase B — beheer', () => {
     await expect(rij.locator(`td[data-label="Platformen ${FASE_B_JAAR}"]`)).toHaveText('-');
     await expect(rij.getByRole('button', { name: 'Koppelingen' })).toHaveCount(0);
     expect((await vindBeheerGebruiker(page.request, FASE_B_JAAR, doel.email)).platformIds).toEqual([]);
+  });
+
+  test('beheerder opent de auditlog via het menu', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('navigation', { name: 'Hoofdmenu' }).getByRole('link', { name: 'Auditlog' }).click();
+    await expect(page).toHaveURL(/\/beheer\/audit$/);
+    await expect(page.getByRole('heading', { name: 'Auditlog' })).toBeVisible();
+    await expect(page.getByRole('table', { name: 'Auditregels' })).toBeVisible();
+    expect((await page.request.get('/api/audit?limiet=1')).status()).toBe(200);
   });
 
   test('beheerder heropent een definitief platform', async ({ page }) => {

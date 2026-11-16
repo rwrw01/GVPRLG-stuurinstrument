@@ -5,6 +5,7 @@ import { AuditFilters, LEEG_FILTER, type AuditFilterWaarden } from '@/src/ui/com
 import { AuditTabel } from '@/src/ui/components/beheer/AuditTabel';
 import type { AuditRegel } from '@/src/ui/components/beheer/_beheerTypen';
 import { leesDetail } from '@/src/ui/components/_verstuurJson';
+import { useIk } from '@/src/ui/hooks/useIk';
 import { useJaren } from '@/src/ui/hooks/useJaren';
 
 function naarQuery(filter: AuditFilterWaarden): string {
@@ -15,8 +16,8 @@ function naarQuery(filter: AuditFilterWaarden): string {
   return params.toString();
 }
 
-// The audit API scopes the rows to what the logged-in user may see; this page only displays them.
-export default function AuditPage() {
+// Mounted only for a beheerder, so a non-beheerder never fires the (refused, audited) API call.
+function AuditOverzicht() {
   const jaren = useJaren();
   const [regels, setRegels] = useState<AuditRegel[] | null>(null);
   const [fout, setFout] = useState<string | null>(null);
@@ -42,4 +43,14 @@ export default function AuditPage() {
       <div className="card">{regels === null ? <p>Laden...</p> : <AuditTabel regels={regels} />}</div>
     </div>
   );
+}
+
+export default function AuditPage() {
+  const { ik, laden } = useIk();
+  if (laden) return <p>Laden...</p>;
+  // Only a friendlier message; GET /api/audit answers 403 to non-beheerders anyway.
+  if (ik?.rol !== 'beheerder') {
+    return <div className="alert alert-warning" role="alert">Alleen beheerders kunnen deze pagina gebruiken.</div>;
+  }
+  return <AuditOverzicht />;
 }
