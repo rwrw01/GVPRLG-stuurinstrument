@@ -59,9 +59,9 @@ AuditLogEntry      (actor_gebruiker_id, actie, doel_type, doel_id, tijdstip, det
 
 `AuditLogEntry` is append-only en dekt tenminste: uitnodiging verstuurd, account geactiveerd
 (TOTP gekoppeld), score gewijzigd (per vraag, met oude→nieuwe waarde), platform opgeslagen als
-concept, platform afgerond als definitief, platform heropend door beheerder. Zichtbaar voor de
-beheerder als lijst/filter per meting/platform; een invuller ziet alleen de audit-regels van zijn
-eigen platform(en).
+concept, platform afgerond als definitief, platform heropend door beheerder. Alleen zichtbaar voor de
+beheerder, als lijst/filter per meting/platform; een invuller of lezer heeft geen toegang tot de
+auditlog.
 
 **Oefenomgeving:** een gereserveerde `Meting` met `jaar = 0` (of een `isOefening: true`-vlag,
 nader te bepalen bij implementatie) die nooit meetelt in dashboards/trendvergelijkingen. De

@@ -182,8 +182,8 @@ niet-lege `platformIds`, of `PUT .../koppelingen` met een niet-lege lijst voor e
 "Een lezer kan niet aan platformen gekoppeld worden."; een rolwijziging naar `lezer` verwijdert in
 dezelfde transactie alle koppelingen (alle meetjaren) en zet het aantal als
 `koppelingenVerwijderd` in het auditdetail van `rol_gewijzigd`. Zelfbescherming en "laatste actieve
-beheerder" gelden ook bij beheerder → lezer. In de auditlog krijgt een lezer het invullerzicht
-(alleen regels van eigen platformen, dus leeg).
+beheerder" gelden ook bij beheerder → lezer. De auditlog is alleen voor de beheerder; een lezer
+(net als een invuller) krijgt daar 403.
 
 ## 7. Beheerscherm en uitnodigen
 
@@ -227,7 +227,9 @@ Bestaande `AuditLogEntry` (append-only, geen update/delete-pad in de code). Acti
 actor.
 
 - Beheerder: auditpagina `/beheer/audit` met filter op meetjaar, platform, actor en actie.
-- Invuller: ziet alleen audit-regels van zijn eigen platform(en).
+- Invuller en lezer: geen toegang tot de auditlog (`GET /api/audit` geeft 403, geaudit als
+  `toegang_geweigerd`; geen menu-item; de pagina toont "Alleen beheerders kunnen deze pagina
+  gebruiken.").
 - Geen tokens, codes of secrets in `detail` of in logs.
 
 ## 9. Mail: mox en DNS

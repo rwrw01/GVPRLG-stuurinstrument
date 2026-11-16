@@ -56,8 +56,9 @@ woordkeuze van dit document (de mockup gebruikt nog oude termen).
 - Links een vast menu (232 px) in het blauwe verloop; rechts de inhoud.
 - Items: **Overzicht** (`/`); kop "Metingen" met elk meetjaar **oplopend** (oudste eerst) en een
   voortgangslabel (`3/5` voor een jaar dat niet volledig definitief is, anders "afgerond");
-  kop "Beheer" met **Gebruikers** en **Nieuwe meting** (alleen `beheerder`) en **Auditlog**
-  (iedereen die is ingelogd, zoals nu). Onderaan naam van de gebruiker en **Uitloggen**.
+  kop "Beheer" met **Gebruikers**, **Nieuwe meting** en **Auditlog** (alle drie alleen
+  `beheerder`; de auditlog is niet voor een lezer of invuller, `GET /api/audit` geeft hen 403).
+  Onderaan naam van de gebruiker en **Uitloggen**.
 - Het actieve item heeft `aria-current="page"`.
 - Onder 820 px: het menu klapt in achter een knop "Menu" (`aria-expanded`), de inhoud vult de
   breedte. Geen horizontale paginascroll op 390, 768 en 1024 px.

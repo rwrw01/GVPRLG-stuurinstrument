@@ -328,7 +328,8 @@ een concept zonder scores). Vanaf dan ligt de lijst van dat jaar vast: latere wi
 alleen voor open meetjaren. Bovenaan beide pagina's staat welke jaren open zijn en welke vastliggen.
 Een vastgelegd jaar zonder scores, toelichtingen of aanwezigen kan een beheerder daar weer
 openzetten. Elke wijziging staat in het auditlog (`catalogus_*`, `meting_vrijgegeven`) met oude en
-nieuwe waarde.
+nieuwe waarde. De auditlog (`/beheer/audit`) is alleen voor beheerders; een invuller of lezer ziet
+geen menu-item en de API (`GET /api/audit`) weigert hen met 403.
 
 ## Dependencies en licenties
 
