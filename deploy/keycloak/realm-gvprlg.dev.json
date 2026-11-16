@@ -32,6 +32,7 @@
   "defaultLocale": "nl",
   "browserFlow": "gvprlg-browser-otp",
   "loginTheme": "gvprlg",
+  "emailTheme": "gvprlg",
   "clients": [
     {
       "clientId": "gvprlg-app",

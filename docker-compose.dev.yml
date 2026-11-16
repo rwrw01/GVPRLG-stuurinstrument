@@ -28,6 +28,9 @@ services:
       KC_BOOTSTRAP_ADMIN_PASSWORD: devadmin
       # Same issuer for browser and app: http://localhost:8081/realms/gvprlg
       KC_HOSTNAME: http://localhost:8081
+      # Spinnenweb address in the gvprlg themes (invitation mail, "Naar Spinnenweb" link);
+      # production leaves it unset and gets the default from the themes' theme.properties.
+      SPINNENWEB_URL: http://localhost:3000
     ports:
       - "8081:8080"
     volumes:

@@ -107,6 +107,8 @@ describe('realm-gvprlg', () => {
     });
     expect(prod.browserFlow).toBe('gvprlg-browser-otp');
     expect(prod.loginTheme).toBe('gvprlg');
+    // Invitation mail text from deploy/keycloak/themes/gvprlg/email (dev equals prod: see above).
+    expect(prod.emailTheme).toBe('gvprlg');
     const app = prod.clients.find((c) => c.clientId === 'gvprlg-app');
     expect(app?.attributes?.['post.logout.redirect.uris']).toBe('https://spinnenweb.gvprlg.nl/');
   });
