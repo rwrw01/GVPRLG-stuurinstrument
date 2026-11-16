@@ -3,10 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { zoekAudit } from '@/src/data/auditRepository';
 import { vindGebruikersOpIds } from '@/src/data/gebruikersRepository';
-import { vereisGebruiker } from '@/src/integration/auth/sessie';
+import { vereisGebruiker, weigerRol } from '@/src/integration/auth/sessie';
 import { AuditFilterSchema } from '@/src/integration/beheerSchemas';
 import { problemResponse } from '@/src/integration/problemResponse';
-import { beperkAuditFilterTotGebruiker } from '@/src/process/auditToegang';
+import { naarAuditFilter } from '@/src/process/auditToegang';
 
 type AuditRegelMetActor = AuditLogEntry & { actorNaam: string | null; actorEmail: string | null };
 
@@ -22,16 +22,18 @@ async function _metActorIdentiteit(regels: AuditLogEntry[]): Promise<AuditRegelM
 }
 
 /**
- * Searches the audit log, newest first, scoped to what the logged-in user may see.
+ * Searches the audit log, newest first; beheerder only (an invuller or lezer gets an audited 403).
  * @param request - Request with optional query `jaar`, `platformId`, `actor`, `actie`, `limiet` (1-500, default 200)
  * @returns 200 `{ regels }` with `actorNaam`/`actorEmail` per row; 400/401/403 problem+json otherwise
  */
 export async function GET(request: NextRequest) {
   const sessie = await vereisGebruiker();
   if (!sessie.ok) return sessie.response;
+  const geweigerd = await weigerRol(sessie.gebruiker, 'beheerder');
+  if (geweigerd) return geweigerd;
 
   const query = AuditFilterSchema.safeParse(Object.fromEntries(request.nextUrl.searchParams));
   if (!query.success) return problemResponse(400, 'Ongeldige invoer', query.error.message);
-  const regels = await zoekAudit(await beperkAuditFilterTotGebruiker(sessie.gebruiker, query.data));
+  const regels = await zoekAudit(naarAuditFilter(query.data));
   return NextResponse.json({ regels: await _metActorIdentiteit(regels) });
 }

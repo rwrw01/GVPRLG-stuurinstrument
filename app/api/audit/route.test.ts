@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { prisma } from '@/src/data/prismaClient';
 import { platformDetail, schrijfAudit } from '@/src/data/auditRepository';
-import { maakGebruiker, zetKoppelingen, type GebruikerRecord } from '@/src/data/gebruikersRepository';
+import { maakGebruiker, type GebruikerRecord } from '@/src/data/gebruikersRepository';
 import { createMeting } from '@/src/data/metingenRepository';
 import { mockSessie } from '@/src/integration/auth/_testSessie';
 
@@ -59,23 +59,20 @@ describe('GET /api/audit', () => {
     expect(await regels('?platformId=ro')).toHaveLength(1);
   });
 
-  it('invuller ziet geen regels van andere platformen', async () => {
-    // Assigned in another year: an invuller sees his platforms' history across all years.
+  it.each(['invuller', 'lezer'] as const)('403 problem+json voor een %s, ook met platformkoppeling', async (rol) => {
+    const gebruiker = await maakGebruiker({ email: `${rol}@test.local`, naam: rol, rol, status: 'actief' });
+    // A stray assignment must not open the log: access depends on the role only.
     const meting = await createMeting(2026);
-    await zetKoppelingen(jan.id, meting.id, ['ro']);
-    mockSessie(jan);
+    await prisma.platformInvuller.create({ data: { metingId: meting.id, platformId: 'ro', gebruiker: gebruiker.id } });
+    mockSessie(gebruiker);
 
-    const zichtbaar = await regels();
-    const andere = await regels('?platformId=belastingen');
+    const response = await GET(new NextRequest('http://localhost/api/audit?platformId=ro'));
 
-    expect(zichtbaar.map((r) => r.detail)).toEqual([platformDetail('ro', 2027)]);
-    expect(andere.map((r) => r.detail)).toEqual([platformDetail('ro', 2027)]);
-  });
-
-  it('invuller zonder koppeling ziet niets', async () => {
-    mockSessie(jan);
-
-    expect(await regels()).toEqual([]);
+    expect(response.status).toBe(403);
+    expect(response.headers.get('Content-Type')).toContain('application/problem+json');
+    expect(await response.json()).toMatchObject({ status: 403, detail: 'Alleen een beheerder mag deze actie uitvoeren.' });
+    const weigering = await prisma.auditLogEntry.findMany({ where: { actie: 'toegang_geweigerd' } });
+    expect(weigering).toMatchObject([{ actor: gebruiker.id, doelType: 'rol', detail: 'vereist=beheerder;reden=rol' }]);
   });
 
   it('geeft naam en e-mail van een bekende actor en null voor een onbekende', async () => {

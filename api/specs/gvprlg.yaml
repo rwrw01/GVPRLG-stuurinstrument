@@ -288,12 +288,11 @@ paths:
           $ref: '#/components/responses/GeenToegang'
   /api/audit:
     get:
-      summary: Doorzoek de auditlog (nieuwste eerst)
+      summary: Doorzoek de auditlog (nieuwste eerst); alleen beheerder
       description: >-
-        Een beheerder ziet alle regels. Een invuller ziet alleen regels van platformen waaraan hij
-        in enig meetjaar gekoppeld is; een platformId buiten die set en het actor-filter worden genegeerd.
-        Een lezer krijgt hetzelfde zicht als een invuller; omdat een lezer nooit koppelingen heeft,
-        is dat een lege lijst.
+        De auditlog is alleen voor de beheerder; die ziet alle regels. Een invuller of lezer krijgt
+        403 (reden rol), ongeacht eventuele platformkoppelingen; de weigering wordt geaudit als
+        toegang_geweigerd.
       security:
         - cookieAuth: []
       parameters:
@@ -878,7 +877,7 @@ components:
     GeenToegang:
       description: >-
         Ingelogd maar geen toegang: account niet actief, onvoldoende rol (POST /api/metingen,
-        POST .../heropenen en /api/beheer/* vereisen beheerder), geen platformkoppeling (PUT) of
+        POST .../heropenen, GET /api/audit en /api/beheer/* vereisen beheerder), geen platformkoppeling (PUT) of
         rol lezer (PUT; reden alleen-lezen, ook als er een koppeling bestaat).
         Wordt geaudit als toegang_geweigerd.
       content:

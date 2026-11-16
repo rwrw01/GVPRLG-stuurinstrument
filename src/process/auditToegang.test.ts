@@ -1,78 +1,19 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { prisma } from '../data/prismaClient';
-import { createMeting } from '../data/metingenRepository';
-import { maakGebruiker, zetKoppelingen, type GebruikerRecord } from '../data/gebruikersRepository';
-import { beperkAuditFilterTotGebruiker } from './auditToegang';
+import { naarAuditFilter } from './auditToegang';
 
-let beheerder: GebruikerRecord;
-let jan: GebruikerRecord;
-
-beforeEach(async () => {
-  beheerder = await maakGebruiker({ email: 'bea@test.local', naam: 'Bea', rol: 'beheerder', status: 'actief' });
-  jan = await maakGebruiker({ email: 'jan@test.local', naam: 'Jan', rol: 'invuller', status: 'actief' });
-});
-
-afterEach(async () => {
-  await prisma.platformInvuller.deleteMany();
-  await prisma.meting.deleteMany();
-  await prisma.gebruiker.deleteMany();
-});
-
-describe('beperkAuditFilterTotGebruiker', () => {
-  it('should leave the filter unchanged for a beheerder', async () => {
-    const filter = await beperkAuditFilterTotGebruiker(beheerder, {
+describe('naarAuditFilter', () => {
+  it('should turn one platformId into a single-item platformIds list and keep the other fields', () => {
+    expect(naarAuditFilter({ jaar: 2026, platformId: 'ro', actor: 'x', actie: 'ingelogd', limiet: 50 })).toEqual({
       jaar: 2026,
-      platformId: 'ro',
+      platformIds: ['ro'],
       actor: 'x',
       actie: 'ingelogd',
       limiet: 50,
     });
-
-    expect(filter).toEqual({ jaar: 2026, platformIds: ['ro'], actor: 'x', actie: 'ingelogd', limiet: 50 });
-    expect(await beperkAuditFilterTotGebruiker(beheerder, { limiet: 200 })).toEqual({
-      limiet: 200,
-      actor: undefined,
-      platformIds: undefined,
-    });
   });
 
-  it('should force an invuller to his own platforms and drop actor', async () => {
-    const meting = await createMeting(2026);
-    await zetKoppelingen(jan.id, meting.id, ['ro', 'belastingen']);
-
-    const filter = await beperkAuditFilterTotGebruiker(jan, { actor: beheerder.id, limiet: 200 });
-
-    expect(filter.actor).toBeUndefined();
-    expect([...(filter.platformIds ?? [])].sort()).toEqual(['belastingen', 'ro']);
-  });
-
-  it('should keep an own platformId and ignore a foreign one for an invuller', async () => {
-    const meting = await createMeting(2026);
-    await zetKoppelingen(jan.id, meting.id, ['ro']);
-
-    expect((await beperkAuditFilterTotGebruiker(jan, { platformId: 'ro', limiet: 200 })).platformIds).toEqual(['ro']);
-    expect((await beperkAuditFilterTotGebruiker(jan, { platformId: 'belastingen', limiet: 200 })).platformIds).toEqual([
-      'ro',
-    ]);
-  });
-
-  it('should yield platformIds [] for an invuller without assignments', async () => {
-    expect(await beperkAuditFilterTotGebruiker(jan, { platformId: 'ro', limiet: 200 })).toEqual({
-      limiet: 200,
-      platformIds: [],
-    });
-  });
-
-  it('should give a lezer the invuller view: no actor filter and only own (no) platforms', async () => {
-    const lezer = await maakGebruiker({ email: 'lea@test.local', naam: 'Lea', rol: 'lezer', status: 'actief' });
-    const meting = await createMeting(2026);
-    // Even a stray assignment row must not widen a lezer's view.
-    await prisma.platformInvuller.create({ data: { metingId: meting.id, platformId: 'ro', gebruiker: lezer.id } });
-
-    expect(await beperkAuditFilterTotGebruiker(lezer, { platformId: 'ro', actor: beheerder.id, limiet: 200 })).toEqual({
-      limiet: 200,
-      platformIds: [],
-    });
+  it('should leave platformIds undefined without a platformId, so every platform matches', () => {
+    expect(naarAuditFilter({ limiet: 200 })).toEqual({ limiet: 200, platformIds: undefined });
   });
 });
