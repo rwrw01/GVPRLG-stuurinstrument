@@ -31,6 +31,8 @@ export const GEBRUIKERS = {
   wordtLezer: { email: 'wordt-lezer@test.local', naam: 'Test Wordt Lezer' },
   nieuweGebruiker: { email: 'invuller2@test.local', naam: 'Test Invuller Twee' },
   zonderAppGebruiker: { email: 'geen-app@test.local', naam: 'Geen App' },
+  /** Keycloak-only user that the invitation-mail journey re-invites on every run (never in the app). */
+  uitgenodigde: { email: 'uitnodiging@test.local', naam: 'Test Uitnodiging' },
 } as const;
 
 /** Session files written by auth.setup.js (one real TOTP login per user per run). */

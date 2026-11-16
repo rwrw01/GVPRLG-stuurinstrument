@@ -94,12 +94,12 @@ export async function logout(page) {
 }
 
 /**
- * Returns the first link in the newest Mailpit message to the given address, polling until it arrives.
+ * Returns the newest Mailpit message to the given address, polling until it arrives.
  * @param {import('@playwright/test').APIRequestContext} request - Request context (any)
  * @param {string} aan - Recipient address
- * @returns {Promise<string>} the link (e.g. the Keycloak action-token URL)
+ * @returns {Promise<{ ID: string, Subject: string, Text: string, HTML: string }>} the full message
  */
-export async function mailpitLaatsteLink(request, aan) {
+export async function mailpitLaatsteBericht(request, aan) {
   /** @type {string | undefined} */
   let id;
   await expect.poll(async () => {
@@ -107,8 +107,29 @@ export async function mailpitLaatsteLink(request, aan) {
     id = (await response.json()).messages?.[0]?.ID;
     return id;
   }, { message: `wait for a mail to ${aan}` }).toBeTruthy();
-  const bericht = await (await request.get(`${MAILPIT_URL}/api/v1/message/${id}`)).json();
+  return (await request.get(`${MAILPIT_URL}/api/v1/message/${id}`)).json();
+}
+
+/**
+ * Deletes all Mailpit messages to the given address, so a later poll only sees new mail.
+ * @param {import('@playwright/test').APIRequestContext} request - Request context (any)
+ * @param {string} aan - Recipient address
+ * @returns {Promise<void>}
+ */
+export async function mailpitLeeg(request, aan) {
+  const response = await request.delete(`${MAILPIT_URL}/api/v1/search`, { params: { query: `to:${aan}` } });
+  expect(response.ok()).toBeTruthy();
+}
+
+/**
+ * Returns the first link in the newest Mailpit message to the given address, polling until it arrives.
+ * @param {import('@playwright/test').APIRequestContext} request - Request context (any)
+ * @param {string} aan - Recipient address
+ * @returns {Promise<string>} the link (e.g. the Keycloak action-token URL)
+ */
+export async function mailpitLaatsteLink(request, aan) {
+  const bericht = await mailpitLaatsteBericht(request, aan);
   const link = /https?:\/\/[^\s"<>]+/.exec(bericht.Text)?.[0];
-  if (!link) throw new Error(`No link in mail ${id} to ${aan}`);
+  if (!link) throw new Error(`No link in mail ${bericht.ID} to ${aan}`);
   return link;
 }

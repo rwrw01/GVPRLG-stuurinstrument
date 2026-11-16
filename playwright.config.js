@@ -20,6 +20,8 @@ export default defineConfig({
   },
   projects: [
     { name: 'static-site', testMatch: 'volwassenheidsmeting.spec.js' },
+    // Keycloak themes only (invitation mail, info page): needs the dev Keycloak and Mailpit, not the app.
+    { name: 'keycloak-thema', testMatch: 'keycloak-uitnodiging.spec.js' },
     // Real Keycloak TOTP logins (dev realm) whose sessions the backend projects reuse.
     { name: 'auth-setup', testMatch: 'auth.setup.js', use: { baseURL: APP_URL } },
     // Compiles every page and API route of the journeys once (next dev compiles on first request).
