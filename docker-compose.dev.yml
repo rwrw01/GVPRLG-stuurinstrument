@@ -20,7 +20,7 @@ services:
   # Its embedded dev database lives in the container and import skips an existing realm:
   # after editing the JSON, run `up -d --force-recreate keycloak` to re-import it.
   keycloak:
-    image: quay.io/keycloak/keycloak:26.6.4@sha256:0aae0de7fca85525f727d3354df17896092de8bb26ae4c12d89c77e5df8cbce4
+    image: quay.io/keycloak/keycloak:26.7.5@sha256:37dbaf6f0722c9ec246335f36e1ef8b2e6cb960f7c27e0d8c615121a3d475a85
     container_name: gvprlg-dev-keycloak
     command: start-dev --import-realm --http-port=8080
     environment:

@@ -38,7 +38,7 @@ De dev-stack (`docker-compose.dev.yml`) start:
 | Dienst | Adres | Opmerking |
 |---|---|---|
 | Postgres | `localhost:5433` | gebruiker/wachtwoord `gvprlg`/`devpassword`; testdatabase `gvprlg_test` |
-| Keycloak 26.6.4 | <http://localhost:8081> | admin-console: `admin` / `devadmin`; realm `gvprlg` uit `deploy/keycloak/realm-gvprlg.dev.json` |
+| Keycloak 26.7.5 | <http://localhost:8081> | admin-console: `admin` / `devadmin`; realm `gvprlg` uit `deploy/keycloak/realm-gvprlg.dev.json` |
 | Mailpit | <http://localhost:8025> | vangt alle mail van de dev-Keycloak (SMTP op 1025) |
 
 Testgebruikers in de dev-realm (inloggen met e-mail + TOTP-code, geen wachtwoord):
@@ -351,7 +351,7 @@ geen menu-item en de API (`GET /api/audit`) weigert hen met 403.
 | serve | 14.2.8 | MIT |
 | otpauth (dev, E2E) | 9.6.0 | MIT |
 | tsx (dev, seed-script) | 4.23.15 | MIT |
-| Keycloak (container; dev en productie) | 26.6.4 | Apache-2.0 |
+| Keycloak (container; dev en productie) | 26.7.5 | Apache-2.0 |
 | Mailpit (dev-container) | v1.33.1 | MIT |
 | @types/node | 24.0.0 | MIT |
 | @types/react | 19.0.0 | MIT |
