@@ -131,6 +131,7 @@ h1.pf-v5-c-title {
 .pf-v5-c-button.pf-m-primary:focus {
   background-color: var(--gv-primary-dark) !important;
   border-color: var(--gv-primary-dark) !important;
+  color: var(--gv-white) !important; /* beats "a:hover" for the info page's link button */
   --pf-v5-c-button--m-primary--hover--BackgroundColor: var(--gv-primary-dark) !important;
 }
 
@@ -165,4 +166,9 @@ a:hover {
 .pf-v5-c-login__main-footer-band,
 .pf-v5-c-check__label {
   color: var(--gv-meta) !important;
+}
+
+/* "Naar Spinnenweb" on the info page (info.ftl): keep it clear of the message text above. */
+#kc-info-message .pf-v5-c-button {
+  margin-top: 1rem;
 }
