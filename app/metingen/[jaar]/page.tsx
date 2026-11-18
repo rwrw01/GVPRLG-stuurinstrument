@@ -9,6 +9,7 @@ import { berekenGemiddeldePerVraag, berekenOrganisatieGemiddelde, type ScoresPer
 import { PlatformStatus } from '@/src/ui/components/PlatformStatus';
 import { Spinnenweb, type SpinnenwebSerie } from '@/src/ui/components/Spinnenweb';
 import { asGroepen, naarSpaakWaarden, vraagSpaken } from '@/src/ui/components/_spinnenwebSpaken';
+import { unitKaartBlokken } from '@/src/ui/components/_unitKaartBlokken';
 import type { UiBusinessUnit, UiVragenlijst } from '@/src/ui/components/_vragenlijstTypen';
 import { useVorigeMeting, type VorigeMeting } from '@/src/ui/hooks/useVorigeMeting';
 import { useVragenlijst } from '@/src/ui/hooks/useVragenlijst';
@@ -83,17 +84,28 @@ function OrganisatieWeb({ jaar, lijst, rijen, vorige }: { jaar: string; lijst: U
   );
 }
 
+interface UnitKaartProps {
+  jaar: string;
+  lijst: UiVragenlijst;
+  unit: UiBusinessUnit;
+  data?: Rij;
+  magBewerken: boolean;
+  vorige: VorigeMeting | null;
+  inGroep: boolean;
+}
+
 /**
  * Card of one business unit: status, its web with the previous year, and the links; "Invullen" only
- * when the server says the user may edit it.
- * @param props - Shown year, its list, the unit, its row, whether it may be edited and the previous meting
+ * when the server says the user may edit it. Inside a platform group the name is one level deeper.
+ * @param props - Shown year, its list, the unit, its row, edit right, previous meting and whether it is in a group
  * @returns the card
  */
-function UnitKaart({ jaar, lijst, unit, data, magBewerken, vorige }: { jaar: string; lijst: UiVragenlijst; unit: UiBusinessUnit; data?: Rij; magBewerken: boolean; vorige: VorigeMeting | null }) {
+function UnitKaart({ jaar, lijst, unit, data, magBewerken, vorige, inGroep }: UnitKaartProps) {
+  const Kop = inGroep ? 'h4' : 'h3';
   return (
     <div className={`card${data?.status === 'definitief' ? ' is-definitief' : ''}`} data-platform={unit.id} data-businessunit={unit.id}>
       <div className="platform-kop">
-        <h3>{unit.naam}</h3>
+        <Kop>{unit.naam}</Kop>
         <PlatformStatus status={data?.status ?? null} />
       </div>
       {data && (
@@ -109,25 +121,24 @@ function UnitKaart({ jaar, lijst, unit, data, magBewerken, vorige }: { jaar: str
 }
 
 /**
- * The business unit cards; a platform with more than one business unit gets its name as heading.
+ * The business unit cards in the configured platform order. A platform with more than one business
+ * unit stays in place as a framed group with the platform name as heading.
  * @param props - Shown year, its list, the rows, the edit right per business unit and the previous meting
- * @returns the grouped cards
+ * @returns the grid of cards and groups
  */
 function UnitKaarten({ jaar, lijst, rijen, magBewerken, vorige }: { jaar: string; lijst: UiVragenlijst; rijen: Rijen; magBewerken: Record<string, boolean>; vorige: VorigeMeting | null }) {
-  const kaart = (unit: UiBusinessUnit) => <UnitKaart key={unit.id} jaar={jaar} lijst={lijst} unit={unit} data={rijen[unit.id]} magBewerken={magBewerken[unit.id] === true} vorige={vorige} />;
-  const enkel = lijst.platformen.filter((p) => p.businessUnitIds.length === 1);
-  const groepen = lijst.platformen.filter((p) => p.businessUnitIds.length > 1);
-  const units = (ids: string[]) => ids.map((id) => lijst.businessUnits.find((b) => b.id === id)!).filter(Boolean);
+  const kaart = (unit: UiBusinessUnit, inGroep: boolean) => (
+    <UnitKaart key={unit.id} jaar={jaar} lijst={lijst} unit={unit} data={rijen[unit.id]} magBewerken={magBewerken[unit.id] === true} vorige={vorige} inGroep={inGroep} />
+  );
   return (
-    <>
-      {enkel.length > 0 && <div className="dashboard-grid">{units(enkel.flatMap((p) => p.businessUnitIds)).map(kaart)}</div>}
-      {groepen.map((p) => (
-        <section key={p.id} className="platform-groep" aria-labelledby={`platform-${p.id}`}>
-          <h3 id={`platform-${p.id}`} className="platform-groep-kop">Platform {p.naam}</h3>
-          <div className="dashboard-grid">{units(p.businessUnitIds).map(kaart)}</div>
+    <div className="dashboard-grid unit-kaarten">
+      {unitKaartBlokken(lijst).map((blok) => blok.soort === 'enkel' ? kaart(blok.unit, false) : (
+        <section key={blok.platform.id} className="platform-groep" data-platform-groep={blok.platform.id} data-aantal={blok.units.length > 2 ? 'meer' : '2'} aria-labelledby={`platform-${blok.platform.id}`}>
+          <h3 id={`platform-${blok.platform.id}`} className="platform-groep-kop">{blok.platform.naam}</h3>
+          <div className="platform-groep-kaarten">{blok.units.map((u) => kaart(u, true))}</div>
         </section>
       ))}
-    </>
+    </div>
   );
 }
 

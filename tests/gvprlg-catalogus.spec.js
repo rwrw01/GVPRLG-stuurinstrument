@@ -54,6 +54,42 @@ async function maakJaar(request, opties = {}) {
 }
 
 /**
+ * Checks on the year page that Informatievoorziening, now with two business units, stays at its
+ * place in the platform order as a framed group with its name as heading and both cards inside.
+ * @param {import('@playwright/test').Page} page - Page on /metingen/{jaar}
+ * @param {number} jaar - The year
+ * @param {string[]} unitIds - The business units of the group in their order
+ */
+async function verwachtGroepOpPlaats(page, jaar, unitIds) {
+  const groep = page.getByRole('region', { name: 'Informatievoorziening', exact: true });
+  await expect(groep.getByRole('heading', { name: 'Informatievoorziening', level: 3, exact: true })).toBeVisible();
+  await expect(groep.locator('[data-businessunit]')).toHaveCount(2);
+  expect(await groep.locator('[data-businessunit]').evaluateAll((els) => els.map((e) => e.getAttribute('data-businessunit')))).toEqual(unitIds);
+  const lijst = (await (await page.request.get(`/api/metingen/${jaar}/vragenlijst`)).json()).vragenlijst;
+  const verwacht = lijst.platformen.filter((/** @type {any} */ p) => p.businessUnitIds.length > 0)
+    .map((/** @type {any} */ p) => (p.businessUnitIds.length > 1 ? `groep:${p.id}` : p.businessUnitIds[0]));
+  const blokken = await page.locator('.unit-kaarten > *').evaluateAll((els) => els.map((e) => (e.getAttribute('data-platform-groep') ? `groep:${e.getAttribute('data-platform-groep')}` : e.getAttribute('data-businessunit'))));
+  expect(blokken).toEqual(verwacht);
+  const plek = blokken.indexOf('groep:informatievoorziening');
+  expect(plek).toBeGreaterThan(0);
+  expect(plek).toBeLessThan(blokken.length - 1);
+}
+
+/**
+ * Moves Informatievoorziening one place up when it is the last platform, so the year page check
+ * proves the group stays in place instead of at the end.
+ * @param {import('@playwright/test').APIRequestContext} request - Beheerder request context
+ * @param {number} jaar - An open year (it follows the catalogue)
+ * @returns {Promise<boolean>} whether it was moved (move it back down afterwards)
+ */
+async function ivNietAchteraan(request, jaar) {
+  const lijst = (await (await request.get(`/api/metingen/${jaar}/vragenlijst`)).json()).vragenlijst;
+  if (lijst.platformen.at(-1)?.id !== 'informatievoorziening') return false;
+  expect((await request.post('/api/beheer/platformen/informatievoorziening/verplaats', { data: { richting: 'omhoog' } })).ok()).toBe(true);
+  return true;
+}
+
+/**
  * The short labels of the active questions in table order.
  * @param {import('@playwright/test').Page} page - Page on /beheer/vragenlijst
  * @returns {Promise<string[]>} the labels
@@ -128,6 +164,7 @@ test('beheerder voegt een as toe, verplaatst, hernoemt, verwijdert en herstelt h
 
 test('een tweede businessunit onder één platform: dezelfde invuller vult beide in, de nieuwe begint kaal en aanwezigen wordt bewaard', async ({ page, browser }) => {
   const jaar = await maakJaar(page.request);
+  const verplaatst = await ivNietAchteraan(page.request, jaar);
   await page.goto('/beheer/businessunits');
   await page.getByRole('button', { name: 'Businessunit toevoegen aan Informatievoorziening' }).click();
   const formulier = page.getByRole('form', { name: 'Businessunit toevoegen' });
@@ -167,7 +204,7 @@ test('een tweede businessunit onder één platform: dezelfde invuller vult beide
     await expect(ip.getByRole('heading', { name: `E2E IV twee — Resultaat ${jaar}` })).toBeVisible();
     await expect(ip.locator('.aanwezigen')).toHaveText(`E2E Jan en Piet bij ${unit.id}`);
     await ip.goto(`/metingen/${jaar}`);
-    await expect(ip.getByRole('heading', { name: 'Platform Informatievoorziening' })).toBeVisible();
+    await verwachtGroepOpPlaats(ip, jaar, [unit.id, 'informatievoorziening']);
     await expect(ip.locator(`[data-businessunit="${unit.id}"] .platform-status`)).toHaveText('In bewerking');
   } finally {
     await context.close();
@@ -190,6 +227,7 @@ test('een tweede businessunit onder één platform: dezelfde invuller vult beide
   const open = await maakJaar(page.request);
   const lijst = await (await page.request.get(`/api/metingen/${open}/vragenlijst`)).json();
   expect(lijst.vragenlijst.businessUnits.map((/** @type {any} */ b) => b.id)).not.toContain(unit.id);
+  if (verplaatst) expect((await page.request.post('/api/beheer/platformen/informatievoorziening/verplaats', { data: { richting: 'omlaag' } })).ok()).toBe(true);
 });
 
 test('beheerder voegt een platform toe, hernoemt, laat het vervallen en maakt het weer actief', async ({ page }) => {
