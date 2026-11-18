@@ -39,7 +39,7 @@ export default defineConfig({
     },
     {
       name: 'backend-fase-b',
-      testMatch: 'gvprlg-fase-b-auth.spec.js',
+      testMatch: ['gvprlg-fase-b-auth.spec.js', 'gvprlg-gebruikersbeheer.spec.js'],
       dependencies: ['warmup'],
       use: { baseURL: APP_URL },
     },

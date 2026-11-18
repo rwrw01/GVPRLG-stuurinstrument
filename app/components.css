@@ -50,8 +50,13 @@
 .beheer-tabel { font-size: 0.85rem; }
 .beheer-tabel td { vertical-align: top; }
 .beheer-acties .btn { padding: 0.3rem 0.6rem; font-size: 0.8rem; }
-.rol-wijzigen { display: inline-flex; gap: 0.35rem; align-items: center; }
-.rol-wijzigen select { width: auto; padding: 0.25rem 0.4rem; font-size: 0.8rem; }
+/* Sortable column header and a user's name as a button that looks like a link. */
+.sorteer-knop { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: inherit; cursor: pointer; display: inline-flex; gap: 0.3rem; align-items: center; }
+.sorteer-knop span { font-size: 0.7rem; color: var(--color-muted); }
+.link-knop { background: none; border: 0; padding: 0; font: inherit; color: var(--color-secondary); text-decoration: underline; cursor: pointer; text-align: left; }
+.sorteer-knop:focus-visible, .link-knop:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.gebruiker-bewerken-rol select { max-width: 12rem; }
+.gebruiker-bewerken-noot { font-size: 0.85rem; color: var(--color-muted); margin: 0 0 0.4rem; }
 /* Visually hidden but read by screen readers (labels of compact controls). */
 .visueel-verborgen { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .audit-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 0 1rem; align-items: end; }

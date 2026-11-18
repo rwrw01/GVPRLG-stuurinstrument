@@ -250,33 +250,6 @@ test.describe('GVPRLG fase B — beheer', () => {
     }
   });
 
-  test('beheerder maakt iemand lezer en de koppelingen verdwijnen', async ({ page }) => {
-    const doel = GEBRUIKERS.wordtLezer;
-    await page.goto('/beheer');
-    await kiesBeheerJaar(page, FASE_B_JAAR);
-    const rij = gebruikerRij(page, doel.email);
-    await expect(rij.locator('td[data-label="Rol"]')).toHaveText('invuller');
-    expect((await vindBeheerGebruiker(page.request, FASE_B_JAAR, doel.email)).platformIds).toEqual([PLATFORM_INVULLER]);
-
-    const knop = rij.getByRole('button', { name: /Rol wijzigen/ });
-    await expect(knop).toBeDisabled();
-    await rij.getByLabel(`Nieuwe rol voor ${doel.naam}`).selectOption('lezer');
-    // The confirm blocks the click until handled, so accept it from a handler registered first.
-    /** @type {string[]} */
-    const meldingen = [];
-    page.once('dialog', (dialoog) => {
-      meldingen.push(dialoog.message());
-      void dialoog.accept();
-    });
-    await knop.click();
-    expect(meldingen).toEqual([`${doel.naam} wordt lezer. Alle platformkoppelingen in alle meetjaren worden verwijderd. Doorgaan?`]);
-
-    await expect(rij.locator('td[data-label="Rol"]')).toHaveText('lezer');
-    await expect(rij.locator(`td[data-label="Platformen ${FASE_B_JAAR}"]`)).toHaveText('-');
-    await expect(rij.getByRole('button', { name: 'Koppelingen' })).toHaveCount(0);
-    expect((await vindBeheerGebruiker(page.request, FASE_B_JAAR, doel.email)).platformIds).toEqual([]);
-  });
-
   test('beheerder opent de auditlog via het menu', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('navigation', { name: 'Hoofdmenu' }).getByRole('link', { name: 'Auditlog' }).click();

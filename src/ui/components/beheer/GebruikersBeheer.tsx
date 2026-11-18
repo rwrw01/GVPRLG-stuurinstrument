@@ -8,6 +8,7 @@ import { leesDetail, verstuurJson } from '../_verstuurJson';
 import { GebruikersTabel } from './GebruikersTabel';
 import { GebruikerToevoegenForm } from './GebruikerToevoegenForm';
 import type { BeheerGebruiker, GebruikerWijziging } from './_beheerTypen';
+import { bewerkStappen, stapVerzoek, voerStappenUit, type BewerkbareGebruiker } from './_gebruikerBewerken';
 import { jaarPlatformen, JaarPlatformenProvider } from './_jaarPlatformen';
 
 function JaarKeuze({ jaren, jaar, onChange }: { jaren: number[]; jaar: number; onChange: (jaar: number) => void }) {
@@ -54,11 +55,23 @@ function GebruikersVoorJaar({ jaren }: { jaren: number[] }) {
     };
   }, [laad]);
 
-  async function voerUit(url: string, method: 'PATCH' | 'PUT', body: unknown) {
+  async function wijzig(id: string, wijziging: GebruikerWijziging) {
     setFout(null);
-    const melding = await verstuurJson(url, method, body);
+    const melding = await verstuurJson(`/api/beheer/gebruikers/${id}`, 'PATCH', wijziging);
     if (melding) setFout(melding);
     await laad();
+  }
+
+  // Role first, then the year's links; only what changed. The list is reloaded either way.
+  async function slaBewerkingOp(g: BeheerGebruiker, nieuw: BewerkbareGebruiker): Promise<boolean> {
+    setFout(null);
+    const melding = await voerStappenUit(bewerkStappen(g, nieuw), (stap) => {
+      const verzoek = stapVerzoek(g.id, jaar, stap);
+      return verstuurJson(verzoek.url, verzoek.method, verzoek.body);
+    });
+    if (melding) setFout(melding);
+    await laad();
+    return melding === null;
   }
 
   return (
@@ -78,8 +91,8 @@ function GebruikersVoorJaar({ jaren }: { jaren: number[] }) {
         <GebruikersTabel
           gebruikers={gebruikers}
           jaar={jaar}
-          onWijzig={(id, wijziging: GebruikerWijziging) => voerUit(`/api/beheer/gebruikers/${id}`, 'PATCH', wijziging)}
-          onKoppelingen={(id, platformIds) => voerUit(`/api/beheer/gebruikers/${id}/koppelingen`, 'PUT', { jaar, platformIds })}
+          onWijzig={(id, wijziging) => void wijzig(id, wijziging)}
+          onOpslaan={slaBewerkingOp}
         />
       </div>
       <GebruikerToevoegenForm jaar={jaar} onToegevoegd={() => void laad()} />

@@ -1,13 +1,14 @@
 'use client';
 
 import { Fragment, useState } from 'react';
-import { KoppelingenEditor } from './KoppelingenEditor';
+import { GebruikerBewerken } from './GebruikerBewerken';
 import { useJaarPlatformen, type JaarPlatform } from './_jaarPlatformen';
-import { BEHEER_ROLLEN, type BeheerGebruiker, type BeheerRol, type GebruikerWijziging } from './_beheerTypen';
+import type { BeheerGebruiker, GebruikerWijziging } from './_beheerTypen';
+import { sorteerOpNaam, type BewerkbareGebruiker, type SorteerRichting } from './_gebruikerBewerken';
 
 interface Acties {
   onWijzig: (id: string, wijziging: GebruikerWijziging) => void;
-  onKoppelingen: (id: string, platformIds: string[]) => void;
+  onOpslaan: (g: BeheerGebruiker, nieuw: BewerkbareGebruiker) => Promise<boolean>;
 }
 
 function platformNamen(platformen: JaarPlatform[], ids: string[]): string {
@@ -16,54 +17,33 @@ function platformNamen(platformen: JaarPlatform[], ids: string[]): string {
 }
 
 /**
- * Role select (placeholder "Kies rol…" first) plus "Rol wijzigen" button for one user. The button
- * stays disabled until a role is chosen; becoming lezer is confirmed first because it removes all
- * platform links in every year.
- * @param props.g - The user in this row
- * @param props.onWijzig - Sends the PATCH role change
- * @returns the inline role control
+ * Header cell of the name column: a button that toggles the sort direction, with `aria-sort`.
+ * @param props.richting - Current direction
+ * @param props.onWissel - Toggles the direction
+ * @returns the sortable column header
  */
-function RolWijzigen({ g, onWijzig }: { g: BeheerGebruiker; onWijzig: Acties['onWijzig'] }) {
-  const andere = BEHEER_ROLLEN.filter((r) => r !== g.rol);
-  const [nieuweRol, setNieuweRol] = useState<BeheerRol | null>(null);
-  const id = `rol-${g.id}`;
-  function wijzig() {
-    if (!nieuweRol) return;
-    const bevestigd =
-      nieuweRol !== 'lezer' ||
-      window.confirm(`${g.naam} wordt lezer. Alle platformkoppelingen in alle meetjaren worden verwijderd. Doorgaan?`);
-    if (bevestigd) onWijzig(g.id, { actie: 'rol', rol: nieuweRol });
-  }
+function NaamKop({ richting, onWissel }: { richting: SorteerRichting; onWissel: () => void }) {
   return (
-    <span className="rol-wijzigen">
-      <label htmlFor={id} className="visueel-verborgen">Nieuwe rol voor {g.naam}</label>
-      <select id={id} value={nieuweRol ?? ''} onChange={(e) => setNieuweRol(andere.find((r) => r === e.target.value) ?? null)}>
-        <option value="">Kies rol…</option>
-        {andere.map((r) => (
-          <option key={r} value={r}>{r}</option>
-        ))}
-      </select>
-      <button type="button" className="btn btn-outline" aria-label={`Rol wijzigen van ${g.naam}`} disabled={!nieuweRol} onClick={wijzig}>
-        Rol wijzigen
+    <th role="columnheader" aria-sort={richting === 'oplopend' ? 'ascending' : 'descending'}>
+      <button type="button" className="sorteer-knop" onClick={onWissel}>
+        Naam <span aria-hidden="true">{richting === 'oplopend' ? '▲' : '▼'}</span>
       </button>
-    </span>
+    </th>
   );
 }
 
-function RijActies({ g, acties, onKoppelingen }: { g: BeheerGebruiker; acties: Acties; onKoppelingen: () => void }) {
+function RijActies({ g, onWijzig }: { g: BeheerGebruiker; onWijzig: Acties['onWijzig'] }) {
   function ontkoppel() {
     if (window.confirm(`Keycloak-account van ${g.naam} ontkoppelen? De volgende login koppelt opnieuw op e-mail.`)) {
-      acties.onWijzig(g.id, { actie: 'ontkoppelAccount' });
+      onWijzig(g.id, { actie: 'ontkoppelAccount' });
     }
   }
   return (
     <div className="btn-group beheer-acties">
-      {g.rol !== 'lezer' && <button type="button" className="btn btn-outline" onClick={onKoppelingen}>Koppelingen</button>}
-      <RolWijzigen key={g.rol} g={g} onWijzig={acties.onWijzig} />
       {g.status === 'ingetrokken' ? (
-        <button type="button" className="btn btn-outline" onClick={() => acties.onWijzig(g.id, { actie: 'herstellen' })}>Toegang herstellen</button>
+        <button type="button" className="btn btn-outline" onClick={() => onWijzig(g.id, { actie: 'herstellen' })}>Toegang herstellen</button>
       ) : (
-        <button type="button" className="btn btn-danger" onClick={() => acties.onWijzig(g.id, { actie: 'intrekken' })}>Toegang intrekken</button>
+        <button type="button" className="btn btn-danger" onClick={() => onWijzig(g.id, { actie: 'intrekken' })}>Toegang intrekken</button>
       )}
       {g.gekoppeld && (
         <button type="button" className="btn btn-outline" onClick={ontkoppel}>Keycloak-account ontkoppelen</button>
@@ -72,21 +52,37 @@ function RijActies({ g, acties, onKoppelingen }: { g: BeheerGebruiker; acties: A
   );
 }
 
+function GebruikerRij({ g, jaar, onWijzig, onBewerk }: { g: BeheerGebruiker; jaar: number; onWijzig: Acties['onWijzig']; onBewerk: () => void }) {
+  const platformen = useJaarPlatformen();
+  return (
+    <tr role="row">
+      <td role="cell" data-label="Naam">
+        <button type="button" className="link-knop" aria-label={`Bewerk ${g.naam}`} onClick={onBewerk}>{g.naam}</button>
+      </td>
+      <td role="cell" data-label="E-mail">{g.email}</td><td role="cell" data-label="Rol">{g.rol}</td><td role="cell" data-label="Status">{g.status}</td>
+      <td role="cell" data-label={`Platformen ${jaar}`}>{platformNamen(platformen, g.platformIds)}</td>
+      <td role="cell" data-label="Acties" className="cel-acties"><RijActies g={g} onWijzig={onWijzig} /></td>
+    </tr>
+  );
+}
+
 /**
- * Table of users with their platform links for one year and the per-row admin actions.
+ * Table of users, sortable by name, with their platform links for one year and the access
+ * actions. Clicking a name opens the edit panel for role and links below that row (one at a time).
  * @param props.gebruikers - Users from the admin API
  * @param props.jaar - Measurement year shown in the platform column
- * @param props.onWijzig - Sends a PATCH action for a user
- * @param props.onKoppelingen - Replaces a user's platform links for the year
+ * @param props.onWijzig - Sends a PATCH access action for a user
+ * @param props.onOpslaan - Saves role and links from the edit panel; resolves to true on success
  * @returns the user table
  */
-export function GebruikersTabel({ gebruikers, jaar, ...acties }: { gebruikers: BeheerGebruiker[]; jaar: number } & Acties) {
-  const [editorVoor, setEditorVoor] = useState<string | null>(null);
-  const platformen = useJaarPlatformen();
+export function GebruikersTabel({ gebruikers, jaar, onWijzig, onOpslaan }: { gebruikers: BeheerGebruiker[]; jaar: number } & Acties) {
+  const [richting, setRichting] = useState<SorteerRichting>('oplopend');
+  const [bewerkVoor, setBewerkVoor] = useState<string | null>(null);
 
-  function opslaan(id: string, platformIds: string[]) {
-    setEditorVoor(null);
-    acties.onKoppelingen(id, platformIds);
+  async function opslaan(g: BeheerGebruiker, nieuw: BewerkbareGebruiker): Promise<boolean> {
+    const gelukt = await onOpslaan(g, nieuw);
+    if (gelukt) setBewerkVoor(null);
+    return gelukt;
   }
 
   return (
@@ -94,20 +90,18 @@ export function GebruikersTabel({ gebruikers, jaar, ...acties }: { gebruikers: B
     <table aria-label="Gebruikers" className="beheer-tabel beheer-tabel-stapel" role="table">
       <thead role="rowgroup">
         <tr role="row">
-          <th role="columnheader">Naam</th><th role="columnheader">E-mail</th><th role="columnheader">Rol</th><th role="columnheader">Status</th><th role="columnheader">Platformen {jaar}</th><th role="columnheader">Acties</th>
+          <NaamKop richting={richting} onWissel={() => setRichting(richting === 'oplopend' ? 'aflopend' : 'oplopend')} />
+          <th role="columnheader">E-mail</th><th role="columnheader">Rol</th><th role="columnheader">Status</th><th role="columnheader">Platformen {jaar}</th><th role="columnheader">Acties</th>
         </tr>
       </thead>
       <tbody role="rowgroup">
-        {gebruikers.map((g) => (
+        {sorteerOpNaam(gebruikers, richting).map((g) => (
           <Fragment key={g.id}>
-            <tr role="row">
-              <td role="cell" data-label="Naam">{g.naam}</td><td role="cell" data-label="E-mail">{g.email}</td><td role="cell" data-label="Rol">{g.rol}</td><td role="cell" data-label="Status">{g.status}</td><td role="cell" data-label={`Platformen ${jaar}`}>{platformNamen(platformen, g.platformIds)}</td>
-              <td role="cell" data-label="Acties" className="cel-acties"><RijActies g={g} acties={acties} onKoppelingen={() => setEditorVoor(g.id)} /></td>
-            </tr>
-            {editorVoor === g.id && (
+            <GebruikerRij g={g} jaar={jaar} onWijzig={onWijzig} onBewerk={() => setBewerkVoor(bewerkVoor === g.id ? null : g.id)} />
+            {bewerkVoor === g.id && (
               <tr role="row">
                 <td role="cell" colSpan={6} className="cel-editor">
-                  <KoppelingenEditor gebruikerId={g.id} huidig={g.platformIds} onOpslaan={(ids) => opslaan(g.id, ids)} onAnnuleren={() => setEditorVoor(null)} />
+                  <GebruikerBewerken key={`${g.id}-${jaar}`} g={g} jaar={jaar} onOpslaan={(nieuw) => opslaan(g, nieuw)} onAnnuleren={() => setBewerkVoor(null)} />
                 </td>
               </tr>
             )}
