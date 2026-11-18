@@ -1,15 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useJaren } from '@/src/ui/hooks/useJaren';
 import { useVragenlijst } from '@/src/ui/hooks/useVragenlijst';
-import { leesDetail, verstuurJson } from '../_verstuurJson';
 import { GebruikersTabel } from './GebruikersTabel';
 import { GebruikerToevoegenForm } from './GebruikerToevoegenForm';
-import type { BeheerGebruiker, GebruikerWijziging } from './_beheerTypen';
-import { bewerkStappen, stapVerzoek, voerStappenUit, type BewerkbareGebruiker } from './_gebruikerBewerken';
 import { jaarPlatformen, JaarPlatformenProvider } from './_jaarPlatformen';
+import { useBeheerGebruikers } from './useBeheerGebruikers';
 
 function JaarKeuze({ jaren, jaar, onChange }: { jaren: number[]; jaar: number; onChange: (jaar: number) => void }) {
   return (
@@ -29,73 +26,23 @@ function startJaar(jaren: number[]): number {
 }
 
 function GebruikersVoorJaar({ jaren }: { jaren: number[] }) {
-  const [jaar, setJaar] = useState(() => startJaar(jaren));
-  const [gebruikers, setGebruikers] = useState<BeheerGebruiker[]>([]);
-  const [fout, setFout] = useState<string | null>(null);
+  const { jaar, kiesJaar, gebruikers, fout, acties } = useBeheerGebruikers(startJaar(jaren));
   const lijst = useVragenlijst(jaar);
   const platformen = jaarPlatformen(lijst.status === 'ok' ? lijst.lijst : null);
 
-  // `actueel` drops an answer that arrives after the year changed: a slower request for the old
-  // year must not fill the table (and an edit panel) with that year's links under the new year.
-  const laad = useCallback(async (actueel: () => boolean = () => true) => {
-    const response = await fetch(`/api/beheer/gebruikers?jaar=${jaar}`).catch(() => null);
-    if (!actueel()) return;
-    if (!response) return setFout('De server is niet bereikbaar.');
-    const json: unknown = await response.json().catch(() => null);
-    if (!actueel()) return;
-    if (!response.ok) return setFout(leesDetail(json) ?? 'Kon de gebruikers niet laden.');
-    setGebruikers((json as { gebruikers: BeheerGebruiker[] }).gebruikers);
-  }, [jaar]);
-
-  useEffect(() => {
-    let actief = true;
-    void laad(() => actief);
-    return () => {
-      actief = false;
-    };
-  }, [laad]);
-
-  async function wijzig(id: string, wijziging: GebruikerWijziging) {
-    setFout(null);
-    const melding = await verstuurJson(`/api/beheer/gebruikers/${id}`, 'PATCH', wijziging);
-    if (melding) setFout(melding);
-    await laad();
-  }
-
-  // Role first, then the year's links; only what changed. The list is reloaded either way.
-  async function slaBewerkingOp(g: BeheerGebruiker, nieuw: BewerkbareGebruiker): Promise<boolean> {
-    setFout(null);
-    const melding = await voerStappenUit(bewerkStappen(g, nieuw), (stap) => {
-      const verzoek = stapVerzoek(g.id, jaar, stap);
-      return verstuurJson(verzoek.url, verzoek.method, verzoek.body);
-    });
-    if (melding) setFout(melding);
-    await laad();
-    return melding === null;
-  }
-
   return (
     <JaarPlatformenProvider platformen={platformen}>
-      <JaarKeuze
-        jaren={jaren}
-        jaar={jaar}
-        onChange={(j) => {
-          setFout(null);
-          // Drop the previous year's rows while the chosen year loads.
-          setGebruikers([]);
-          setJaar(j);
-        }}
-      />
+      <JaarKeuze jaren={jaren} jaar={jaar} onChange={kiesJaar} />
       {fout && <div className="alert alert-warning" role="alert">{fout}</div>}
       <div className="card">
         <GebruikersTabel
           gebruikers={gebruikers}
           jaar={jaar}
-          onWijzig={(id, wijziging) => void wijzig(id, wijziging)}
-          onOpslaan={slaBewerkingOp}
+          onWijzig={(id, wijziging) => void acties.wijzig(jaar, id, wijziging)}
+          onOpslaan={(g, nieuw) => acties.slaOp(jaar, g, nieuw)}
         />
       </div>
-      <GebruikerToevoegenForm jaar={jaar} onToegevoegd={() => void laad()} />
+      <GebruikerToevoegenForm jaar={jaar} onToegevoegd={() => void acties.laad(jaar)} />
     </JaarPlatformenProvider>
   );
 }
