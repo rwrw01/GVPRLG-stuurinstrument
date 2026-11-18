@@ -139,7 +139,7 @@ test('beheerder voegt een as toe, verplaatst, hernoemt, verwijdert en herstelt h
 
 test('een tweede businessunit onder één platform: dezelfde invuller vult beide in, de nieuwe begint kaal en aanwezigen wordt bewaard', async ({ page, browser }) => {
   const jaar = await maakJaar(page.request);
-  herstelVolgorde = await zetIvTussenIn(page.request, jaar);
+  herstelVolgorde = await zetIvTussenIn(page.request);
   await page.goto('/beheer/businessunits');
   await page.getByRole('button', { name: 'Businessunit toevoegen aan Informatievoorziening' }).click();
   const formulier = page.getByRole('form', { name: 'Businessunit toevoegen' });
