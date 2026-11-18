@@ -34,16 +34,24 @@ function GebruikersVoorJaar({ jaren }: { jaren: number[] }) {
   const lijst = useVragenlijst(jaar);
   const platformen = jaarPlatformen(lijst.status === 'ok' ? lijst.lijst : null);
 
-  const laad = useCallback(async () => {
+  // `actueel` drops an answer that arrives after the year changed: a slower request for the old
+  // year must not fill the table (and an edit panel) with that year's links under the new year.
+  const laad = useCallback(async (actueel: () => boolean = () => true) => {
     const response = await fetch(`/api/beheer/gebruikers?jaar=${jaar}`).catch(() => null);
+    if (!actueel()) return;
     if (!response) return setFout('De server is niet bereikbaar.');
     const json: unknown = await response.json().catch(() => null);
+    if (!actueel()) return;
     if (!response.ok) return setFout(leesDetail(json) ?? 'Kon de gebruikers niet laden.');
     setGebruikers((json as { gebruikers: BeheerGebruiker[] }).gebruikers);
   }, [jaar]);
 
   useEffect(() => {
-    void laad();
+    let actief = true;
+    void laad(() => actief);
+    return () => {
+      actief = false;
+    };
   }, [laad]);
 
   async function voerUit(url: string, method: 'PATCH' | 'PUT', body: unknown) {
@@ -60,6 +68,8 @@ function GebruikersVoorJaar({ jaren }: { jaren: number[] }) {
         jaar={jaar}
         onChange={(j) => {
           setFout(null);
+          // Drop the previous year's rows while the chosen year loads.
+          setGebruikers([]);
           setJaar(j);
         }}
       />
