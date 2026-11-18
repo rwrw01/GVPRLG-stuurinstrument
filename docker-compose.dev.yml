@@ -23,6 +23,9 @@ services:
     image: quay.io/keycloak/keycloak:26.7.5@sha256:37dbaf6f0722c9ec246335f36e1ef8b2e6cb960f7c27e0d8c615121a3d475a85
     container_name: gvprlg-dev-keycloak
     command: start-dev --import-realm --http-port=8080
+    # Cap memory: the image uses -XX:MaxRAMPercentage=70, so without a limit the JVM heap may grow
+    # to 70% of the whole WSL VM. With 1536m the heap tops out around 1 GB.
+    mem_limit: 1536m
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: devadmin
