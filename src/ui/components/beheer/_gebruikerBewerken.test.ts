@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { bewerkStappen, lezerBevestiging, sorteerOpNaam, stapVerzoek, vraagtLezerBevestiging, voerStappenUit } from './_gebruikerBewerken';
+import { bewerkStappen, lezerBevestiging, sorteerOpNaam, stapVerzoek, vraagtLezerBevestiging, voerStappenUit, type BewerkStap } from './_gebruikerBewerken';
 
 describe('sorteerOpNaam', () => {
   const lijst = [{ naam: 'bert', email: 'b@x' }, { naam: 'Émile', email: 'e@x' }, { naam: 'Anna', email: 'a@x' }, { naam: 'zoë', email: 'z@x' }];
@@ -11,7 +11,7 @@ describe('sorteerOpNaam', () => {
 
   it('should sort descending and leave the input untouched', () => {
     expect(sorteerOpNaam(lijst, 'aflopend').map((g) => g.naam)).toEqual(['zoë', 'Émile', 'bert', 'Anna']);
-    expect(lijst[0].naam).toBe('bert');
+    expect(lijst.map((g) => g.naam)).toEqual(['bert', 'Émile', 'Anna', 'zoë']);
   });
 
   it('should order equal names by e-mail so the order is stable', () => {
@@ -69,8 +69,8 @@ describe('stapVerzoek', () => {
 });
 
 describe('voerStappenUit', () => {
-  const rol = { soort: 'rol', rol: 'invuller' } as const;
-  const koppelingen = { soort: 'koppelingen', platformIds: ['a'] } as const;
+  const rol: BewerkStap = { soort: 'rol', rol: 'invuller' };
+  const koppelingen: BewerkStap = { soort: 'koppelingen', platformIds: ['a'] };
 
   it('should run the steps in order and report success', async () => {
     const gezien: string[] = [];
